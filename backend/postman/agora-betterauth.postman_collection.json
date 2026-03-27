@@ -1,0 +1,622 @@
+{
+  "info": {
+    "name": "Agora API — BetterAuth",
+    "_postman_id": "agora-betterauth-v2",
+    "description": "Full Agora multi-vendor API collection. Base URL: http://localhost:5000/api\n\nAuth routes are handled by BetterAuth at /api/auth/*\nAll protected routes use session cookies — Postman must have 'Send cookies' enabled.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "product_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shop_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "address_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Auth (BetterAuth)",
+      "item": [
+        {
+          "name": "Register (Buyer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/sign-up/email",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "sign-up", "email"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Djeziri Oussama\",\n  \"firstName\": \"Oussama\",\n  \"lastName\": \"Djeziri\",\n  \"email\": \"buyer@test.com\",\n  \"password\": \"password123\",\n  \"role\": \"buyer\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register (Seller)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/sign-up/email",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "sign-up", "email"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vendeur Test\",\n  \"firstName\": \"Vendeur\",\n  \"lastName\": \"Test\",\n  \"email\": \"seller@test.com\",\n  \"password\": \"password123\",\n  \"role\": \"seller\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login (Email + Password)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/sign-in/email",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "sign-in", "email"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"buyer@test.com\",\n  \"password\": \"password123\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/sign-out",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "sign-out"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Session (Current User)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/get-session",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "get-session"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/verify-email?token=PASTE_TOKEN_FROM_EMAIL",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "verify-email"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "PASTE_TOKEN_FROM_EMAIL"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password (Request Reset Email)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/forget-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "forget-password"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"buyer@test.com\",\n  \"redirectTo\": \"http://localhost:3000/reset-password\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password (Submit New Password)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"PASTE_TOKEN_FROM_RESET_EMAIL\",\n  \"newPassword\": \"newpassword456\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Google OAuth — Initiate (open in browser)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/sign-in/social?provider=google&callbackURL=http://localhost:3000/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "sign-in", "social"],
+              "query": [
+                {
+                  "key": "provider",
+                  "value": "google"
+                },
+                {
+                  "key": "callbackURL",
+                  "value": "http://localhost:3000/dashboard"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/ok",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "ok"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📍 Addresses",
+      "item": [
+        {
+          "name": "Get My Addresses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/addresses",
+              "host": ["{{base_url}}"],
+              "path": ["addresses"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Address",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if(j._id) pm.collectionVariables.set('address_id', j._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/addresses",
+              "host": ["{{base_url}}"],
+              "path": ["addresses"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Maison\",\n  \"firstName\": \"Oussama\",\n  \"lastName\": \"Djeziri\",\n  \"phone\": \"+213555000001\",\n  \"street\": \"12 Rue des Fleurs\",\n  \"city\": \"Alger\",\n  \"postalCode\": \"16000\",\n  \"country\": \"Algeria\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Address",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/addresses/{{address_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["addresses", "{{address_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Bureau\",\n  \"street\": \"5 Avenue de l'Indépendance\",\n  \"city\": \"Oran\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Set Address as Default",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/addresses/{{address_id}}/default",
+              "host": ["{{base_url}}"],
+              "path": ["addresses", "{{address_id}}", "default"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Address",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/addresses/{{address_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["addresses", "{{address_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏪 Shops",
+      "item": [
+        {
+          "name": "Create Shop (Seller)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if(j._id) pm.collectionVariables.set('shop_id', j._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/shops",
+              "host": ["{{base_url}}"],
+              "path": ["shops"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ma Boutique Test\",\n  \"description\": \"Vente d'électronique et accessoires.\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Shop by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/shops/{{shop_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["shops", "{{shop_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Shop",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/shops/{{shop_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["shops", "{{shop_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Description mise à jour de la boutique.\"\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📦 Products",
+      "item": [
+        {
+          "name": "List All Products (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search & Filter Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products?search=phone&category=Electronics&minPrice=100&maxPrice=1000",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "phone"
+                },
+                {
+                  "key": "category",
+                  "value": "Electronics"
+                },
+                {
+                  "key": "minPrice",
+                  "value": "100"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "1000"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "My Products (Seller)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/mine",
+              "host": ["{{base_url}}"],
+              "path": ["products", "mine"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product (Seller)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if(j._id) pm.collectionVariables.set('product_id', j._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": ["{{base_url}}"],
+              "path": ["products"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Smartphone XYZ\",\n  \"description\": \"Dernier modèle avec 128GB de stockage.\",\n  \"price\": 45000,\n  \"category\": \"Electronics\",\n  \"stock\": 20,\n  \"images\": []\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product (Seller)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 42000,\n  \"stock\": 15\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product (Seller)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🛒 Orders",
+      "item": [
+        {
+          "name": "Create Order (Buyer — needs verified email)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if(j._id) pm.collectionVariables.set('order_id', j._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    { \"product\": \"{{product_id}}\", \"quantity\": 1 }\n  ],\n  \"deliveryAddressId\": \"{{address_id}}\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Orders (Buyer) / Shop Orders (Seller)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

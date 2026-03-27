@@ -1,0 +1,96 @@
+// Load .env FIRST — this file is imported before connectDB() runs in server.js,
+// so we must load the env vars here to have MONGO_URI available.
+import "dotenv/config";
+
+import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
+import { mongodbAdapter } from "better-auth/adapters/mongodb";
+import { MongoClient } from "mongodb";
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from "./services/emailService.js";
+
+// BetterAuth gets its own direct MongoClient connection.
+// This avoids the timing issue where mongoose.connection.getClient() is undefined
+// at module evaluation time (before connectDB() runs).
+const client = new MongoClient(process.env.MONGO_URI);
+await client.connect();
+const db = client.db("multivendor");
+export const auth = betterAuth({
+  database: mongodbAdapter(db, {
+    // Keep plural collection names consistent with Mongoose defaults
+    collectionNames: {
+      user: "users",
+      session: "sessions",
+      account: "accounts",
+      verification: "verifications",
+    },
+  }),
+
+  // ── Email + Password ──────────────────────────────────
+  // Set REQUIRE_EMAIL_VERIFICATION=true in .env once SMTP is configured.
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: process.env.REQUIRE_EMAIL_VERIFICATION === "true",
+    sendResetPassword: async ({ user, url }) => {
+      await sendPasswordResetEmail(user.email, url);
+    },
+  },
+
+  // ── Email Verification ────────────────────────────────
+  emailVerification: {
+    sendOnSignUp: process.env.REQUIRE_EMAIL_VERIFICATION === "true",
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      const modifiedUrl = new URL(url);
+      modifiedUrl.searchParams.set(
+        "callbackURL",
+        `${process.env.FRONTEND_URL}/login`,
+      );
+      await sendVerificationEmail(user.email, modifiedUrl);
+    },
+  },
+
+  // ── Google OAuth ──────────────────────────────────────
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    },
+  },
+
+  // ── Extended profile fields on the user document ──────
+  user: {
+    additionalFields: {
+      firstName: { type: "string", input: true, defaultValue: "" },
+      lastName: { type: "string", input: true, defaultValue: "" },
+      age: { type: "number", input: true, defaultValue: null },
+      gender: { type: "string", input: true, defaultValue: "" },
+      photo: { type: "string", input: true, defaultValue: "" },
+      role: { type: "string", input: true, defaultValue: "buyer" },
+    },
+  },
+
+  trustedOrigins: [
+    process.env.FRONTEND_URL || "http://localhost:3000",
+    process.env.BETTER_AUTH_URL || "http://localhost:5000",
+    "http://localhost:5000",
+    "http://localhost:3000",
+  ],
+
+  // ── Hooks ─────────────────────────────────────────────
+  hooks: {
+    before: async (ctx) => {
+      if (ctx.path === "/sign-up/email") {
+        const role = ctx.body?.role;
+        const VALID_ROLES = ["buyer", "seller"];
+        if (role && !VALID_ROLES.includes(role)) {
+          throw new APIError("BAD_REQUEST", {
+            message: `Invalid role "${role}". Accepted values: buyer, seller.`,
+          });
+        }
+      }
+    },
+  },
+});

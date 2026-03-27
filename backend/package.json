@@ -1,0 +1,23 @@
+{
+  "name": "projet-l3-antigravity",
+  "version": "1.0.0",
+  "description": "Agora — Multi-Vendor E-commerce API",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "better-auth": "^1.5.6",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "googleapis": "^171.4.0",
+    "mongoose": "^9.2.1",
+    "nodemailer": "^8.0.4"
+  }
+}

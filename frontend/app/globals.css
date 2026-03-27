@@ -1,0 +1,264 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+/* @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400&display=swap'); */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Agora Brand Core */
+  --agora-ink: #1a1a2e;
+  --agora-primary: #5c6bc0;
+  --agora-primary-hover: #4a58ad;
+  --agora-accent: #e8eaf6;
+  --agora-gold: #ffa726;
+  --agora-line: #c5cae9;
+  --agora-mid: #5e6272;
+  --agora-green: #26a69a;
+
+  /* Extended semantic tokens */
+  --agora-surface: #ffffff;
+  --agora-bg: #f4f5f9;
+  --agora-danger: #ef5350;
+  --agora-warning: #ff9800;
+  --agora-text-primary: #1a1a2e;
+  --agora-text-secondary: #5e6272;
+  --agora-text-disabled: #b0b3c1;
+
+  /* Shadows */
+  --shadow-sm:
+    0 1px 3px rgba(26, 26, 46, 0.08), 0 1px 2px rgba(26, 26, 46, 0.04);
+  --shadow-md:
+    0 4px 12px rgba(26, 26, 46, 0.1), 0 2px 4px rgba(26, 26, 46, 0.06);
+  --shadow-lg:
+    0 10px 30px rgba(26, 26, 46, 0.12), 0 4px 8px rgba(26, 26, 46, 0.06);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Map to shadcn tokens */
+  --background: #f4f5f9;
+  --foreground: #1a1a2e;
+  --card: #ffffff;
+  --card-foreground: #1a1a2e;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a2e;
+  --primary: #5c6bc0;
+  --primary-foreground: #ffffff;
+  --secondary: #e8eaf6;
+  --secondary-foreground: #1a1a2e;
+  --muted: #e8eaf6;
+  --muted-foreground: #5e6272;
+  --accent: #e8eaf6;
+  --accent-foreground: #5c6bc0;
+  --destructive: #ef5350;
+  --destructive-foreground: #ffffff;
+  --border: #c5cae9;
+  --input: #c5cae9;
+  --ring: #5c6bc0;
+  --radius: 0.625rem;
+
+  /* Chart colors */
+  --chart-1: #5c6bc0;
+  --chart-2: #26a69a;
+  --chart-3: #ffa726;
+  --chart-4: #ef5350;
+  --chart-5: #e8eaf6;
+
+  /* Sidebar (vendor dark theme) */
+  --sidebar: #1a1a2e;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffa726;
+  --sidebar-primary-foreground: #1a1a2e;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #ffa726;
+}
+
+.dark {
+  --background: #1a1a2e;
+  --foreground: #f4f5f9;
+  --card: #252742;
+  --card-foreground: #f4f5f9;
+  --popover: #252742;
+  --popover-foreground: #f4f5f9;
+  --primary: #5c6bc0;
+  --primary-foreground: #ffffff;
+  --secondary: #3d3f5c;
+  --secondary-foreground: #f4f5f9;
+  --muted: #3d3f5c;
+  --muted-foreground: #b0b3c1;
+  --accent: #3d3f5c;
+  --accent-foreground: #e8eaf6;
+  --destructive: #ef5350;
+  --destructive-foreground: #ffffff;
+  --border: #3d3f5c;
+  --input: #3d3f5c;
+  --ring: #5c6bc0;
+}
+
+@theme inline {
+  --font-sans: "DM Sans", sans-serif;
+  --font-mono: "DM Mono", monospace;
+  --font-display: "Sora", sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Agora specific colors */
+  --color-agora-ink: var(--agora-ink);
+  --color-agora-primary: var(--agora-primary);
+  --color-agora-accent: var(--agora-accent);
+  --color-agora-gold: var(--agora-gold);
+  --color-agora-line: var(--agora-line);
+  --color-agora-mid: var(--agora-mid);
+  --color-agora-green: var(--agora-green);
+  --color-agora-surface: var(--agora-surface);
+  --color-agora-bg: var(--agora-bg);
+  --color-agora-danger: var(--agora-danger);
+  --color-agora-warning: var(--agora-warning);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "DM Sans", sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Sora", sans-serif;
+    font-weight: 700;
+    color: var(--agora-ink);
+  }
+}
+
+/* Utility classes for Agora */
+.font-display {
+  font-family: "Sora", sans-serif;
+}
+
+.font-body {
+  font-family: "DM Sans", sans-serif;
+}
+
+.font-mono {
+  font-family: "DM Mono", monospace;
+}
+
+/* Card hover effect */
+.card-hover {
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--agora-bg);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--agora-line);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--agora-mid);
+}
+
+/* Animation keyframes */
+@keyframes checkmark-scale {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-checkmark {
+  animation: checkmark-scale 0.5s ease-out forwards;
+}
+
+@keyframes slide-out-right {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.animate-slide-out {
+  animation: slide-out-right 0.3s ease-out forwards;
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}

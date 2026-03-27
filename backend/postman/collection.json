@@ -1,0 +1,1048 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Multi-Vendor E-commerce API",
+    "description": "Full test collection covering every route and access control scenario.\n\nRun requests IN ORDER (top to bottom) — tokens and IDs are auto-saved between requests.\n\nSections:\n1. Auth — register & login\n2. Shops — CRUD\n3. Products — CRUD + /mine\n4. Orders — checkout + role-aware viewing\n5. Access Control — negative tests (expect 401/403)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000/api", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "sellerToken", "value": "", "type": "string" },
+    { "key": "buyerToken", "value": "", "type": "string" },
+    { "key": "shopId", "value": "", "type": "string" },
+    { "key": "productId", "value": "", "type": "string" },
+    { "key": "orderId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Register Seller",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "    pm.collectionVariables.set('token', res.token);",
+                  "    pm.collectionVariables.set('sellerToken', res.token);",
+                  "}",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Role is seller', () => pm.expect(res.user.role).to.eql('seller'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Seller One\",\n  \"email\": \"seller@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"seller\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register Buyer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "    pm.collectionVariables.set('buyerToken', res.token);",
+                  "}",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Role is buyer', () => pm.expect(res.user.role).to.eql('buyer'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Buyer One\",\n  \"email\": \"buyer@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"buyer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login Seller",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "    pm.collectionVariables.set('token', res.token);",
+                  "    pm.collectionVariables.set('sellerToken', res.token);",
+                  "}",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has token', () => pm.expect(res).to.have.property('token'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"seller@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login Buyer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "    pm.collectionVariables.set('buyerToken', res.token);",
+                  "}",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has token', () => pm.expect(res).to.have.property('token'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"buyer@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get My Profile (as Seller)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('sellerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has email', () => pm.expect(pm.response.json()).to.have.property('email'));",
+                  "pm.test('Role is seller', () => pm.expect(pm.response.json().role).to.eql('seller'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Shops (as Seller)",
+      "item": [
+        {
+          "name": "Create Shop",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('sellerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res._id) { pm.collectionVariables.set('shopId', res._id); }",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tech Store\",\n  \"description\": \"We sell the best tech gadgets.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/shops",
+              "host": ["{{base_url}}"],
+              "path": ["shops"]
+            }
+          }
+        },
+        {
+          "name": "Get Shop by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has name', () => pm.expect(pm.response.json()).to.have.property('name'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/shops/{{shopId}}",
+              "host": ["{{base_url}}"],
+              "path": ["shops", "{{shopId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Shop",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('sellerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Name updated', () => pm.expect(pm.response.json().name).to.eql('Tech Store Pro'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tech Store Pro\",\n  \"description\": \"Premium tech gadgets and accessories.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/shops/{{shopId}}",
+              "host": ["{{base_url}}"],
+              "path": ["shops", "{{shopId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Products (as Seller)",
+      "item": [
+        {
+          "name": "Create Product",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('sellerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res._id) { pm.collectionVariables.set('productId', res._id); }",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Wireless Mouse\",\n  \"description\": \"Ergonomic wireless mouse with Bluetooth.\",\n  \"price\": 29.99,\n  \"category\": \"Electronics\",\n  \"stock\": 100,\n  \"images\": [\"https://example.com/mouse1.jpg\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": ["{{base_url}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "Get All Products (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has products array', () => pm.expect(pm.response.json()).to.have.property('products'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": ["{{base_url}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "Filter Products by Category (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products?category=Electronics",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [{ "key": "category", "value": "Electronics" }]
+            }
+          }
+        },
+        {
+          "name": "Filter Products by Price Range (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products?minPrice=10&maxPrice=50",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "minPrice", "value": "10" },
+                { "key": "maxPrice", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Products by Name (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products?search=mouse",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [{ "key": "search", "value": "mouse" }]
+            }
+          }
+        },
+        {
+          "name": "Get Product by ID (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/{{productId}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Product (owner)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('sellerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Price updated', () => pm.expect(pm.response.json().price).to.eql(24.99));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 24.99,\n  \"stock\": 150\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/{{productId}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get My Products (seller's own shop)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('sellerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has products', () => pm.expect(pm.response.json()).to.have.property('products'));",
+                  "pm.test('At least 1 product', () => pm.expect(pm.response.json().products.length).to.be.greaterThan(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/mine",
+              "host": ["{{base_url}}"],
+              "path": ["products", "mine"]
+            }
+          }
+        },
+        {
+          "name": "Get My Products with Search",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('sellerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/mine?search=mouse",
+              "host": ["{{base_url}}"],
+              "path": ["products", "mine"],
+              "query": [{ "key": "search", "value": "mouse" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Orders",
+      "item": [
+        {
+          "name": "Create 2nd Product for Order test (as Seller)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('sellerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res._id) { pm.collectionVariables.set('productId', res._id); }",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mechanical Keyboard\",\n  \"description\": \"RGB mechanical keyboard with Cherry MX switches.\",\n  \"price\": 89.99,\n  \"category\": \"Electronics\",\n  \"stock\": 50,\n  \"images\": [\"https://example.com/keyboard.jpg\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": ["{{base_url}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "Create Order (as Buyer)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('buyerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res._id) { pm.collectionVariables.set('orderId', res._id); }",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has totalAmount', () => pm.expect(res).to.have.property('totalAmount'));",
+                  "pm.test('Has items', () => pm.expect(res.items.length).to.be.greaterThan(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"product\": \"{{productId}}\",\n      \"quantity\": 2\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "Get Orders (as Buyer — own orders only)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('buyerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('At least 1 order', () => pm.expect(pm.response.json().length).to.be.greaterThan(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "Get Orders (as Seller — only their shop's items)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('sellerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('Has orders with items', () => {",
+                  "    const orders = pm.response.json();",
+                  "    if (orders.length > 0) {",
+                  "        pm.expect(orders[0].items.length).to.be.greaterThan(0);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Access Control (Negative Tests)",
+      "item": [
+        {
+          "name": "❌ Create Order as Seller → 403",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('sellerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403 — sellers cannot create orders', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [{ \"product\": \"{{productId}}\", \"quantity\": 1 }]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "❌ Create Order Unauthenticated → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401 — no token', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [{ \"product\": \"{{productId}}\", \"quantity\": 1 }]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "❌ Get Orders Unauthenticated → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401 — no token', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "❌ Create Product as Buyer → 403",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('buyerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403 — buyers cannot create products', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fake Product\",\n  \"price\": 9.99,\n  \"category\": \"Test\",\n  \"stock\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": ["{{base_url}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "❌ Create Product Unauthenticated → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401 — no token', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fake Product\",\n  \"price\": 9.99,\n  \"category\": \"Test\",\n  \"stock\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": ["{{base_url}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "❌ Update Product as Buyer → 403",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('buyerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403 — buyers cannot update products', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 1.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/{{productId}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "❌ Delete Product as Buyer → 403",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('buyerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403 — buyers cannot delete products', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/{{productId}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "❌ Get My Products as Buyer → 403",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('buyerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403 — only sellers can use /mine', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/mine",
+              "host": ["{{base_url}}"],
+              "path": ["products", "mine"]
+            }
+          }
+        },
+        {
+          "name": "❌ Get Profile Unauthenticated → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401 — no token', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Cleanup — Delete Product (as Seller)",
+      "item": [
+        {
+          "name": "Delete Product (owner)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.collectionVariables.get('sellerToken'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Deleted message', () => pm.expect(pm.response.json().message).to.include('deleted'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/{{productId}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{productId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
