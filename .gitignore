@@ -1,0 +1,5 @@
+#VS Code workspace
+*.code-workspace
+
+#MacOS trash file
+.DS_Store
