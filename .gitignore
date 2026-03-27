@@ -3,3 +3,6 @@
 
 #MacOS trash file
 .DS_Store
+
+#Postman
+agora-betterauth.postman_collection.json
