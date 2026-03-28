@@ -33,26 +33,30 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-grid-pattern opacity-25" />
 
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
-            <p className="inline-flex items-center justify-center gap-2 rounded-full bg-[rgba(255,255,255,0.15)] px-4 py-1 text-xs uppercase tracking-wider text-white/90 mb-4">
-              <Diamond className="w-4 h-4" /> La marketplace française
+            <p className="mb-4 inline-flex items-center justify-center gap-2 rounded-full bg-[rgba(255,255,255,0.15)] px-4 py-1 text-xs uppercase tracking-wider text-white/90">
+              <Diamond className="w-4 h-4" />
+              La marketplace française
             </p>
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight text-white">
-              Bienvenue sur <span className="text-[var(--agora-primary)]">Agora</span>
+
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.55)]">
+              Bienvenue sur Agora
             </h1>
-            <p className="mt-4 text-base sm:text-lg lg:text-xl text-white/75 max-w-2xl mx-auto">
+
+            <p className="mx-auto mt-4 max-w-2xl text-base text-white/75 sm:text-lg lg:text-xl">
               La marketplace multi-boutiques française. Découvrez des créateurs passionnés et des produits artisanaux uniques.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
+
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
                 href="/catalogue"
-                className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--agora-primary)] px-8 py-3 text-base font-semibold text-white hover:bg-[var(--agora-primary-hover)] transition"
+                className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--agora-primary)] px-8 py-3 text-base font-semibold text-white transition hover:bg-[var(--agora-primary-hover)]"
               >
                 Découvrir les produits
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/vendeur"
-                className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-white/30 bg-white/10 px-8 py-3 text-base font-semibold text-white hover:bg-white/20 transition"
+                className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-white/30 bg-white/10 px-8 py-3 text-base font-semibold text-white transition hover:bg-white/20"
               >
                 Ouvrir ma boutique
               </Link>
