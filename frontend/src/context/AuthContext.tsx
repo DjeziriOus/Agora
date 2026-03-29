@@ -95,6 +95,8 @@ useEffect(() => {
         throw new Error(error.message ?? "Une erreur est survenue");
       }
 
+      // On success, remap the Better Auth user payload to our own User model,
+      // then redirect to the appropriate page based on the user's role.
       if (data?.user) {
         const mapped = mapUser(data.user as Record<string, unknown>);
         setUser(mapped);

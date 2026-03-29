@@ -12,11 +12,33 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login, isLoading } = useAuth();
-  const searchParams = useSearchParams();
+  const { login, isLoading, emailNotVerified } = useAuth();
 
-    const handleSubmit = async (e: React.FormEvent) => {// utilise setError et await login depuis useAuth et catch err et affiche le message d'erreur qui viens depuis le backend
-    };
+  //Verify if the entred email is already verified or not. 
+  //If REQUIRE_EMAIL_VERIFICATION=true (backend/.env)
+  useEffect(() => {
+    if (emailNotVerified) {
+      setError("Merci de verifier l'adresse mail avant de se connecter");
+    }
+  }, [emailNotVerified]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+
+    e.preventDefault();
+    setError(null);
+
+    if (email.length == 0) {
+      setError("Merci de renseigner un adresse mail");
+      return;
+    }
+    try {
+      await login(email, password);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+    }
+
+  };
 
   return (
     <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center p-4">
