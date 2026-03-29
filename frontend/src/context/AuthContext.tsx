@@ -10,10 +10,10 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { apiFetch } from "@/lib/api";
 import type { User } from "@/types";
 
-const PENDING_VERIFICATION_EMAIL_STORAGE_KEY = "agora_pending_verification_email";
+const PENDING_VERIFICATION_EMAIL_STORAGE_KEY =
+  "agora_pending_verification_email";
 
 type AuthConfigResponse = {
   requireEmailVerification: boolean;
@@ -64,32 +64,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthConfigLoading, setIsAuthConfigLoading] = useState(true);
-  const [requireEmailVerification, setRequireEmailVerification] = useState(true);
+  const [requireEmailVerification, setRequireEmailVerification] =
+    useState(true);
   const [emailNotVerified, setEmailNotVerified] = useState(false);
   const [pendingVerificationEmailState, setPendingVerificationEmailState] =
     useState<string | null>(null);
   const router = useRouter();
 
-  // Fetch the backend auth flags so register and verify-email flows stay in sync.
-  const ensureAuthConfig = useCallback(async () => {
-    try {
-      const data = await apiFetch<AuthConfigResponse>("/api/public/auth-config");
-      setRequireEmailVerification(data.requireEmailVerification);
-      return data.requireEmailVerification;
-    } catch {
-      // Fail closed: keep verification enabled in the UI when config cannot be loaded.
-      return true;
-    } finally {
-      setIsAuthConfigLoading(false);
-    }
-  }, []);
+  // // Fetch the backend auth flags so register and verify-email flows stay in sync.
+  // const ensureAuthConfig = useCallback(async () => {
+  //   try {
+  //     setRequireEmailVerification(data.requireEmailVerification);
+  //     return data.requireEmailVerification;
+  //   } catch {
+  //     // Fail closed: keep verification enabled in the UI when config cannot be loaded.
+  //     return true;
+  //   } finally {
+  //     setIsAuthConfigLoading(false);
+  //   }
+  // }, []);
 
   // Persist the pending verification email so the verify page survives navigation and refreshes.
   const setPendingVerificationEmail = useCallback((email: string) => {
     setPendingVerificationEmailState(email);
 
     try {
-      window.sessionStorage.setItem(PENDING_VERIFICATION_EMAIL_STORAGE_KEY, email);
+      window.sessionStorage.setItem(
+        PENDING_VERIFICATION_EMAIL_STORAGE_KEY,
+        email,
+      );
     } catch {
       // Ignore storage failures and keep the in-memory state.
     }
@@ -112,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initAuth = async () => {
       try {
         const { data } = await authClient.getSession();
-
+        // console.log(data);
         if (data?.user) {
           setUser(mapUser(data.user as Record<string, unknown>));
         } else {
@@ -126,11 +129,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     initAuth();
-    void ensureAuthConfig();
 
     try {
       const storedEmail = window.sessionStorage.getItem(
-        PENDING_VERIFICATION_EMAIL_STORAGE_KEY
+        PENDING_VERIFICATION_EMAIL_STORAGE_KEY,
       );
       if (storedEmail) {
         setPendingVerificationEmailState(storedEmail);
@@ -138,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore storage failures and keep the pending email empty.
     }
-  }, [ensureAuthConfig]);
+  }, []);
 
   // Sign in the user and raise a one-shot redirect flag if the backend says the email is still unverified.
   const login = useCallback(
@@ -147,7 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setEmailNotVerified(false);
       clearPendingVerificationEmail();
 
-      const { data, error } = await authClient.signIn.email({ email, password });
+      const { data, error } = await authClient.signIn.email({
+        email,
+        password,
+      });
 
       setIsLoading(false);
 
@@ -173,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push(mapped.role === "seller" ? "/vendeur" : "/catalogue");
       }
     },
-    [clearPendingVerificationEmail, router, setPendingVerificationEmail]
+    [clearPendingVerificationEmail, router, setPendingVerificationEmail],
   );
 
   // Create the account and let the caller decide whether to continue to login or email verification.
@@ -187,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }) => {
       setIsLoading(true);
 
-      const { error } = await authClient.signUp.email({
+      const d = await authClient.signUp.email({
         email: data.email,
         password: data.password,
         name: `${data.firstName} ${data.lastName}`,
@@ -195,22 +200,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastName: data.lastName,
         role: data.role,
       } as Parameters<typeof authClient.signUp.email>[0]);
-
+      // console.log(d);
+      // {
+      //   "data": {
+      //     "token": null,
+      //     "user": {
+      //       "name": "Oussama DJEZIRI",
+      //       "email": "djezirioussama22@gmail.com",
+      //       "emailVerified": false,
+      //       "createdAt": "2026-03-29T16:32:46.164Z",
+      //       "updatedAt": "2026-03-29T16:32:46.164Z",
+      //       "firstName": "Oussama",
+      //       "lastName": "DJEZIRI",
+      //       "age": null,
+      //       "gender": "",
+      //       "photo": "",
+      //       "role": "buyer",
+      //       "id": "69c9542ec62f47b54e04f1a7"
+      //     }
+      //   },
+      //   "error": null
+      // }
+      const { error, data: userData } = d;
       setIsLoading(false);
 
       //Handle register errors
       if (error) {
         if (error.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL") {
           throw new Error(
-            "Cette adresse e-mail est déjà utilisée. Veuillez en choisir une autre."
+            "Cette adresse e-mail est déjà utilisée. Veuillez en choisir une autre.",
           );
         } else {
           throw new Error(error.message ?? "Une erreur est survenue");
         }
       }
       // Success — caller handles the UI message (no redirect)
+      return { emailVerified: userData?.user?.emailVerified };
     },
-    []
+    [],
   );
 
   // End the Better Auth session and clear any verification state that should not leak across users.
@@ -247,7 +274,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailNotVerified,
         pendingVerificationEmail: pendingVerificationEmailState,
         clearEmailNotVerified,
-        ensureAuthConfig,
+        // ensureAuthConfig,
         setPendingVerificationEmail,
         clearPendingVerificationEmail,
         login,

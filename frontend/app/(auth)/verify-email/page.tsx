@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { Diamond } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -16,16 +17,22 @@ function VerifyEmailContent() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [cooldownRemaining, setCooldownRemaining] = useState(60);
   const {
     resendVerification,
     requireEmailVerification,
     isAuthConfigLoading,
     pendingVerificationEmail,
     clearPendingVerificationEmail,
+    isLoading,
   } = useAuth();
+  const router = useRouter();
   const verificationEmail = pendingVerificationEmail ?? "";
 
+  useEffect(() => {
+    if (isLoading) return;
+    if (!pendingVerificationEmail) router.replace("/login");
+  }, [isLoading, pendingVerificationEmail, router]);
   // Drop stale pending-email state when the backend no longer requires email verification.
   useEffect(() => {
     if (!isAuthConfigLoading && !requireEmailVerification) {
@@ -98,21 +105,21 @@ function VerifyEmailContent() {
 
     if (!requireEmailVerification) {
       setError(
-        "La vérification par e-mail est désactivée pour le moment. Vous pouvez retourner à la connexion."
+        "La vérification par e-mail est désactivée pour le moment. Vous pouvez retourner à la connexion.",
       );
       return;
     }
 
     if (!verificationEmail) {
       setError(
-        "Adresse e-mail introuvable. Retournez à la page de connexion pour réessayer."
+        "Adresse e-mail introuvable. Retournez à la page de connexion pour réessayer.",
       );
       return;
     }
 
     if (cooldownRemaining > 0) {
       setError(
-        `Veuillez patienter encore ${cooldownRemaining}s avant de renvoyer l'e-mail.`
+        `Veuillez patienter encore ${cooldownRemaining}s avant de renvoyer l'e-mail.`,
       );
       return;
     }
@@ -124,11 +131,11 @@ function VerifyEmailContent() {
       const availableAt = Date.now() + RESEND_COOLDOWN_SECONDS * 1000;
       window.sessionStorage.setItem(
         getResendCooldownStorageKey(verificationEmail),
-        String(availableAt)
+        String(availableAt),
       );
       setCooldownRemaining(RESEND_COOLDOWN_SECONDS);
       setMessage(
-        "L'e-mail de vérification a été renvoyé. Consultez votre boîte de réception."
+        "L'e-mail de vérification a été renvoyé. Consultez votre boîte de réception.",
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
@@ -144,7 +151,10 @@ function VerifyEmailContent() {
         <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-xl)] p-8 shadow-[var(--shadow-md)]">
           {/* Logo */}
           <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center gap-2 justify-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 justify-center"
+            >
               <Diamond className="w-6 h-6 text-[var(--agora-primary)]" />
               <span className="font-display text-2xl font-bold text-[var(--agora-primary)]">
                 Agora
@@ -154,7 +164,6 @@ function VerifyEmailContent() {
               Vérifier votre adresse mail
             </p>
           </div>
-
 
           {error ? (
             <p className="mb-4 rounded-[var(--radius-md)] border border-[var(--agora-danger)] bg-[#FFEBEE] px-4 py-3 text-sm text-[var(--agora-danger)]">
@@ -168,8 +177,6 @@ function VerifyEmailContent() {
             </p>
           ) : null}
 
-
-
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Field */}
@@ -178,10 +185,10 @@ function VerifyEmailContent() {
                 htmlFor="email"
                 className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5"
               >
-                Veuillez vérifier votre adresse e-mail dans votre boîte de réception avant de continuer.
+                Veuillez vérifier votre adresse e-mail dans votre boîte de
+                réception avant de continuer.
               </label>
             </div>
-
 
             {/* Resend the verification email */}
             {requireEmailVerification ? (
@@ -190,7 +197,9 @@ function VerifyEmailContent() {
                 <button
                   type="button"
                   onClick={handleResendVerification}
-                  disabled={isResending || cooldownRemaining > 0 || !verificationEmail}
+                  disabled={
+                    isResending || cooldownRemaining > 0 || !verificationEmail
+                  }
                   className="text-[var(--agora-primary)] font-medium hover:underline disabled:opacity-60 disabled:no-underline"
                 >
                   {isResending
