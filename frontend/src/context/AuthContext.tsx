@@ -53,14 +53,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   // Hydrate session on mount
-  useEffect(() => {
-    authClient.getSession().then(({ data }) => {
+useEffect(() => {
+  const initAuth = async () => {
+    try {
+      const { data } = await authClient.getSession();
+
       if (data?.user) {
         setUser(mapUser(data.user as Record<string, unknown>));
+      } else {
+        setUser(null);
       }
-      setIsLoading(false);
-    });
-  }, []);
+        } catch {
+          setUser(null);
+        } finally {
+          setIsLoading(false);
+        }
+  };
+
+  initAuth();
+}, []);
 
   const login = useCallback(
     async (email: string, password: string) => {

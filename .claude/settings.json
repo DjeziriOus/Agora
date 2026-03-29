@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"c:/Users/ELENA/Desktop/Agora/frontend/app/\\(auth\\)/\")",
+      "Bash(npx tsc:*)",
+      "Bash(curl -s http://localhost:3000)"
+    ]
+  }
+}
