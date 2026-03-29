@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, X, Diamond, User, Store } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 type UserRole = "buyer" | "seller";
 
@@ -40,12 +41,15 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { register, isLoading } = useAuth();
+  const { register, isLoading, emailNotVerified } = useAuth();
+  const router = useRouter();
 
   const passwordStrength = useMemo(
     () => getPasswordStrength(password),
     [password]
   );
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +72,7 @@ export default function RegisterPage() {
 
     try {
       await register({ firstName, lastName, email, password, role });
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
     }

@@ -19,6 +19,7 @@ interface AuthContextType {
   isLoading: boolean;
   /** true when the server rejected login specifically because email is unverified */
   emailNotVerified: boolean;
+  clearEmailNotVerified: () => void;
   login: (email: string, password: string) => Promise<void>;
   register: (data: {
     firstName: string;
@@ -148,6 +149,10 @@ useEffect(() => {
     router.push("/login");
   }, [router]);
 
+  const clearEmailNotVerified = useCallback(() => {
+    setEmailNotVerified(false);
+  }, []);
+
   const resendVerification = useCallback(async (email: string) => {
     const { error } = await authClient.sendVerificationEmail({
       email,
@@ -164,6 +169,7 @@ useEffect(() => {
         isSeller: user?.role === "seller",
         isLoading,
         emailNotVerified,
+        clearEmailNotVerified,
         login,
         register,
         logout,
