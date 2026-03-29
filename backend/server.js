@@ -7,7 +7,7 @@ import { toNodeHandler } from "better-auth/node";
 dotenv.config();
 
 import connectDB from "./config/db.js";
-import { auth } from "./auth.js";
+import { auth, requireEmailVerification } from "./auth.js";
 
 // Routes
 // import shopRoutes    from './routes/shopRoutes.js';
@@ -57,6 +57,10 @@ app.use(express.json());
 // app.use("/api/products", productRoutes);
 // app.use("/api/orders", orderRoutes);
 // app.use("/api/addresses", addressRoutes);
+
+app.get("/api/public/auth-config", (_req, res) => {
+  res.json({ requireEmailVerification });
+});
 
 // Health-check
 app.get("/", (_req, res) => {

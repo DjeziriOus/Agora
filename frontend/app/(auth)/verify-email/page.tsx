@@ -1,21 +1,32 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Diamond } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { cn } from "@/lib/utils";
-import { authClient } from "@/lib/auth-client";
 
-function LoginContent() {
+function VerifyEmailContent() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
-  const searchParams = useSearchParams();
-  const verificationEmail = searchParams.get("email") ?? "";
-  const { resendVerification } = useAuth();
+  const {
+    resendVerification,
+    requireEmailVerification,
+    isAuthConfigLoading,
+    pendingVerificationEmail,
+    clearPendingVerificationEmail,
+  } = useAuth();
+  const verificationEmail = pendingVerificationEmail ?? "";
 
+  useEffect(() => {
+    if (!isAuthConfigLoading && !requireEmailVerification) {
+      clearPendingVerificationEmail();
+    }
+  }, [
+    clearPendingVerificationEmail,
+    isAuthConfigLoading,
+    requireEmailVerification,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +35,13 @@ function LoginContent() {
   const handleResendVerification = async () => {
     setError(null);
     setMessage(null);
+
+    if (!requireEmailVerification) {
+      setError(
+        "La vérification par e-mail est désactivée pour le moment. Vous pouvez retourner à la connexion."
+      );
+      return;
+    }
 
     if (!verificationEmail) {
       setError(
@@ -89,25 +107,35 @@ function LoginContent() {
               >
                 Veuillez vérifier votre adresse e-mail dans votre boîte de réception avant de continuer.
               </label>
-
-
             </div>
 
 
             {/* Resend the verification email */}
-            <p className="mt-6 text-center text-sm text-[var(--agora-mid)]">
-              Pas encore reçu le e-mail ?{" "}
-              <button
-                type="button"
-                onClick={handleResendVerification}
-                disabled={isResending}
-                className="text-[var(--agora-primary)] font-medium hover:underline"
-              >
-                {isResending
-                  ? "Renvoi en cours..."
-                  : "Renvoyer l'e-mail de vérification"}
-              </button>
-            </p>
+            {requireEmailVerification ? (
+              <p className="mt-6 text-center text-sm text-[var(--agora-mid)]">
+                Pas encore reçu le e-mail ?{" "}
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={isResending || !verificationEmail}
+                  className="text-[var(--agora-primary)] font-medium hover:underline disabled:opacity-60 disabled:no-underline"
+                >
+                  {isResending
+                    ? "Renvoi en cours..."
+                    : "Renvoyer l'e-mail de vérification"}
+                </button>
+              </p>
+            ) : (
+              <p className="mt-6 text-center text-sm text-[var(--agora-mid)]">
+                La vérification par e-mail est désactivée.{" "}
+                <Link
+                  href="/login"
+                  className="text-[var(--agora-primary)] font-medium hover:underline"
+                >
+                  Retourner à la connexion
+                </Link>
+              </p>
+            )}
           </form>
         </div>
       </div>
@@ -115,7 +143,7 @@ function LoginContent() {
   );
 }
 
-export default function LoginPage() {
+export default function VerifyEmailPage() {
   return (
     <Suspense
       fallback={
@@ -124,7 +152,7 @@ export default function LoginPage() {
         </div>
       }
     >
-      <LoginContent />
+      <VerifyEmailContent />
     </Suspense>
   );
 }

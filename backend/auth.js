@@ -17,6 +17,9 @@ import {
 const client = new MongoClient(process.env.MONGO_URI);
 await client.connect();
 const db = client.db("multivendor");
+export const requireEmailVerification =
+  process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+
 export const auth = betterAuth({
   database: mongodbAdapter(db, {
     // Keep plural collection names consistent with Mongoose defaults
@@ -32,7 +35,7 @@ export const auth = betterAuth({
   // Set REQUIRE_EMAIL_VERIFICATION=true in .env once SMTP is configured.
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: process.env.REQUIRE_EMAIL_VERIFICATION === "true",
+    requireEmailVerification,
     sendResetPassword: async ({ user, url }) => {
       await sendPasswordResetEmail(user.email, url);
     },
@@ -40,7 +43,7 @@ export const auth = betterAuth({
 
   // ── Email Verification ────────────────────────────────
   emailVerification: {
-    sendOnSignUp: process.env.REQUIRE_EMAIL_VERIFICATION === "true",
+    sendOnSignUp: requireEmailVerification,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       const modifiedUrl = new URL(url);

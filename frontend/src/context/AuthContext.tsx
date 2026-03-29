@@ -10,16 +10,29 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { apiFetch } from "@/lib/api";
 import type { User } from "@/types";
+
+const PENDING_VERIFICATION_EMAIL_STORAGE_KEY = "agora_pending_verification_email";
+
+type AuthConfigResponse = {
+  requireEmailVerification: boolean;
+};
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isSeller: boolean;
   isLoading: boolean;
+  isAuthConfigLoading: boolean;
+  requireEmailVerification: boolean;
   /** true when the server rejected login specifically because email is unverified */
   emailNotVerified: boolean;
+  pendingVerificationEmail: string | null;
   clearEmailNotVerified: () => void;
+  ensureAuthConfig: () => Promise<boolean>;
+  setPendingVerificationEmail: (email: string) => void;
+  clearPendingVerificationEmail: () => void;
   login: (email: string, password: string) => Promise<void>;
   register: (data: {
     firstName: string;
@@ -50,34 +63,84 @@ function mapUser(sessionUser: Record<string, unknown>): User {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthConfigLoading, setIsAuthConfigLoading] = useState(true);
+  const [requireEmailVerification, setRequireEmailVerification] = useState(true);
   const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [pendingVerificationEmailState, setPendingVerificationEmailState] =
+    useState<string | null>(null);
   const router = useRouter();
 
-  // Hydrate session on mount
-useEffect(() => {
-  const initAuth = async () => {
+  const ensureAuthConfig = useCallback(async () => {
     try {
-      const { data } = await authClient.getSession();
+      const data = await apiFetch<AuthConfigResponse>("/api/public/auth-config");
+      setRequireEmailVerification(data.requireEmailVerification);
+      return data.requireEmailVerification;
+    } catch {
+      // Fail closed: keep verification enabled in the UI when config cannot be loaded.
+      return true;
+    } finally {
+      setIsAuthConfigLoading(false);
+    }
+  }, []);
 
-      if (data?.user) {
-        setUser(mapUser(data.user as Record<string, unknown>));
-      } else {
-        setUser(null);
-      }
-        } catch {
+  const setPendingVerificationEmail = useCallback((email: string) => {
+    setPendingVerificationEmailState(email);
+
+    try {
+      window.sessionStorage.setItem(PENDING_VERIFICATION_EMAIL_STORAGE_KEY, email);
+    } catch {
+      // Ignore storage failures and keep the in-memory state.
+    }
+  }, []);
+
+  const clearPendingVerificationEmail = useCallback(() => {
+    setPendingVerificationEmailState(null);
+
+    try {
+      window.sessionStorage.removeItem(PENDING_VERIFICATION_EMAIL_STORAGE_KEY);
+    } catch {
+      // Ignore storage failures and keep the in-memory state cleared.
+    }
+  }, []);
+
+  // Hydrate session on mount
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const { data } = await authClient.getSession();
+
+        if (data?.user) {
+          setUser(mapUser(data.user as Record<string, unknown>));
+        } else {
           setUser(null);
-        } finally {
-          setIsLoading(false);
         }
-  };
+      } catch {
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  initAuth();
-}, []);
+    initAuth();
+    void ensureAuthConfig();
+
+    try {
+      const storedEmail = window.sessionStorage.getItem(
+        PENDING_VERIFICATION_EMAIL_STORAGE_KEY
+      );
+      if (storedEmail) {
+        setPendingVerificationEmailState(storedEmail);
+      }
+    } catch {
+      // Ignore storage failures and keep the pending email empty.
+    }
+  }, [ensureAuthConfig]);
 
   const login = useCallback(
     async (email: string, password: string) => {
       setIsLoading(true);
       setEmailNotVerified(false);
+      clearPendingVerificationEmail();
 
       const { data, error } = await authClient.signIn.email({ email, password });
 
@@ -90,6 +153,7 @@ useEffect(() => {
           error.status === 403 ||
           (error.message ?? "").toLowerCase().includes("verif")
         ) {
+          setPendingVerificationEmail(email);
           setEmailNotVerified(true);
           return;
         }
@@ -104,7 +168,7 @@ useEffect(() => {
         router.push(mapped.role === "seller" ? "/vendeur" : "/catalogue");
       }
     },
-    [router]
+    [clearPendingVerificationEmail, router, setPendingVerificationEmail]
   );
 
   const register = useCallback(
@@ -146,8 +210,9 @@ useEffect(() => {
   const logout = useCallback(async () => {
     await authClient.signOut();
     setUser(null);
+    clearPendingVerificationEmail();
     router.push("/login");
-  }, [router]);
+  }, [clearPendingVerificationEmail, router]);
 
   const clearEmailNotVerified = useCallback(() => {
     setEmailNotVerified(false);
@@ -168,8 +233,14 @@ useEffect(() => {
         isAuthenticated: !!user,
         isSeller: user?.role === "seller",
         isLoading,
+        isAuthConfigLoading,
+        requireEmailVerification,
         emailNotVerified,
+        pendingVerificationEmail: pendingVerificationEmailState,
         clearEmailNotVerified,
+        ensureAuthConfig,
+        setPendingVerificationEmail,
+        clearPendingVerificationEmail,
         login,
         register,
         logout,

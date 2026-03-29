@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, X, Diamond, User, Store } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -41,7 +41,13 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { register, isLoading, emailNotVerified } = useAuth();
+  const {
+    register,
+    isLoading,
+    ensureAuthConfig,
+    setPendingVerificationEmail,
+    clearPendingVerificationEmail,
+  } = useAuth();
   const router = useRouter();
 
   const passwordStrength = useMemo(
@@ -72,7 +78,16 @@ export default function RegisterPage() {
 
     try {
       await register({ firstName, lastName, email, password, role });
-      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+      const shouldVerifyEmail = await ensureAuthConfig();
+
+      if (shouldVerifyEmail) {
+        setPendingVerificationEmail(email);
+        router.push("/verify-email");
+        return;
+      }
+
+      clearPendingVerificationEmail();
+      router.push("/login");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
     }

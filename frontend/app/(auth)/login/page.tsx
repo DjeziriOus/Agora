@@ -18,10 +18,10 @@ function LoginContent() {
   //Verify if the entred email is already verified or not. 
   //If REQUIRE_EMAIL_VERIFICATION=true (backend/.env)
   useEffect(() => {
-    if (!emailNotVerified || !email) return;
+    if (!emailNotVerified) return;
     clearEmailNotVerified();
-    router.push(`/verify-email?email=${encodeURIComponent(email)}`);
-  }, [email, emailNotVerified, clearEmailNotVerified, router]);
+    router.push("/verify-email");
+  }, [emailNotVerified, clearEmailNotVerified, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
 
