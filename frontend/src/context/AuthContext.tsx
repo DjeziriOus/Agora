@@ -19,7 +19,7 @@ interface AuthContextType {
   isLoading: boolean;
   /** true when the server rejected login specifically because email is unverified */
   emailNotVerified: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User | null>;
   register: (data: {
     firstName: string;
     lastName: string;
@@ -90,7 +90,7 @@ useEffect(() => {
           (error.message ?? "").toLowerCase().includes("verif")
         ) {
           setEmailNotVerified(true);
-          return;
+          return null;
         }
         throw new Error(error.message ?? "Une erreur est survenue");
       }
@@ -98,8 +98,10 @@ useEffect(() => {
       if (data?.user) {
         const mapped = mapUser(data.user as Record<string, unknown>);
         setUser(mapped);
-        router.push(mapped.role === "seller" ? "/vendeur" : "/catalogue");
+        return mapped;
       }
+
+      return null;
     },
     [router]
   );

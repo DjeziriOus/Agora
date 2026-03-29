@@ -1,10 +1,11 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff, X, Diamond } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { storesApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 function LoginContent() {
@@ -12,11 +13,38 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login, isLoading } = useAuth();
-  const searchParams = useSearchParams();
+  const { login, isLoading, emailNotVerified } = useAuth();
+  const router = useRouter();
 
-    const handleSubmit = async (e: React.FormEvent) => {// utilise setError et await login depuis useAuth et catch err et affiche le message d'erreur qui viens depuis le backend
-    };
+  useEffect(() => {
+    if (emailNotVerified) {
+      router.push("/verify-email");
+    }
+  }, [emailNotVerified, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    try {
+      const user = await login(email, password);
+      if (!user) {
+        return;
+      }
+
+      if (user.role === "seller") {
+        const hasStore = await storesApi
+          .getMyStore()
+          .then((store) => !!store)
+          .catch(() => false);
+        router.push(hasStore ? "/vendeur" : "/vendeur/boutique");
+      } else {
+        router.push("/catalogue");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue lors de la connexion");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center p-4">
