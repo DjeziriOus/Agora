@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   productsApi,
-  // storesApi,
-  // categoriesApi,
+  storesApi,
+  categoriesApi,
   ordersApi,
-  // cartApi,
-  // vendorApi,
-  // authApi,
+  addressesApi,
+  cartApi,
+  vendorApi,
+  authApi,
 } from "@/lib/api";
 import type { ProductQuery, ProductPayload, OrderPayload, StorePayload } from "@/types";
 
@@ -46,8 +47,7 @@ export const queryKeys = {
 export function useCurrentUser() {
   return useQuery({
     queryKey: queryKeys.auth.me,
-    // queryFn: () => authApi.me(),
-    queryFn: () => {},
+    queryFn: () => authApi.me(),
     retry: false,
   });
 }
@@ -71,16 +71,28 @@ export function useProduct(id: string) {
 export function useSellerProducts() {
   return useQuery({
     queryKey: queryKeys.products.seller,
-    // queryFn: () => productsApi.getSellerProducts(),
-    queryFn: () => {},
+    queryFn: () => productsApi.getMine(),
   });
 }
 
 export function useLowStockProducts() {
   return useQuery({
     queryKey: queryKeys.products.lowStock,
-    // queryFn: () => vendorApi.getLowStockProducts(),
-    queryFn: () => {},
+    queryFn: async () => {
+      const result = await productsApi.getMine();
+      const products = Array.isArray(result)
+        ? result
+        : (result as { products?: unknown[] })?.products ?? [];
+
+      return products.filter(
+        (product) =>
+          typeof product === "object" &&
+          product !== null &&
+          "stock" in product &&
+          "stockThreshold" in product &&
+          (product as any).stock <= (product as any).stockThreshold,
+      );
+    },
   });
 }
 

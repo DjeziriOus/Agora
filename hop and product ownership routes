@@ -1,0 +1,362 @@
+[1mdiff --git a/backend/data/mockData.js b/backend/data/mockData.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..5fbdd79[m
+[1m--- /dev/null[m
+[1m+++ b/backend/data/mockData.js[m
+[36m@@ -0,0 +1,60 @@[m
+[32m+[m[32mexport const stores = [[m
+[32m+[m[32m  {[m
+[32m+[m[32m    id: "store-1",[m
+[32m+[m[32m    name: "Agora Boutique",[m
+[32m+[m[32m    description: "Une boutique de démonstration pour vendre des produits sélectionnés.",[m
+[32m+[m[32m    logo: "https://placehold.co/200x200?text=Logo",[m
+[32m+[m[32m    banner: "https://placehold.co/1200x300?text=Banner",[m
+[32m+[m[32m    productCount: 2,[m
+[32m+[m[32m    rating: 4.8,[m
+[32m+[m[32m    createdAt: new Date().toISOString(),[m
+[32m+[m[32m    address: {[m
+[32m+[m[32m      street: "123 Rue de l'Agora",[m
+[32m+[m[32m      city: "Paris",[m
+[32m+[m[32m      postalCode: "75000",[m
+[32m+[m[32m      country: "France",[m
+[32m+[m[32m    },[m
+[32m+[m[32m    category: "Électronique",[m
+[32m+[m[32m  },[m
+[32m+[m[32m];[m
+[32m+[m
+[32m+[m[32mexport const products = [[m
+[32m+[m[32m  {[m
+[32m+[m[32m    id: "prod-1",[m
+[32m+[m[32m    name: "Souris sans fil",[m
+[32m+[m[32m    description: "Souris ergonomique avec connexion Bluetooth et longue autonomie.",[m
+[32m+[m[32m    price: 29.99,[m
+[32m+[m[32m    category: "Électronique",[m
+[32m+[m[32m    categoryId: "electronics",[m
+[32m+[m[32m    stock: 14,[m
+[32m+[m[32m    stockThreshold: 5,[m
+[32m+[m[32m    rating: 4.6,[m
+[32m+[m[32m    reviewCount: 23,[m
+[32m+[m[32m    storeId: "store-1",[m
+[32m+[m[32m    storeName: "Agora Boutique",[m
+[32m+[m[32m    images: ["https://placehold.co/600x400?text=Souris"],[m
+[32m+[m[32m    isActive: true,[m
+[32m+[m[32m    createdAt: new Date().toISOString(),[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    id: "prod-2",[m
+[32m+[m[32m    name: "Clavier mécanique",[m
+[32m+[m[32m    description: "Clavier rétroéclairé avec switches tactiles et repose-poignets.",[m
+[32m+[m[32m    price: 89.99,[m
+[32m+[m[32m    category: "Électronique",[m
+[32m+[m[32m    categoryId: "electronics",[m
+[32m+[m[32m    stock: 4,[m
+[32m+[m[32m    stockThreshold: 5,[m
+[32m+[m[32m    rating: 4.7,[m
+[32m+[m[32m    reviewCount: 12,[m
+[32m+[m[32m    storeId: "store-1",[m
+[32m+[m[32m    storeName: "Agora Boutique",[m
+[32m+[m[32m    images: ["https://placehold.co/600x400?text=Clavier"],[m
+[32m+[m[32m    isActive: true,[m
+[32m+[m[32m    createdAt: new Date().toISOString(),[m
+[32m+[m[32m  },[m
+[32m+[m[32m];[m
+[32m+[m
+[32m+[m[32mexport function generateId(prefix = "id") {[m
+[32m+[m[32m  return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;[m
+[32m+[m[32m}[m
+[1mdiff --git a/backend/routes/productRoutes.js b/backend/routes/productRoutes.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..4f911ff[m
+[1m--- /dev/null[m
+[1m+++ b/backend/routes/productRoutes.js[m
+[36m@@ -0,0 +1,162 @@[m
+[32m+[m[32mimport express from "express";[m
+[32m+[m[32mimport { products, stores, generateId } from "../data/mockData.js";[m
+[32m+[m[32mimport { verifyToken, isSeller } from "../middleware/auth.js";[m
+[32m+[m
+[32m+[m[32mconst router = express.Router();[m
+[32m+[m
+[32m+[m[32mfunction findProduct(id) {[m
+[32m+[m[32m  return products.find((product) => product.id === id);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction findStoreByOwner(ownerId) {[m
+[32m+[m[32m  return stores.find((store) => store.ownerId === ownerId) || null;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mrouter.get("/", (req, res) => {[m
+[32m+[m[32m  let items = [...products];[m
+[32m+[m
+[32m+[m[32m  if (req.query.q) {[m
+[32m+[m[32m    const q = String(req.query.q).toLowerCase();[m
+[32m+[m[32m    items = items.filter([m
+[32m+[m[32m      (product) =>[m
+[32m+[m[32m        product.name.toLowerCase().includes(q) ||[m
+[32m+[m[32m        product.description.toLowerCase().includes(q),[m
+[32m+[m[32m    );[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  if (req.query.category) {[m
+[32m+[m[32m    const category = String(req.query.category).toLowerCase();[m
+[32m+[m[32m    items = items.filter([m
+[32m+[m[32m      (product) => product.category.toLowerCase() === category,[m
+[32m+[m[32m    );[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  res.json({ products: items, total: items.length });[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mrouter.get("/mine", verifyToken, isSeller, (req, res) => {[m
+[32m+[m[32m  const store = findStoreByOwner(req.user.id);[m
+[32m+[m[32m  if (!store) {[m
+[32m+[m[32m    return res.json([]);[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const storeProducts = products.filter([m
+[32m+[m[32m    (product) => product.storeId === store.id,[m
+[32m+[m[32m  );[m
+[32m+[m[32m  res.json(storeProducts);[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mrouter.get("/:id", (req, res) => {[m
+[32m+[m[32m  const product = findProduct(req.params.id);[m
+[32m+[m[32m  if (!product) {[m
+[32m+[m[32m    return res.status(404).json({ message: "Product not found" });[m
+[32m+[m[32m  }[m
+[32m+[m[32m  res.json(product);[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mrouter.post("/", verifyToken, isSeller, (req, res) => {[m
+[32m+[m[32m  const store = findStoreByOwner(req.user.id);[m
+[32m+[m[32m  if (!store) {[m
+[32m+[m[32m    return res.status(400).json({ message: "Vous devez créer une boutique avant d'ajouter des produits." });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const {[m
+[32m+[m[32m    name,[m
+[32m+[m[32m    description,[m
+[32m+[m[32m    price,[m
+[32m+[m[32m    category,[m
+[32m+[m[32m    categoryId,[m
+[32m+[m[32m    stock,[m
+[32m+[m[32m    stockThreshold,[m
+[32m+[m[32m    images,[m
+[32m+[m[32m    isActive,[m
+[32m+[m[32m  } = req.body;[m
+[32m+[m
+[32m+[m[32m  if (!name || !description || price == null) {[m
+[32m+[m[32m    return res.status(400).json({ message: "Missing required fields" });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const product = {[m
+[32m+[m[32m    id: generateId("prod"),[m
+[32m+[m[32m    name,[m
+[32m+[m[32m    description,[m
+[32m+[m[32m    price: Number(price),[m
+[32m+[m[32m    category: category || "Autre",[m
+[32m+[m[32m    categoryId: categoryId || "other",[m
+[32m+[m[32m    stock: Number(stock ?? 0),[m
+[32m+[m[32m    stockThreshold: Number(stockThreshold ?? 5),[m
+[32m+[m[32m    rating: 0,[m
+[32m+[m[32m    reviewCount: 0,[m
+[32m+[m[32m    storeId: store.id,[m
+[32m+[m[32m    storeName: store.name,[m
+[32m+[m[32m    images: Array.isArray(images) && images.length > 0 ? images : ["https://placehold.co/600x400?text=Produit"],[m
+[32m+[m[32m    isActive: isActive ?? true,[m
+[32m+[m[32m    createdAt: new Date().toISOString(),[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  products.push(product);[m
+[32m+[m[32m  store.productCount = products.filter((item) => item.storeId === store.id).length;[m
+[32m+[m[32m  res.status(201).json(product);[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mrouter.put("/:id", verifyToken, isSeller, (req, res) => {[m
+[32m+[m[32m  const product = findProduct(req.params.id);[m
+[32m+[m[32m  if (!product) {[m
+[32m+[m[32m    return res.status(404).json({ message: "Product not found" });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const store = findStoreByOwner(req.user.id);[m
+[32m+[m[32m  if (!store || product.storeId !== store.id) {[m
+[32m+[m[32m    return res.status(403).json({ message: "Forbidden" });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  Object.assign(product, req.body, {[m
+[32m+[m[32m    price: req.body.price != null ? Number(req.body.price) : product.price,[m
+[32m+[m[32m    stock: req.body.stock != null ? Number(req.body.stock) : product.stock,[m
+[32m+[m[32m    stockThreshold:[m
+[32m+[m[32m      req.body.stockThreshold != null[m
+[32m+[m[32m        ? Number(req.body.stockThreshold)[m
+[32m+[m[32m        : product.stockThreshold,[m
+[32m+[m[32m  });[m
+[32m+[m
+[32m+[m[32m  res.json(product);[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mrouter.put("/:id/stock", verifyToken, isSeller, (req, res) => {[m
+[32m+[m[32m  const product = findProduct(req.params.id);[m
+[32m+[m[32m  if (!product) {[m
+[32m+[m[32m    return res.status(404).json({ message: "Product not found" });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const store = findStoreByOwner(req.user.id);[m
+[32m+[m[32m  if (!store || product.storeId !== store.id) {[m
+[32m+[m[32m    return res.status(403).json({ message: "Forbidden" });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const { stock } = req.body;[m
+[32m+[m[32m  if (stock == null) {[m
+[32m+[m[32m    return res.status(400).json({ message: "Stock is required" });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  product.stock = Number(stock);[m
+[32m+[m[32m  res.json(product);[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mrouter.delete("/:id", verifyToken, isSeller, (req, res) => {[m
+[32m+[m[32m  const product = findProduct(req.params.id);[m
+[32m+[m[32m  if (!product) {[m
+[32m+[m[32m    return res.status(404).json({ message: "Product not found" });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const store = findStoreByOwner(req.user.id);[m
+[32m+[m[32m  if (!store || product.storeId !== store.id) {[m
+[32m+[m[32m    return res.status(403).json({ message: "Forbidden" });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const index = products.findIndex((item) => item.id === req.params.id);[m
+[32m+[m[32m  products.splice(index, 1);[m
+[32m+[m[32m  store.productCount = products.filter((item) => item.storeId === store.id).length;[m
+[32m+[m[32m  res.status(204).end();[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mexport default router;[m
+[1mdiff --git a/backend/routes/shopRoutes.js b/backend/routes/shopRoutes.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..4dc34a5[m
+[1m--- /dev/null[m
+[1m+++ b/backend/routes/shopRoutes.js[m
+[36m@@ -0,0 +1,96 @@[m
+[32m+[m[32mimport express from "express";[m
+[32m+[m[32mimport { stores, products, generateId } from "../data/mockData.js";[m
+[32m+[m[32mimport { verifyToken, isSeller } from "../middleware/auth.js";[m
+[32m+[m
+[32m+[m[32mconst router = express.Router();[m
+[32m+[m
+[32m+[m[32mfunction findStore(id) {[m
+[32m+[m[32m  return stores.find((store) => store.id === id);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction findStoreByOwner(ownerId) {[m
+[32m+[m[32m  return stores.find((store) => store.ownerId === ownerId) || null;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mrouter.get("/my", verifyToken, isSeller, (req, res) => {[m
+[32m+[m[32m  const store = findStoreByOwner(req.user.id);[m
+[32m+[m[32m  if (!store) {[m
+[32m+[m[32m    return res.status(204).end();[m
+[32m+[m[32m  }[m
+[32m+[m[32m  res.json(store);[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mrouter.get("/:id", (req, res) => {[m
+[32m+[m[32m  const store = findStore(req.params.id);[m
+[32m+[m[32m  if (!store) {[m
+[32m+[m[32m    return res.status(404).json({ message: "Store not found" });[m
+[32m+[m[32m  }[m
+[32m+[m[32m  res.json(store);[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mrouter.get("/:id/products", (req, res) => {[m
+[32m+[m[32m  const store = findStore(req.params.id);[m
+[32m+[m[32m  if (!store) {[m
+[32m+[m[32m    return res.status(404).json({ message: "Store not found" });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const storeProducts = products.filter([m
+[32m+[m[32m    (product) => product.storeId === store.id,[m
+[32m+[m[32m  );[m
+[32m+[m[32m  res.json(storeProducts);[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mrouter.post("/", verifyToken, isSeller, (req, res) => {[m
+[32m+[m[32m  const existingStore = findStoreByOwner(req.user.id);[m
+[32m+[m[32m  if (existingStore) {[m
+[32m+[m[32m    return res.status(400).json({ message: "Vous possédez déjà une boutique." });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const { name, description, logo, banner } = req.body;[m
+[32m+[m[32m  if (!name || !description) {[m
+[32m+[m[32m    return res.status(400).json({ message: "Name and description are required" });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const newStore = {[m
+[32m+[m[32m    id: generateId("store"),[m
+[32m+[m[32m    ownerId: req.user.id,[m
+[32m+[m[32m    name,[m
+[32m+[m[32m    description,[m
+[32m+[m[32m    logo: logo || "https://placehold.co/200x200?text=Logo",[m
+[32m+[m[32m    banner: banner || "https://placehold.co/1200x300?text=Banner",[m
+[32m+[m[32m    productCount: 0,[m
+[32m+[m[32m    rating: 0,[m
+[32m+[m[32m    createdAt: new Date().toISOString(),[m
+[32m+[m[32m    address: {[m
+[32m+[m[32m      street: "123 Rue de l'Agora",[m
+[32m+[m[32m      city: "Paris",[m
+[32m+[m[32m      postalCode: "75000",[m
+[32m+[m[32m      country: "France",[m
+[32m+[m[32m    },[m
+[32m+[m[32m    category: "Électronique",[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  stores.push(newStore);[m
+[32m+[m[32m  res.status(201).json(newStore);[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mrouter.put("/", verifyToken, isSeller, (req, res) => {[m
+[32m+[m[32m  const store = findStoreByOwner(req.user.id);[m
+[32m+[m[32m  if (!store) {[m
+[32m+[m[32m    return res.status(404).json({ message: "Store not found" });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const { name, description, logo, banner, address, category } = req.body;[m
+[32m+[m[32m  Object.assign(store, {[m
+[32m+[m[32m    ...(name !== undefined && { name }),[m
+[32m+[m[32m    ...(description !== undefined && { description }),[m
+[32m+[m[32m    ...(logo !== undefined && { logo }),[m
+[32m+[m[32m    ...(banner !== undefined && { banner }),[m
+[32m+[m[32m    ...(address !== undefined && { address }),[m
+[32m+[m[32m    ...(category !== undefined && { category }),[m
+[32m+[m[32m  });[m
+[32m+[m
+[32m+[m[32m  res.json(store);[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mexport default router;[m
+[1mdiff --git a/backend/server.js b/backend/server.js[m
+[1mindex bfeb3b2..dfe9a32 100644[m
+[1m--- a/backend/server.js[m
+[1m+++ b/backend/server.js[m
+[36m@@ -10,8 +10,8 @@[m [mimport connectDB from "./config/db.js";[m
+ import { auth } from "./auth.js";[m
+ [m
+ // Routes[m
+[31m-// import shopRoutes    from './routes/shopRoutes.js';[m
+[31m-// import productRoutes from './routes/productRoutes.js';[m
+[32m+[m[32mimport shopRoutes from './routes/shopRoutes.js';[m
+[32m+[m[32mimport productRoutes from './routes/productRoutes.js';[m
+ // import orderRoutes   from './routes/orderRoutes.js';[m
+ // import addressRoutes from './routes/addressRoutes.js';[m
+ [m
+[36m@@ -53,8 +53,8 @@[m [mapp.all("/api/auth/*splat", toNodeHandler(auth));[m
+ app.use(express.json());[m
+ [m
+ // ── Application Routes ────────────────────────────────────────────────────────[m
+[31m-// app.use("/api/shops", shopRoutes);[m
+[31m-// app.use("/api/products", productRoutes);[m
+[32m+[m[32mapp.use("/api/shops", shopRoutes);[m
+[32m+[m[32mapp.use("/api/products", productRoutes);[m
+ // app.use("/api/orders", orderRoutes);[m
+ // app.use("/api/addresses", addressRoutes);[m
+ [m

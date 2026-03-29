@@ -17,7 +17,7 @@ export default function VendorLayoutClient({
     if (!isLoading) {
       if (!user) {
         router.push("/login?redirect=/vendeur");
-      } else if (user.role !== "vendeur") {
+      } else if (user.role !== "seller") {
         router.push("/");
       }
     }
@@ -31,7 +31,7 @@ export default function VendorLayoutClient({
     );
   }
 
-  if (!user || user.role !== "vendeur") return null;
+  if (!user || user.role !== "seller") return null;
 
   return (
     <div className="min-h-screen bg-muted/30">
