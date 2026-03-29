@@ -17,6 +17,8 @@ import {
 const client = new MongoClient(process.env.MONGO_URI);
 await client.connect();
 const db = client.db("multivendor");
+
+// Derive the email verification policy once so every auth entry point uses the same flag.
 export const requireEmailVerification =
   process.env.REQUIRE_EMAIL_VERIFICATION === "true";
 
@@ -83,7 +85,7 @@ export const auth = betterAuth({
   ],
 
   // ── Hooks ─────────────────────────────────────────────
-  hooks: {
+  hooks: {   
     before: async (ctx) => {
       if (ctx.path === "/sign-up/email") {
         const role = ctx.body?.role;

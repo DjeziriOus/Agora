@@ -55,8 +55,7 @@ export default function RegisterPage() {
     [password]
   );
 
-
-
+  // Register the user, then follow the backend verification policy without exposing the email in the URL.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);

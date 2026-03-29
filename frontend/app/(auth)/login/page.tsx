@@ -15,14 +15,14 @@ function LoginContent() {
   const { login, isLoading, emailNotVerified, clearEmailNotVerified } = useAuth();
   const router = useRouter();
 
-  //Verify if the entred email is already verified or not. 
-  //If REQUIRE_EMAIL_VERIFICATION=true (backend/.env)
+  // Consume the one-time unverified-email flag and redirect the user to the verification screen.
   useEffect(() => {
     if (!emailNotVerified) return;
     clearEmailNotVerified();
     router.push("/verify-email");
   }, [emailNotVerified, clearEmailNotVerified, router]);
 
+  // Submit the credentials and surface any backend auth errors in the page banner.
   const handleSubmit = async (e: React.FormEvent) => {
 
     e.preventDefault();

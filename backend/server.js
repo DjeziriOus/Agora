@@ -58,6 +58,7 @@ app.use(express.json());
 // app.use("/api/orders", orderRoutes);
 // app.use("/api/addresses", addressRoutes);
 
+// Expose the active auth policy so the frontend can mirror the backend verification flow.
 app.get("/api/public/auth-config", (_req, res) => {
   res.json({ requireEmailVerification });
 });

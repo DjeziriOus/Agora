@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useState<string | null>(null);
   const router = useRouter();
 
+  // Fetch the backend auth flags so register and verify-email flows stay in sync.
   const ensureAuthConfig = useCallback(async () => {
     try {
       const data = await apiFetch<AuthConfigResponse>("/api/public/auth-config");
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Persist the pending verification email so the verify page survives navigation and refreshes.
   const setPendingVerificationEmail = useCallback((email: string) => {
     setPendingVerificationEmailState(email);
 
@@ -93,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Clear the pending verification email once the user leaves or completes the verification flow.
   const clearPendingVerificationEmail = useCallback(() => {
     setPendingVerificationEmailState(null);
 
@@ -105,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Hydrate session on mount
   useEffect(() => {
+    // Restore the Better Auth session so route guards and role redirects have the current user.
     const initAuth = async () => {
       try {
         const { data } = await authClient.getSession();
@@ -136,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [ensureAuthConfig]);
 
+  // Sign in the user and raise a one-shot redirect flag if the backend says the email is still unverified.
   const login = useCallback(
     async (email: string, password: string) => {
       setIsLoading(true);
@@ -171,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [clearPendingVerificationEmail, router, setPendingVerificationEmail]
   );
 
+  // Create the account and let the caller decide whether to continue to login or email verification.
   const register = useCallback(
     async (data: {
       firstName: string;
@@ -207,6 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  // End the Better Auth session and clear any verification state that should not leak across users.
   const logout = useCallback(async () => {
     await authClient.signOut();
     setUser(null);
@@ -214,10 +221,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   }, [clearPendingVerificationEmail, router]);
 
+  // Reset the one-shot redirect flag after the login page has consumed it.
   const clearEmailNotVerified = useCallback(() => {
     setEmailNotVerified(false);
   }, []);
 
+  // Ask Better Auth to send a fresh verification email for the pending address.
   const resendVerification = useCallback(async (email: string) => {
     const { error } = await authClient.sendVerificationEmail({
       email,
