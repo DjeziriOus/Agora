@@ -8,7 +8,7 @@ import {
   // vendorApi,
   // authApi,
 } from "@/lib/api";
-import type { ProductQuery, ProductPayload, OrderPayload, StorePayload } from "@/types";
+import type { ProductQuery, ProductPayload, OrderPayload, StorePayload, Product, Category } from "@/types";
 
 // Query Keys
 export const queryKeys = {
@@ -61,7 +61,7 @@ export function useProducts(params?: ProductQuery) {
 }
 
 export function useProduct(id: string) {
-  return useQuery({
+  return useQuery<Product>({
     queryKey: queryKeys.products.detail(id),
     queryFn: () => productsApi.getById(id),
     enabled: !!id,
@@ -186,7 +186,7 @@ export function useUpdateStore() {
 
 // CATEGORY HOOKS
 export function useCategories() {
-  return useQuery({
+  return useQuery<Category[]>({
     queryKey: queryKeys.categories.all,
     queryFn: () => categoriesApi.getAll(),
   });
@@ -209,7 +209,7 @@ export function useOrder(id: string) {
 }
 
 export function useSellerOrders() {
-  return useQuery({
+  return useQuery<Order[]>({
     queryKey: queryKeys.orders.seller,
     queryFn: () => ordersApi.getSellerOrders(),
   });
