@@ -127,8 +127,15 @@ useEffect(() => {
 
       setIsLoading(false);
 
+      //Handle register errors
       if (error) {
-        throw new Error(error.message ?? "Une erreur est survenue lors de l'inscription");
+        if (error.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL") {
+          throw new Error(
+            "Cette adresse e-mail est déjà utilisée. Veuillez en choisir une autre."
+          );
+        } else {
+          throw new Error(error.message ?? "Une erreur est survenue");
+        }
       }
       // Success — caller handles the UI message (no redirect)
     },
