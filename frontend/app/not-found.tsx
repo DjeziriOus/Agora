@@ -34,7 +34,7 @@ export default function NotFoundPage() {
             </h1>
             {/* Subtitle */}
             <p className="text-lg text-white/70 max-w-2xl mx-auto mb-10">
-              La page que vous cherchez n'existe plus ou a été déplacée.
+              Désolé, la page que vous recherchez n'existe pas ou a été déplacée.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
