@@ -1,79 +1,128 @@
 import mongoose from "mongoose";
+import "../models/User.js";
 
 const shopSchema = new mongoose.Schema(
   {
-    // Shop name
-    // Required, trimmed, length-limited, and must not contain spaces
     name: {
       type: String,
       required: [true, "Shop name is required"],
       trim: true,
       minlength: [2, "Shop name must be at least 2 characters"],
       maxlength: [50, "Shop name must be at most 50 characters"],
-      validate: {
-        validator: function (value) {
-          return !/\s/.test(value);
-        },
-        message: "Shop name must not contain spaces",
-      },
     },
-
-    // Shop description
-    // Optional, trimmed, maximum 100 characters
+    slug: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      // Removed unique: true here; handled by partial index below
+    },
     description: {
       type: String,
       default: "",
       trim: true,
-      maxlength: [100, "Description must be at most 100 characters"],
+      maxlength: [1000, "Description must be at most 1000 characters"],
     },
-
-    // Contact email for the shop
     contactEmail: {
       type: String,
       default: "",
       trim: true,
       lowercase: true,
+      validate: {
+        validator: (v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+        message: "Invalid email format",
+      },
     },
-
-    // Contact phone number for the shop
     contactPhone: {
       type: String,
       default: "",
       trim: true,
+      validate: {
+        validator: (v) => v === "" || /^[\d\s\+\-\(\)]{7,20}$/.test(v),
+        message: "Invalid phone number format",
+      },
     },
-
-    // Contact address for the shop
     contactAddress: {
       type: String,
       default: "",
       trim: true,
+      maxlength: [200, "Address must be at most 200 characters"],
     },
-
-    // Shop status
-    // Only these values are allowed
     status: {
       type: String,
       enum: ["active", "inactive", "pending"],
       default: "pending",
     },
-
-    // Owner of the shop
-    // References a User document
-    // unique: true means one user can own only one shop
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true,
+      // Removed unique: true here; handled by partial index below
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
     },
   },
   {
-    // Automatically add createdAt and updatedAt
     timestamps: true,
-
-    // Explicit MongoDB collection name
     collection: "shops",
-  }
+  },
 );
 
-export default mongoose.model("Shop", shopSchema);
+// Indexes
+shopSchema.index({ status: 1 });
+
+// Partial Unique Indexes (Enforce uniqueness ONLY for active, non-deleted shops)
+shopSchema.index(
+  { owner: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } },
+);
+
+shopSchema.index(
+  { slug: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } },
+);
+
+shopSchema.index(
+  { name: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isDeleted: false },
+    collation: { locale: "en", strength: 2 },
+  },
+);
+
+// Auto-generate and verify unique slug from name before saving
+shopSchema.pre("save", async function () {
+  if (this.isModified("name")) {
+    const baseSlug = this.name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+
+    let currentSlug = baseSlug;
+    let isUnique = false;
+    let counter = 1;
+
+    while (!isUnique) {
+      const existingShop = await mongoose.models.Shop.findOne({
+        slug: currentSlug,
+        isDeleted: false,
+        _id: { $ne: this._id },
+      });
+
+      if (existingShop) {
+        currentSlug = `${baseSlug}-${counter}`;
+        counter++;
+      } else {
+        isUnique = true;
+      }
+    }
+
+    this.slug = currentSlug;
+  }
+});
+
+export default mongoose.models.Shop || mongoose.model("Shop", shopSchema);
