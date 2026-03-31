@@ -55,6 +55,34 @@ export const products = [
   },
 ];
 
+export const orders = [
+  {
+    id: "order-1",
+    userId: "user-1",
+    sellerId: "seller-1",
+    storeId: "store-1",
+    storeName: "Agora Boutique",
+    items: [
+      {
+        productId: "prod-1",
+        productName: "Souris sans fil",
+        quantity: 2,
+        price: 29.99,
+      },
+    ],
+    status: "shipped",
+    totalPrice: 59.98,
+    shippingAddress: {
+      street: "456 Boulevard Central",
+      city: "Lyon",
+      postalCode: "69000",
+      country: "France",
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
 export function generateId(prefix = "id") {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 }
