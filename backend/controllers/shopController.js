@@ -1,5 +1,7 @@
-import { createShop as createShopService } from "../services/shopService.js";
-
+import shopService from "../services/shopService.js";
+/**
+ * POST /api/shops
+ */
 export const createShop = async (req, res) => {
   try {
     const {
@@ -11,7 +13,7 @@ export const createShop = async (req, res) => {
       status,
     } = req.body;
 
-    const shop = await createShopService({
+    const shop = await shopService.createShop({
       ownerId: req.user.id,
       emailVerified: req.user.emailVerified,
       name,
@@ -30,5 +32,16 @@ export const createShop = async (req, res) => {
     return res.status(error.statusCode || 500).json({
       message: error.message || "Internal server error.",
     });
+  }
+};
+/**
+ * GET /api/shops/:id
+ */
+export const getShopById = async (req, res) => {
+  try {
+    const shop = await shopService.getShopById(req.params.id);
+    res.status(200).json(shop);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
