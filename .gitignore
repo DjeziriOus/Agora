@@ -10,3 +10,4 @@ frontend/src/config.ts
 *.sh
 
 .claude
+TODO.md
