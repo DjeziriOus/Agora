@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    collection: "users", // explicit — must match BetterAuth collectionNames
+    collection: "user", // explicit — must match BetterAuth collectionNames
   },
 );
 
