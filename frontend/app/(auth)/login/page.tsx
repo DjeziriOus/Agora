@@ -2,26 +2,27 @@
 
 import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff, X, Diamond } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login, isLoading, emailNotVerified } = useAuth();
+  const { login, isLoading, emailNotVerified, clearEmailNotVerified } = useAuth();
+  const router = useRouter();
 
-  //Verify if the entred email is already verified or not. 
-  //If REQUIRE_EMAIL_VERIFICATION=true (backend/.env)
+  // Consume the one-time unverified-email flag and redirect the user to the verification screen.
   useEffect(() => {
-    if (emailNotVerified) {
-      setError("Merci de verifier l'adresse mail avant de se connecter");
-    }
-  }, [emailNotVerified]);
+    if (!emailNotVerified) return;
+    clearEmailNotVerified();
+    router.push("/verify-email");
+  }, [emailNotVerified, clearEmailNotVerified, router]);
 
+  // Submit the credentials and surface any backend auth errors in the page banner.
   const handleSubmit = async (e: React.FormEvent) => {
 
     e.preventDefault();

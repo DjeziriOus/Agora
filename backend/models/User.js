@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { requireEmailVerification } from "../auth";
 
 /**
  * Thin Mongoose User model — mirrors BetterAuth's `users` collection.
@@ -11,7 +12,10 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema(
   {
     email: { type: String },
-    emailVerified: { type: Boolean, default: false },
+    emailVerified: {
+      type: Boolean,
+      default: !requireEmailVerification, // auto-verified if email verification is disabled
+    },
     firstName: { type: String, default: "" },
     lastName: { type: String, default: "" },
     name: { type: String, default: "" }, // kept for BetterAuth compat

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Eye, EyeOff, X, Diamond, User, Store } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 type UserRole = "buyer" | "seller";
 
@@ -40,13 +41,21 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { register, isLoading } = useAuth();
+  const {
+    register,
+    isLoading,
+    ensureAuthConfig,
+    setPendingVerificationEmail,
+    clearPendingVerificationEmail,
+  } = useAuth();
+  const router = useRouter();
 
   const passwordStrength = useMemo(
     () => getPasswordStrength(password),
-    [password]
+    [password],
   );
 
+  // Register the user, then follow the backend verification policy without exposing the email in the URL.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -67,7 +76,23 @@ export default function RegisterPage() {
     }
 
     try {
-      await register({ firstName, lastName, email, password, role });
+      const { emailVerified } = await register({
+        firstName,
+        lastName,
+        email,
+        password,
+        role,
+      });
+      // const shouldVerifyEmail = await ensureAuthConfig();
+
+      if (!emailVerified) {
+        setPendingVerificationEmail(email);
+        router.push("/verify-email");
+        return;
+      }
+
+      clearPendingVerificationEmail();
+      router.push("/login");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
     }
@@ -80,15 +105,16 @@ export default function RegisterPage() {
         <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-xl)] p-8 shadow-[var(--shadow-md)]">
           {/* Logo */}
           <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center gap-2 justify-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 justify-center"
+            >
               <Diamond className="w-6 h-6 text-[var(--agora-primary)]" />
               <span className="font-display text-2xl font-bold text-[var(--agora-primary)]">
                 Agora
               </span>
             </Link>
-            <p className="mt-2 text-[var(--agora-mid)]">
-              Créez votre compte
-            </p>
+            <p className="mt-2 text-[var(--agora-mid)]">Créez votre compte</p>
           </div>
 
           {/* Error Banner */}
@@ -119,7 +145,7 @@ export default function RegisterPage() {
                     "flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--radius-md)] border-2 font-medium text-sm transition-all",
                     role === "buyer"
                       ? "border-[var(--agora-primary)] bg-[var(--agora-accent)] text-[var(--agora-primary)]"
-                      : "border-[var(--agora-line)] text-[var(--agora-mid)] hover:border-[var(--agora-primary)]/50"
+                      : "border-[var(--agora-line)] text-[var(--agora-mid)] hover:border-[var(--agora-primary)]/50",
                   )}
                 >
                   <User className="w-4 h-4" />
@@ -132,7 +158,7 @@ export default function RegisterPage() {
                     "flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--radius-md)] border-2 font-medium text-sm transition-all",
                     role === "seller"
                       ? "border-[var(--agora-primary)] bg-[var(--agora-accent)] text-[var(--agora-primary)]"
-                      : "border-[var(--agora-line)] text-[var(--agora-mid)] hover:border-[var(--agora-primary)]/50"
+                      : "border-[var(--agora-line)] text-[var(--agora-mid)] hover:border-[var(--agora-primary)]/50",
                   )}
                 >
                   <Store className="w-4 h-4" />
@@ -220,7 +246,11 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--agora-mid)] hover:text-[var(--agora-ink)]"
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  aria-label={
+                    showPassword
+                      ? "Masquer le mot de passe"
+                      : "Afficher le mot de passe"
+                  }
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -272,7 +302,7 @@ export default function RegisterPage() {
                     "w-full px-4 py-2.5 pr-10 border rounded-[var(--radius-md)] text-[var(--agora-ink)] placeholder:text-[var(--agora-text-disabled)] focus:outline-none focus:ring-2 transition-colors",
                     confirmPassword && confirmPassword !== password
                       ? "border-[var(--agora-danger)] focus:border-[var(--agora-danger)] focus:ring-[var(--agora-danger)]/20"
-                      : "border-[var(--agora-line)] focus:border-[var(--agora-primary)] focus:ring-[var(--agora-primary)]/20"
+                      : "border-[var(--agora-line)] focus:border-[var(--agora-primary)] focus:ring-[var(--agora-primary)]/20",
                   )}
                   autoComplete="new-password"
                 />
@@ -280,7 +310,11 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--agora-mid)] hover:text-[var(--agora-ink)]"
-                  aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Masquer le mot de passe"
+                      : "Afficher le mot de passe"
+                  }
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -304,7 +338,7 @@ export default function RegisterPage() {
                 "w-full py-3 px-4 rounded-[var(--radius-md)] font-medium text-white transition-all",
                 isLoading
                   ? "bg-[var(--agora-primary)]/70 cursor-not-allowed"
-                  : "bg-[var(--agora-primary)] hover:bg-[var(--agora-primary-hover)] active:scale-[0.98]"
+                  : "bg-[var(--agora-primary)] hover:bg-[var(--agora-primary-hover)] active:scale-[0.98]",
               )}
             >
               {isLoading ? (
