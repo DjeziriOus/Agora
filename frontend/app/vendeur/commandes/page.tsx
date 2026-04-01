@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSellerOrders, useUpdateOrderStatus } from "@/hooks/useApi";
-import type { Order } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,9 +57,9 @@ export default function VendorOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Filter orders
-  let filteredOrders: Order[] = orders || [];
+  let filteredOrders = orders || [];
   if (search) {
-    filteredOrders = filteredOrders.filter((order: Order) =>
+    filteredOrders = filteredOrders.filter((order) =>
       order.id.toLowerCase().includes(search.toLowerCase()),
     );
   }
@@ -172,7 +171,7 @@ export default function VendorOrdersPage() {
                       </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {format(new Date(order.date), "d MMM yyyy", {
+                      {format(new Date(order.createdAt), "d MMM yyyy", {
                         locale: fr,
                       })}
                     </TableCell>

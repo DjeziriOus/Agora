@@ -25,7 +25,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
+
       <main className="flex-1">
+
         {/* Hero */}
         <section
           className="relative bg-[var(--agora-ink)] text-white overflow-hidden"
@@ -46,23 +48,15 @@ export default function HomePage() {
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24 text-center">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-8">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 28 28"
-                fill="none"
-                aria-hidden="true"
-              >
+              <svg width="16" height="16" viewBox="0 0 28 28" fill="none" aria-hidden="true">
                 <path d="M14 3L27 25H1L14 3Z" fill="var(--agora-gold)" />
                 <path d="M14 10L23 25H5L14 10Z" fill="var(--agora-primary)" />
               </svg>
-              <span className="text-sm text-white/80">
-                La marketplace française
-              </span>
+              <span className="text-sm text-white/80">La marketplace française</span>
             </div>
 
             {/* Title */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-white">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
               Bienvenue sur{" "}
               <span className="relative inline-block">
                 Agora
@@ -111,9 +105,7 @@ export default function HomePage() {
                   href={`/catalogue?categorie=${encodeURIComponent(cat.name)}`}
                   className="flex flex-col items-center gap-2 p-4 border border-[var(--agora-line)] rounded-xl hover:border-[var(--agora-primary)] hover:shadow-[var(--shadow-sm)] transition-all group"
                 >
-                  <span className="text-3xl">
-                    {categoryIcons[cat.name] ?? "🛍️"}
-                  </span>
+                  <span className="text-3xl">{categoryIcons[cat.name] ?? "🛍️"}</span>
                   <span className="text-xs font-medium text-[var(--agora-ink)] group-hover:text-[var(--agora-primary)] transition-colors text-center">
                     {cat.name}
                   </span>
@@ -176,22 +168,15 @@ export default function HomePage() {
                   desc: "Paiement sécurisé et suivi de livraison pour chaque commande.",
                 },
               ].map(({ step, icon: Icon, title, desc }) => (
-                <div
-                  key={step}
-                  className="flex flex-col items-center text-center"
-                >
+                <div key={step} className="flex flex-col items-center text-center">
                   <div className="w-10 h-10 rounded-full bg-[var(--agora-primary)] text-white font-bold text-lg flex items-center justify-center mb-4">
                     {step}
                   </div>
                   <div className="w-12 h-12 rounded-full border-2 border-[var(--agora-line)] bg-white flex items-center justify-center mb-4">
                     <Icon className="w-5 h-5 text-[var(--agora-mid)]" />
                   </div>
-                  <h3 className="font-semibold text-[var(--agora-ink)] mb-2">
-                    {title}
-                  </h3>
-                  <p className="text-sm text-[var(--agora-text-secondary)] leading-relaxed">
-                    {desc}
-                  </p>
+                  <h3 className="font-semibold text-[var(--agora-ink)] mb-2">{title}</h3>
+                  <p className="text-sm text-[var(--agora-text-secondary)] leading-relaxed">{desc}</p>
                 </div>
               ))}
             </div>
@@ -217,6 +202,7 @@ export default function HomePage() {
             </Link>
           </div>
         </section>
+
       </main>
 
       <Footer />

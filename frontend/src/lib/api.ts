@@ -1,5 +1,4 @@
 import { API_URL } from "@/config";
-import type { Product } from "@/types";
 const BASE_URL = API_URL;
 
 export class ApiError extends Error {
@@ -52,10 +51,10 @@ export const productsApi = {
           ) as Record<string, string>
         ).toString()
       : "";
-    return apiFetch<{ products: Product[]; total: number }>(`/api/products${qs}`);
+    return apiFetch<{ products: unknown[]; total: number }>(`/api/products${qs}`);
   },
-  getById: (id: string) => apiFetch<Product>(`/api/products/${id}`),
-  getMine: () => apiFetch<Product[]>(`/api/products/mine`),
+  getById: (id: string) => apiFetch<unknown>(`/api/products/${id}`),
+  getMine: () => apiFetch<unknown[]>(`/api/products/mine`),
   create: (data: unknown) =>
     apiFetch<unknown>("/api/products", {
       method: "POST",

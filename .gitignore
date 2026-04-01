@@ -1,9 +1,0 @@
-#VS Code workspace
-*.code-workspace
-
-#MacOS trash file
-.DS_Store
-
-#Postman
-agora-betterauth.postman_collection.json
-frontend/src/config.ts
