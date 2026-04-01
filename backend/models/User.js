@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { requireEmailVerification } from "../auth";
+import { requireEmailVerification } from "../auth.js";
 
 /**
  * Thin Mongoose User model — mirrors BetterAuth's `users` collection.
