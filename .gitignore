@@ -7,3 +7,4 @@
 #Postman
 agora-betterauth.postman_collection.json
 frontend/src/config.ts
+*.sh
