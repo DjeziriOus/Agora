@@ -14,36 +14,31 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { login, isLoading, emailNotVerified } = useAuth();
-  const router = useRouter();
 
+  //Verify if the entred email is already verified or not. 
+  //If REQUIRE_EMAIL_VERIFICATION=true (backend/.env)
   useEffect(() => {
     if (emailNotVerified) {
-      router.push("/verify-email");
+      setError("Merci de verifier l'adresse mail avant de se connecter");
     }
-  }, [emailNotVerified, router]);
+  }, [emailNotVerified]);
 
   const handleSubmit = async (e: React.FormEvent) => {
+
     e.preventDefault();
     setError(null);
 
-    try {
-      const user = await login(email, password);
-      if (!user) {
-        return;
-      }
-
-      if (user.role === "seller") {
-        const hasStore = await storesApi
-          .getMyStore()
-          .then((store) => !!store)
-          .catch(() => false);
-        router.push(hasStore ? "/vendeur" : "/vendeur/boutique");
-      } else {
-        router.push("/catalogue");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue lors de la connexion");
+    if (email.length == 0) {
+      setError("Merci de renseigner un adresse mail");
+      return;
     }
+    try {
+      await login(email, password);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+    }
+
   };
 
   return (

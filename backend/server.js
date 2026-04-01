@@ -10,9 +10,9 @@ import connectDB from "./config/db.js";
 import { auth } from "./auth.js";
 
 // Routes
-import shopRoutes from './routes/shopRoutes.js';
-import productRoutes from './routes/productRoutes.js';
-import orderRoutes from './routes/orderRoutes.js';
+import shopRoutes    from './routes/shopRoutes.js';
+// import productRoutes from './routes/productRoutes.js';
+// import orderRoutes   from './routes/orderRoutes.js';
 // import addressRoutes from './routes/addressRoutes.js';
 
 const app = express();
@@ -21,7 +21,7 @@ const app = express();
 // credentials: true is required for BetterAuth session cookies
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: process.env.FRONTEND_URL || "https://localhost:3000",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
   }),
@@ -53,9 +53,9 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json());
 
 // ── Application Routes ────────────────────────────────────────────────────────
-app.use("/api/shops", shopRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/orders", orderRoutes);
+ app.use("/api/shops", shopRoutes);
+// app.use("/api/products", productRoutes);
+// app.use("/api/orders", orderRoutes);
 // app.use("/api/addresses", addressRoutes);
 
 // Health-check
