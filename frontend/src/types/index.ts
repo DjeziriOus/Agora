@@ -11,14 +11,17 @@ export interface User {
 }
 
 export interface Store {
-  id: string;
+  id?: string;
+  _id?: string;
   name: string;
   description: string;
   logo?: string;
   banner?: string;
-  productCount: number;
-  rating: number;
-  createdAt: string;
+  productCount?: number;
+  rating?: number;
+  reviewCount?: number;
+  followerCount?: number;
+  createdAt?: string;
   address?: {
     street: string;
     city: string;
@@ -27,6 +30,7 @@ export interface Store {
   };
   category?: string;
 }
+
 
 export interface Product {
   id: string;

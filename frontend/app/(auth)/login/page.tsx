@@ -1,11 +1,12 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, X, Diamond } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { storesApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
 
 function LoginContent() {
   const [email, setEmail] = useState("");
@@ -24,21 +25,27 @@ function LoginContent() {
 
   // Submit the credentials and surface any backend auth errors in the page banner.
   const handleSubmit = async (e: React.FormEvent) => {
-
     e.preventDefault();
     setError(null);
 
-    if (email.length == 0) {
-      setError("Merci de renseigner un adresse mail");
-      return;
-    }
     try {
-      await login(email, password);
+      const user = await login(email, password);
+      if (!user) {
+        return;
+      }
 
+      if (user.role === "seller") {
+        const hasStore = await storesApi
+          .getMyStore()
+          .then((store) => !!store)
+          .catch(() => false);
+        router.push(hasStore ? "/vendeur" : "/vendeur/boutique");
+      } else {
+        router.push("/catalogue");
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+      setError(err instanceof Error ? err.message : "Une erreur est survenue lors de la connexion");
     }
-
   };
 
   return (

@@ -99,7 +99,7 @@ export default function VendorStorePage() {
         </div>
         {hasStore && (
           <Button variant="outline" asChild>
-            <Link href={`/boutique/${store.id}`} target="_blank">
+            <Link href={`/boutique/${store._id}`} target="_blank">
               <ExternalLink className="mr-2 h-4 w-4" />
               Voir ma boutique
             </Link>

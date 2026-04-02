@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Diamond, ArrowRight, ShoppingBag, Store, Shield } from "lucide-react";
+import { ArrowRight, ShoppingBag, Store, Shield } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { mockProducts, mockCategories } from "@/lib/mockData";
 import { Navbar } from "@/components/Navbar";
@@ -25,10 +25,11 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
+
       <main className="flex-1">
         {/* Hero */}
         <section
-          className="relative bg-[var(--agora-ink)] text-white overflow-hidden"
+          className="relative overflow-hidden"
           style={{
             backgroundImage:
               "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
@@ -62,7 +63,7 @@ export default function HomePage() {
             </div>
 
             {/* Title */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-white">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white font-bold mb-6 leading-tight">
               Bienvenue sur{" "}
               <span className="relative inline-block">
                 Agora

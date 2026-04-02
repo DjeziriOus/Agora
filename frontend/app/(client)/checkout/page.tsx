@@ -37,7 +37,7 @@ interface PaymentInfo {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, clearCart } = useCart();
+  const { items, total, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
 
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("shipping");
@@ -67,10 +67,6 @@ export default function CheckoutPage() {
   ];
 
   const currentStepIndex = steps.findIndex((s) => s.key === currentStep);
-
-  const total = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  }, [items]);
 
   const isShippingValid = useMemo(() => {
     return (
@@ -575,8 +571,8 @@ export default function CheckoutPage() {
                     <div key={item.productId} className="flex gap-3">
                       <div className="relative w-12 h-12 rounded-[var(--radius-sm)] overflow-hidden bg-[var(--agora-accent)] shrink-0">
                         <Image
-                          src={item.product.images[0]}
-                          alt={item.product.name}
+                          src={item.image}
+                          alt={item.name}
                           fill
                           className="object-cover"
                         />
@@ -586,14 +582,14 @@ export default function CheckoutPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-[var(--agora-ink)] line-clamp-1">
-                          {item.product.name}
+                          {item.name}
                         </p>
                         <p className="text-xs text-[var(--agora-mid)]">
-                          {item.product.storeName}
+                          {item.storeName}
                         </p>
                       </div>
                       <p className="text-sm font-medium text-[var(--agora-ink)]">
-                        {(item.product.price * item.quantity)
+                        {(item.price * item.quantity)
                           .toFixed(2)
                           .replace(".", ",")} €
                       </p>

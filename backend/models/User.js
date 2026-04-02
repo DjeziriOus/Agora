@@ -24,14 +24,14 @@ const userSchema = new mongoose.Schema(
     gender: { type: String, default: "" },
     role: {
       type: String,
-      enum: ["buyer", "seller", "admin"],
-      default: "buyer",
+      enum: ['buyer', 'seller', 'admin'],
+      default: 'buyer',
     },
   },
   {
     timestamps: true,
-    collection: "user", // explicit — must match BetterAuth collectionNames
-  },
+    collection: 'users', // explicit — must match BetterAuth collectionNames
+  }
 );
 
-export default mongoose.model("User", userSchema);
+export default mongoose.model('User', userSchema);

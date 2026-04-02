@@ -165,18 +165,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ) {
           setPendingVerificationEmail(email);
           setEmailNotVerified(true);
-          return;
+          return null;
         }
         throw new Error(error.message ?? "Une erreur est survenue");
       }
 
-      // On success, remap the Better Auth user payload to our own User model,
-      // then redirect to the appropriate page based on the user's role.
       if (data?.user) {
         const mapped = mapUser(data.user as Record<string, unknown>);
         setUser(mapped);
-        router.push(mapped.role === "seller" ? "/vendeur" : "/catalogue");
+        return mapped;
       }
+
+      return null;
     },
     [clearPendingVerificationEmail, router, setPendingVerificationEmail],
   );
