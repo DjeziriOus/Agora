@@ -11,7 +11,7 @@ import { auth } from "./auth.js";
 
 // Routes
 import shopRoutes    from './routes/shopRoutes.js';
-// import productRoutes from './routes/productRoutes.js';
+import productRoutes from './routes/productRoutes.js';
 // import orderRoutes   from './routes/orderRoutes.js';
 // import addressRoutes from './routes/addressRoutes.js';
 
@@ -53,8 +53,9 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json());
 
 // ── Application Routes ────────────────────────────────────────────────────────
- app.use("/api/shops", shopRoutes);
-// app.use("/api/products", productRoutes);
+app.use("/api/shops", shopRoutes);
+// Product routes for seller inventory management.
+app.use("/api/products", productRoutes);
 // app.use("/api/orders", orderRoutes);
 // app.use("/api/addresses", addressRoutes);
 

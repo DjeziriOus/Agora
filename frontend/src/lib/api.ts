@@ -1,4 +1,4 @@
-import { API_URL } from "@/config";
+import { API_URL } from "../config";
 import type { Product } from "@/types";
 const BASE_URL = API_URL;
 
