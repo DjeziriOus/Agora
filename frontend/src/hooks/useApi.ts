@@ -1,14 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   productsApi,
-  // storesApi,
-  // categoriesApi,
+  storesApi,
+  categoriesApi,
   ordersApi,
-  // cartApi,
-  // vendorApi,
-  // authApi,
+  addressesApi,
+  cartApi,
+  vendorApi,
+  authApi,
 } from "@/lib/api";
-import type { ProductQuery, ProductPayload, OrderPayload, StorePayload, Product, Category } from "@/types";
+import type {
+  ProductQuery,
+  ProductPayload,
+  OrderPayload,
+  StorePayload,
+} from "@/types";
 
 // Query Keys
 export const queryKeys = {
@@ -21,7 +27,8 @@ export const queryKeys = {
   },
   stores: {
     detail: (id: string) => ["stores", id] as const,
-    products: (id: string, params?: ProductQuery) => ["stores", id, "products", params] as const,
+    products: (id: string, params?: ProductQuery) =>
+      ["stores", id, "products", params] as const,
     my: ["stores", "my"] as const,
   },
   categories: {
@@ -46,8 +53,7 @@ export const queryKeys = {
 export function useCurrentUser() {
   return useQuery({
     queryKey: queryKeys.auth.me,
-    // queryFn: () => authApi.me(),
-    queryFn: () => {},
+    queryFn: () => authApi.me(),
     retry: false,
   });
 }
@@ -61,7 +67,7 @@ export function useProducts(params?: ProductQuery) {
 }
 
 export function useProduct(id: string) {
-  return useQuery<Product>({
+  return useQuery({
     queryKey: queryKeys.products.detail(id),
     queryFn: () => productsApi.getById(id),
     enabled: !!id,
@@ -71,16 +77,28 @@ export function useProduct(id: string) {
 export function useSellerProducts() {
   return useQuery({
     queryKey: queryKeys.products.seller,
-    // queryFn: () => productsApi.getSellerProducts(),
-    queryFn: () => {},
+    queryFn: () => productsApi.getMine(),
   });
 }
 
 export function useLowStockProducts() {
   return useQuery({
     queryKey: queryKeys.products.lowStock,
-    // queryFn: () => vendorApi.getLowStockProducts(),
-    queryFn: () => {},
+    queryFn: async () => {
+      const result = await productsApi.getMine();
+      const products = Array.isArray(result)
+        ? result
+        : ((result as { products?: unknown[] })?.products ?? []);
+
+      return products.filter(
+        (product) =>
+          typeof product === "object" &&
+          product !== null &&
+          "stock" in product &&
+          "stockThreshold" in product &&
+          (product as any).stock <= (product as any).stockThreshold,
+      );
+    },
   });
 }
 
@@ -101,7 +119,9 @@ export function useUpdateProduct() {
       productsApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.products.detail(id),
+      });
     },
   });
 }
@@ -124,7 +144,9 @@ export function useUpdateProductStock() {
       productsApi.updateStock(id, stock),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.products.detail(id),
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
     },
   });
@@ -186,7 +208,7 @@ export function useUpdateStore() {
 
 // CATEGORY HOOKS
 export function useCategories() {
-  return useQuery<Category[]>({
+  return useQuery({
     queryKey: queryKeys.categories.all,
     queryFn: () => categoriesApi.getAll(),
   });
@@ -209,7 +231,7 @@ export function useOrder(id: string) {
 }
 
 export function useSellerOrders() {
-  return useQuery<Order[]>({
+  return useQuery({
     queryKey: queryKeys.orders.seller,
     queryFn: () => ordersApi.getSellerOrders(),
   });
@@ -241,7 +263,9 @@ export function useUpdateOrderStatus() {
       ordersApi.updateStatus(id, status),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.seller });
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.sellerDetail(id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.orders.sellerDetail(id),
+      });
     },
   });
 }
@@ -257,8 +281,13 @@ export function useCart() {
 export function useAddToCart() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
-      cartApi.add(productId, quantity),
+    mutationFn: ({
+      productId,
+      quantity,
+    }: {
+      productId: string;
+      quantity: number;
+    }) => cartApi.add(productId, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
     },
@@ -268,8 +297,13 @@ export function useAddToCart() {
 export function useUpdateCartQuantity() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
-      cartApi.updateQuantity(productId, quantity),
+    mutationFn: ({
+      productId,
+      quantity,
+    }: {
+      productId: string;
+      quantity: number;
+    }) => cartApi.updateQuantity(productId, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
     },
