@@ -76,6 +76,21 @@ export const productsApi = {
 // ── Shops ────────────────────────────────────────────────────────────────────
 export const shopsApi = {
   getById: (id: string) => apiFetch<unknown>(`/api/shops/${id}`),
+  getProducts: (id: string, params?: Record<string, string | undefined>) => {
+    const qs = params
+      ? "?" +
+        new URLSearchParams(
+          Object.fromEntries(
+            Object.entries(params).filter(([, v]) => v !== undefined),
+          ) as Record<string, string>,
+        ).toString()
+      : "";
+    return apiFetch<unknown>(`/api/shops/${id}/products${qs}`);
+  },
+  getMyStore: async () => {
+    const store = await apiFetch<unknown>("/api/shops/my");
+    return store ?? null;
+  },
   create: (data: unknown) =>
     apiFetch<unknown>("/api/shops", {
       method: "POST",
