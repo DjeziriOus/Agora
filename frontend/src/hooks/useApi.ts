@@ -1,15 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   productsApi,
-  storesApi,
-  categoriesApi,
+  // storesApi,
+  // categoriesApi,
   ordersApi,
-  addressesApi,
-  cartApi,
-  vendorApi,
-  authApi,
+  // cartApi,
+  // vendorApi,
+  // authApi,
 } from "@/lib/api";
-import type { ProductQuery, ProductPayload, OrderPayload, StorePayload } from "@/types";
+import type { ProductQuery, ProductPayload, OrderPayload, StorePayload, Product, Category } from "@/types";
 
 // Query Keys
 export const queryKeys = {
@@ -47,7 +46,8 @@ export const queryKeys = {
 export function useCurrentUser() {
   return useQuery({
     queryKey: queryKeys.auth.me,
-    queryFn: () => authApi.me(),
+    // queryFn: () => authApi.me(),
+    queryFn: () => {},
     retry: false,
   });
 }
@@ -61,7 +61,7 @@ export function useProducts(params?: ProductQuery) {
 }
 
 export function useProduct(id: string) {
-  return useQuery({
+  return useQuery<Product>({
     queryKey: queryKeys.products.detail(id),
     queryFn: () => productsApi.getById(id),
     enabled: !!id,
@@ -71,28 +71,16 @@ export function useProduct(id: string) {
 export function useSellerProducts() {
   return useQuery({
     queryKey: queryKeys.products.seller,
-    queryFn: () => productsApi.getMine(),
+    // queryFn: () => productsApi.getSellerProducts(),
+    queryFn: () => {},
   });
 }
 
 export function useLowStockProducts() {
   return useQuery({
     queryKey: queryKeys.products.lowStock,
-    queryFn: async () => {
-      const result = await productsApi.getMine();
-      const products = Array.isArray(result)
-        ? result
-        : (result as { products?: unknown[] })?.products ?? [];
-
-      return products.filter(
-        (product) =>
-          typeof product === "object" &&
-          product !== null &&
-          "stock" in product &&
-          "stockThreshold" in product &&
-          (product as any).stock <= (product as any).stockThreshold,
-      );
-    },
+    // queryFn: () => vendorApi.getLowStockProducts(),
+    queryFn: () => {},
   });
 }
 
@@ -198,7 +186,7 @@ export function useUpdateStore() {
 
 // CATEGORY HOOKS
 export function useCategories() {
-  return useQuery({
+  return useQuery<Category[]>({
     queryKey: queryKeys.categories.all,
     queryFn: () => categoriesApi.getAll(),
   });
@@ -221,7 +209,7 @@ export function useOrder(id: string) {
 }
 
 export function useSellerOrders() {
-  return useQuery({
+  return useQuery<Order[]>({
     queryKey: queryKeys.orders.seller,
     queryFn: () => ordersApi.getSellerOrders(),
   });

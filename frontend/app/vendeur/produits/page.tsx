@@ -65,9 +65,7 @@ function VendorProductsContent() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
-  const products = Array.isArray(data)
-    ? data
-    : data?.products || [];
+  const products = data?.products || [];
 
   // Filter products
   let filteredProducts = products.filter((p) =>

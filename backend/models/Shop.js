@@ -58,6 +58,14 @@ const shopSchema = new mongoose.Schema(
       required: true,
       // Removed unique: true here; handled by partial index below
     },
+    logo: {
+      url: { type: String, default: "" },
+      publicId: { type: String, default: "" },
+    },
+    banner: {
+      url: { type: String, default: "" },
+      publicId: { type: String, default: "" },
+    },
     isDeleted: {
       type: Boolean,
       default: false,
