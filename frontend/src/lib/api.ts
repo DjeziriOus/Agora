@@ -85,8 +85,8 @@ export const storesApi = {
       ? "?" +
         new URLSearchParams(
           Object.fromEntries(
-            Object.entries(params).filter(([, v]) => v !== undefined)
-          ) as Record<string, string>
+            Object.entries(params).filter(([, v]) => v !== undefined),
+          ) as Record<string, string>,
         ).toString()
       : "";
     return apiFetch<unknown>(`/api/shops/${id}/products${qs}`);

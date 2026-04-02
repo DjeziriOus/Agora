@@ -14,7 +14,7 @@ const register = async ({ name, email, password, role }) => {
     error.statusCode = 400;
     throw error;
   }
-
+  // Create new user
   const user = await User.create({ name, email, password, role });
 
   const token = generateToken(user._id);
@@ -35,14 +35,16 @@ const register = async ({ name, email, password, role }) => {
  * @param {Object} data - { email, password }
  * @returns {Object} - { user, token }
  */
+
 const login = async ({ email, password }) => {
+  //step one: find user by email
   const user = await User.findOne({ email });
   if (!user) {
     const error = new Error('Invalid email or password.');
     error.statusCode = 401;
     throw error;
   }
-
+  //step two: compare password
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
     const error = new Error('Invalid email or password.');

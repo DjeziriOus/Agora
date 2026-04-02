@@ -5,7 +5,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMyStore, useUpdateStore, useCreateStore } from "@/hooks/useApi";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,7 +31,9 @@ import Link from "next/link";
 
 const storeSchema = z.object({
   name: z.string().min(3, "Le nom doit contenir au moins 3 caractères"),
-  description: z.string().min(20, "La description doit contenir au moins 20 caractères"),
+  description: z
+    .string()
+    .min(20, "La description doit contenir au moins 20 caractères"),
   logo: z.string().optional(),
   banner: z.string().optional(),
 });
@@ -52,8 +60,10 @@ export default function VendorStorePage() {
       form.reset({
         name: store.name,
         description: store.description || "",
-        logo: store.logo || "",
-        banner: store.banner || "",
+        logo: store.logo?.url || "https://via.placeholder.com/200?text=Logo",
+        banner:
+          store.banner?.url ||
+          "https://via.placeholder.com/1200x300?text=Bannière",
       });
     }
   }, [store, form]);
@@ -189,10 +199,7 @@ export default function VendorStorePage() {
                       </div>
                       <div className="flex-1">
                         <FormControl>
-                          <Input
-                            placeholder="URL du logo"
-                            {...field}
-                          />
+                          <Input placeholder="URL du logo" {...field} />
                         </FormControl>
                         <p className="text-xs text-muted-foreground mt-1">
                           Format recommandé: 200x200px, PNG ou JPG
@@ -229,10 +236,7 @@ export default function VendorStorePage() {
                         )}
                       </div>
                       <FormControl>
-                        <Input
-                          placeholder="URL de la bannière"
-                          {...field}
-                        />
+                        <Input placeholder="URL de la bannière" {...field} />
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
                         Format recommandé: 1200x300px, PNG ou JPG
@@ -254,19 +258,29 @@ export default function VendorStorePage() {
               <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <p className="text-2xl font-bold">{store.productCount || 0}</p>
+                    <p className="text-2xl font-bold">
+                      {store.productCount || 0}
+                    </p>
                     <p className="text-sm text-muted-foreground">Produits</p>
                   </div>
                   <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <p className="text-2xl font-bold">{store.rating?.toFixed(1) || "N/A"}</p>
-                    <p className="text-sm text-muted-foreground">Note moyenne</p>
+                    <p className="text-2xl font-bold">
+                      {store.rating?.toFixed(1) || "N/A"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Note moyenne
+                    </p>
                   </div>
                   <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <p className="text-2xl font-bold">{store.reviewCount || 0}</p>
+                    <p className="text-2xl font-bold">
+                      {store.reviewCount || 0}
+                    </p>
                     <p className="text-sm text-muted-foreground">Avis</p>
                   </div>
                   <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <p className="text-2xl font-bold">{store.followerCount || 0}</p>
+                    <p className="text-2xl font-bold">
+                      {store.followerCount || 0}
+                    </p>
                     <p className="text-sm text-muted-foreground">Abonnés</p>
                   </div>
                 </div>
