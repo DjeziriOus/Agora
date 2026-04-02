@@ -40,10 +40,12 @@ const productSchema = new mongoose.Schema(
                 message: "Stock threshold must be an integer",
             },
         },
-        images: {
-            type: [String],
-            default: [],
-        },
+        images: [
+            {
+                url: { type: String, required: true },
+                publicId: { type: String, required: true },
+            },
+        ],
         isActive: {
             type: Boolean,
             default: true,

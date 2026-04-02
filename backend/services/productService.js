@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Shop from "../models/Shop.js";
+import {
+	uploadToCloudinary,
+	deleteFromCloudinary,
+	deleteMultipleFromCloudinary,
+} from "../config/cloudinary.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 12;
@@ -89,7 +94,7 @@ const buildPublicFilters = (query = {}) => {
 	return filters;
 };
 
-// Public products search/list endpoint used by catalogue pages.
+// ── Public catalogue listing ─────────────────────────────────────────────────
 const getProducts = async (query = {}) => {
 	const page = toSafeInt(query.page, DEFAULT_PAGE);
 	const limit = Math.min(toSafeInt(query.limit, DEFAULT_LIMIT), MAX_LIMIT);
@@ -110,7 +115,7 @@ const getProducts = async (query = {}) => {
 	};
 };
 
-// Return paginated products for the current seller inventory page.
+// ── Seller inventory listing ─────────────────────────────────────────────────
 const getMyProducts = async ({ ownerId, query = {} }) => {
 	const shop = await getSellerShopOrThrow(ownerId);
 
@@ -133,7 +138,7 @@ const getMyProducts = async ({ ownerId, query = {} }) => {
 	};
 };
 
-// Update stock of one seller-owned product with ownership and input checks.
+// ── Update product stock ─────────────────────────────────────────────────────
 const updateProductStock = async ({ ownerId, productId, stock }) => {
 	assertObjectId(productId, "product id");
 
@@ -164,7 +169,150 @@ const updateProductStock = async ({ ownerId, productId, stock }) => {
 	return product;
 };
 
+// ── Create product (at least 1 image required) ──────────────────────────────
+const createProduct = async ({ ownerId, body, files = [] }) => {
+	if (!files.length) {
+		const error = new Error("Au moins une image est requise.");
+		error.statusCode = 400;
+		throw error;
+	}
+
+	const shop = await getSellerShopOrThrow(ownerId);
+
+	// Upload each file buffer to Cloudinary in parallel.
+	const images = await Promise.all(
+		files.map((file) => uploadToCloudinary(file.buffer, "product")),
+	);
+
+	const product = new Product({
+		name: body.name,
+		description: body.description || "",
+		price: body.price,
+		stock: body.stock ?? 0,
+		stockThreshold: body.stockThreshold ?? 5,
+		images,
+		shop: shop._id,
+	});
+
+	await product.save();
+	return product;
+};
+
+// ── Update product (text fields + image add/remove) ──────────────────────────
+// keepImages: JSON array of publicIds to retain (e.g. '["agora/products/abc"]')
+// new files in req.files are uploaded and appended.
+// Any existing image NOT in keepImages is deleted from Cloudinary.
+const updateProduct = async ({ ownerId, productId, body, files = [] }) => {
+	assertObjectId(productId, "product id");
+
+	const shop = await getSellerShopOrThrow(ownerId);
+
+	const product = await Product.findOne({
+		_id: productId,
+		shop: shop._id,
+		isDeleted: false,
+	});
+
+	if (!product) {
+		const error = new Error("Product not found.");
+		error.statusCode = 404;
+		throw error;
+	}
+
+	// ── Update text fields if provided ───────────────────────────────────────
+	if (body.name !== undefined) product.name = body.name;
+	if (body.description !== undefined) product.description = body.description;
+	if (body.price !== undefined) product.price = body.price;
+	if (body.stock !== undefined) product.stock = body.stock;
+	if (body.stockThreshold !== undefined) product.stockThreshold = body.stockThreshold;
+	if (body.isActive !== undefined) product.isActive = body.isActive === "true" || body.isActive === true;
+
+	// ── Handle image changes ─────────────────────────────────────────────────
+	// Parse keepImages — publicIds the seller wants to retain.
+	let keepSet = new Set();
+	if (body.keepImages) {
+		try {
+			const parsed = JSON.parse(body.keepImages);
+			if (Array.isArray(parsed)) keepSet = new Set(parsed);
+		} catch {
+			const error = new Error("keepImages must be a valid JSON array of publicIds.");
+			error.statusCode = 400;
+			throw error;
+		}
+	}
+
+	// Determine which existing images to keep vs delete.
+	const imagesToKeep = [];
+	const imagesToDelete = [];
+
+	for (const img of product.images) {
+		if (keepSet.size === 0 && files.length === 0) {
+			// No image changes requested — keep everything.
+			imagesToKeep.push(img);
+		} else if (keepSet.has(img.publicId)) {
+			imagesToKeep.push(img);
+		} else if (keepSet.size > 0 || files.length > 0) {
+			// keepImages was provided or new files sent — drop images not in keepSet.
+			imagesToDelete.push(img);
+		} else {
+			imagesToKeep.push(img);
+		}
+	}
+
+	// Upload new images.
+	const newImages = await Promise.all(
+		files.map((file) => uploadToCloudinary(file.buffer, "product")),
+	);
+
+	const finalImages = [...imagesToKeep, ...newImages];
+
+	// Must still have at least 1 image after the edit.
+	if (finalImages.length === 0) {
+		const error = new Error("Le produit doit avoir au moins une image.");
+		error.statusCode = 400;
+		throw error;
+	}
+
+	product.images = finalImages;
+	await product.save();
+
+	// Clean up deleted images from Cloudinary (fire-and-forget, don't block response).
+	deleteMultipleFromCloudinary(imagesToDelete);
+
+	return product;
+};
+
+// ── Delete product (soft delete + Cloudinary cleanup) ────────────────────────
+const deleteProduct = async ({ ownerId, productId }) => {
+	assertObjectId(productId, "product id");
+
+	const shop = await getSellerShopOrThrow(ownerId);
+
+	const product = await Product.findOne({
+		_id: productId,
+		shop: shop._id,
+		isDeleted: false,
+	});
+
+	if (!product) {
+		const error = new Error("Product not found.");
+		error.statusCode = 404;
+		throw error;
+	}
+
+	product.isDeleted = true;
+	await product.save();
+
+	// Delete all product images from Cloudinary to free storage.
+	deleteMultipleFromCloudinary(product.images);
+
+	return product;
+};
+
 export default {
+	createProduct,
+	updateProduct,
+	deleteProduct,
 	getProducts,
 	getMyProducts,
 	updateProductStock,

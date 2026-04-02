@@ -1,5 +1,67 @@
 import productService from "../services/productService.js";
 
+// POST /api/products
+// Create a new product (seller only, at least 1 image required).
+export const createProduct = async (req, res) => {
+	try {
+		const product = await productService.createProduct({
+			ownerId: req.user.id,
+			body: req.body,
+			files: req.files || [],
+		});
+
+		return res.status(201).json({
+			message: "Produit créé avec succès.",
+			product,
+		});
+	} catch (error) {
+		return res
+			.status(error.statusCode || 500)
+			.json({ message: error.message || "Internal server error." });
+	}
+};
+
+// PUT /api/products/:id
+// Update product text fields and manage images (keep/add/remove).
+export const updateProduct = async (req, res) => {
+	try {
+		const product = await productService.updateProduct({
+			ownerId: req.user.id,
+			productId: req.params.id,
+			body: req.body,
+			files: req.files || [],
+		});
+
+		return res.status(200).json({
+			message: "Produit mis à jour avec succès.",
+			product,
+		});
+	} catch (error) {
+		return res
+			.status(error.statusCode || 500)
+			.json({ message: error.message || "Internal server error." });
+	}
+};
+
+// DELETE /api/products/:id
+// Soft-delete a product and clean up its images from Cloudinary.
+export const deleteProduct = async (req, res) => {
+	try {
+		await productService.deleteProduct({
+			ownerId: req.user.id,
+			productId: req.params.id,
+		});
+
+		return res.status(200).json({
+			message: "Produit supprimé avec succès.",
+		});
+	} catch (error) {
+		return res
+			.status(error.statusCode || 500)
+			.json({ message: error.message || "Internal server error." });
+	}
+};
+
 // GET /api/products
 // Public catalogue search/listing.
 export const getProducts = async (req, res) => {
