@@ -13,15 +13,17 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login, isLoading, emailNotVerified } = useAuth();
+  const { login, isLoading, emailNotVerified, clearEmailNotVerified } = useAuth();
   const router = useRouter();
 
+  // Consume the one-time unverified-email flag and redirect the user to the verification screen.
   useEffect(() => {
-    if (emailNotVerified) {
-      router.push("/verify-email");
-    }
-  }, [emailNotVerified, router]);
+    if (!emailNotVerified) return;
+    clearEmailNotVerified();
+    router.push("/verify-email");
+  }, [emailNotVerified, clearEmailNotVerified, router]);
 
+  // Submit the credentials and surface any backend auth errors in the page banner.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);

@@ -45,13 +45,16 @@ export async function apiFetch<T>(
 export const productsApi = {
   getAll: (params?: Record<string, string | undefined>) => {
     const qs = params
-      ? "?" + new URLSearchParams(
+      ? "?" +
+        new URLSearchParams(
           Object.fromEntries(
-            Object.entries(params).filter(([, v]) => v !== undefined)
-          ) as Record<string, string>
+            Object.entries(params).filter(([, v]) => v !== undefined),
+          ) as Record<string, string>,
         ).toString()
       : "";
-    return apiFetch<{ products: unknown[]; total: number }>(`/api/products${qs}`);
+    return apiFetch<{ products: Product[]; total: number }>(
+      `/api/products${qs}`,
+    );
   },
   getById: (id: string) => apiFetch<unknown>(`/api/products/${id}`),
   getMine: () => apiFetch<unknown[]>(`/api/products/mine`),
