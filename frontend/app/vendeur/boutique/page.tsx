@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -34,16 +34,17 @@ const storeSchema = z.object({
   description: z
     .string()
     .min(20, "La description doit contenir au moins 20 caractères"),
-  logo: z.string().optional(),
-  banner: z.string().optional(),
+  logo: z.any().optional(),
+  banner: z.any().optional(),
 });
-
 type StoreFormData = z.infer<typeof storeSchema>;
 
 export default function VendorStorePage() {
   const { data: store, isLoading, error } = useMyStore();
   const updateStore = useUpdateStore();
   const createStore = useCreateStore();
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
 
   const form = useForm<StoreFormData>({
     resolver: zodResolver(storeSchema),
