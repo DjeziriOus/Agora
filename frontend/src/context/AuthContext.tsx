@@ -175,8 +175,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data?.user) {
         const mapped = mapUser(data.user as Record<string, unknown>);
         setUser(mapped);
-        router.push(mapped.role === "seller" ? "/vendeur" : "/catalogue");
+        return mapped;
       }
+      return null;
     },
     [clearPendingVerificationEmail, router, setPendingVerificationEmail],
   );
