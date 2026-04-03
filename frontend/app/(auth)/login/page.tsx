@@ -77,7 +77,7 @@ function LoginContent() {
     <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center p-4">
       <div className="w-full max-w-[420px]">
         {/* Card */}
-        <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-xl)] p-8 shadow-[var(--shadow-md)]">
+        <div className="bg-agora-surface border border-[var(--agora-line)] rounded-[var(--radius-xl)] p-8 shadow-[var(--shadow-md)]">
           {/* Logo */}
           <div className="text-center mb-8">
             <Link
