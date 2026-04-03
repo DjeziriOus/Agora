@@ -19,10 +19,11 @@ export async function apiFetch<T>(
     ...options,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "true",
-      ...(options.headers ?? {}),
-    },
+  ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+  "ngrok-skip-browser-warning": "true",
+  ...(options.headers ?? {}),
+},
+
   });
 
   if (!res.ok) {
@@ -100,10 +101,10 @@ export const storesApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  update: (data: unknown) =>
-    apiFetch<unknown>("/api/shops", {
+  update: (id: string, data: unknown) =>
+    apiFetch<unknown>(`/api/shops/${id}`, {
       method: "PUT",
-      body: JSON.stringify(data),
+      body: data as FormData,
     }),
 };
 

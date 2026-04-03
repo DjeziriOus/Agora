@@ -55,7 +55,7 @@ export default function VendorStorePage() {
       if (bannerFile) formData.append("banner", bannerFile);
 
       if (store) {
-        await updateStore.mutateAsync(formData);
+        await updateStore.mutateAsync({ id: store._id as string, data: formData });
         toast.success("Boutique mise à jour");
       } else {
         await createStore.mutateAsync(formData);

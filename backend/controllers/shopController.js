@@ -55,12 +55,14 @@ export const updateShop = async (req, res) => {
       message: "Boutique mise à jour avec succès.",
       shop,
     });
-  } catch (error) {
+  }  catch (error) {
+    console.error("updateShop error:", error);
     return res.status(error.statusCode || 500).json({
       message: error.message || "Internal server error.",
     });
   }
 };
+;
 
 /**
  * GET /api/shops/:id

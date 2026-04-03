@@ -199,7 +199,7 @@ export function useCreateStore() {
 export function useUpdateStore() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<StorePayload>) => storesApi.update(data),
+    mutationFn: ({ id, data }: { id: string; data: FormData }) => storesApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.my });
     },
