@@ -15,14 +15,37 @@ The goal of this README is to document the **current repository structure** and 
 │   ├── auth.js
 │   ├── server.js
 │   ├── config/
+│   │   ├── cloudinary.js
+│   │   └── db.js
 │   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── productController.js
+│   │   └── shopController.js
+│   ├── data/
+│   │   └── mockData.js
 │   ├── middleware/
+│   │   ├── auth.js
+│   │   └── upload.js
 │   ├── models/
-│   ├── routes/
-│   ├── services/
+│   │   ├── Order.js
+│   │   ├── Product.js
+│   │   ├── Shop.js
+│   │   └── User.js
 │   ├── postman/
+│   │   ├── agora-betterauth.postman_collection.json
+│   │   ├── collection copy.json
+│   │   └── collection.json
+│   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── orderRoutes.js
+│   │   ├── productRoutes.js
+│   │   └── shopRoutes.js
+│   ├── services/
+│   │   ├── authService.js
+│   │   ├── emailService.js
+│   │   ├── productService.js
+│   │   └── shopService.js
 │   ├── test-email.mjs
-│   ├── startup.log
 │   ├── package.json
 │   └── package-lock.json
 ├── frontend/
@@ -32,8 +55,21 @@ The goal of this README is to document the **current repository structure** and 
 │   │   │   ├── register/
 │   │   │   └── verify-email/
 │   │   ├── (client)/
+│   │   │   ├── boutique/
+│   │   │   │   └── [id]/
 │   │   │   ├── catalogue/
-│   │   │   └── checkout/
+│   │   │   ├── checkout/
+│   │   │   ├── compte/
+│   │   │   │   ├── adresses/
+│   │   │   │   ├── commandes/
+│   │   │   │   │   └── [id]/
+│   │   │   │   └── parametres/
+│   │   │   ├── confirmation/
+│   │   │   │   └── [orderId]/
+│   │   │   ├── panier/
+│   │   │   ├── produit/
+│   │   │   │   └── [id]/
+│   │   │   └── recherche/
 │   │   ├── vendeur/
 │   │   │   ├── boutique/
 │   │   │   ├── commandes/
@@ -42,22 +78,44 @@ The goal of this README is to document the **current repository structure** and 
 │   │   │   └── produits/
 │   │   │       ├── [id]/
 │   │   │       └── nouveau/
-│   │   ├── components/
-│   │   │   └── [slug]/
 │   │   ├── global-error.tsx
 │   │   ├── globals.css
+│   │   ├── icon.jpg
 │   │   ├── layout.tsx
 │   │   ├── not-found.tsx
 │   │   └── page.tsx
+│   ├── hooks/
+│   │   ├── use-mobile.ts
+│   │   └── use-toast.ts
+│   ├── lib/
+│   │   └── utils copy.ts
 │   ├── public/
+│   │   └── logo.png
 │   ├── src/
 │   │   ├── components/
-│   │   │   └── ui/
+│   │   │   ├── ui/
+│   │   │   ├── Footer.tsx
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── ProductCard.tsx
+│   │   │   └── VendorSidebar.tsx
+│   │   ├── config.ts
 │   │   ├── context/
+│   │   │   ├── AuthContext.tsx
+│   │   │   └── CartContext.tsx
 │   │   ├── hooks/
+│   │   │   └── useApi.ts
 │   │   ├── lib/
+│   │   │   ├── api.ts
+│   │   │   ├── auth-client.ts
+│   │   │   ├── mockData.ts
+│   │   │   ├── queryClient.tsx
+│   │   │   └── utils.ts
 │   │   └── types/
+│   │       └── index.ts
 │   ├── styles/
+│   │   └── globals.css
+│   ├── components.json
+│   ├── findHooks.js
 │   ├── next.config.mjs
 │   ├── postcss.config.mjs
 │   ├── tsconfig.json
@@ -87,6 +145,9 @@ The goal of this README is to document the **current repository structure** and 
 - `backend/controllers/`
   Route handlers for backend requests.
 
+- `backend/data/`
+  Backend mock or seed data used during development.
+
 - `backend/middleware/`
   Shared middleware for session validation, role checks, and verified-email checks.
 
@@ -113,6 +174,12 @@ The goal of this README is to document the **current repository structure** and 
 
 - `frontend/app/vendeur/`
   Seller-facing dashboard area.
+
+- `frontend/hooks/`
+  Root-level frontend hooks kept outside `src/`.
+
+- `frontend/lib/`
+  Root-level frontend utility files kept outside `src/`.
 
 - `frontend/app/layout.tsx`
   Root application layout. It wraps the app with shared providers such as auth, cart, and React Query.
