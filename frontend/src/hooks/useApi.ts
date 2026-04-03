@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   productsApi,
-  // storesApi,
+  shopsApi,
   // categoriesApi,
   ordersApi,
   // cartApi,
@@ -144,7 +144,7 @@ export function useDeleteProduct() {
 export function useStore(id: string) {
   return useQuery({
     queryKey: queryKeys.stores.detail(id),
-    queryFn: () => storesApi.getById(id),
+    queryFn: () => shopsApi.getById(id),
     enabled: !!id,
   });
 }
@@ -152,7 +152,7 @@ export function useStore(id: string) {
 export function useStoreProducts(id: string, params?: ProductQuery) {
   return useQuery({
     queryKey: queryKeys.stores.products(id, params),
-    queryFn: () => storesApi.getProducts(id, params),
+    queryFn: () => shopsApi.getProducts(id, params),
     enabled: !!id,
   });
 }
@@ -160,14 +160,14 @@ export function useStoreProducts(id: string, params?: ProductQuery) {
 export function useMyStore() {
   return useQuery({
     queryKey: queryKeys.stores.my,
-    queryFn: () => storesApi.getMyStore(),
+    queryFn: () => shopsApi.getMyStore(),
   });
 }
 
 export function useCreateStore() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: StorePayload) => storesApi.create(data),
+    mutationFn: (data: StorePayload) => shopsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.my });
     },
@@ -177,7 +177,7 @@ export function useCreateStore() {
 export function useUpdateStore() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<StorePayload>) => storesApi.update(data),
+    mutationFn: (data: Partial<StorePayload>) => shopsApi.update(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.my });
     },
