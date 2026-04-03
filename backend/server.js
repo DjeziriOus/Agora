@@ -10,8 +10,8 @@ import connectDB from "./config/db.js";
 import { auth } from "./auth.js";
 
 // Routes
-import shopRoutes    from './routes/shopRoutes.js';
-import productRoutes from './routes/productRoutes.js';
+import shopRoutes from "./routes/shopRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
 // import orderRoutes   from './routes/orderRoutes.js';
 // import addressRoutes from './routes/addressRoutes.js';
 
@@ -19,13 +19,18 @@ const app = express();
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // credentials: true is required for BetterAuth session cookies
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "https://localhost:3000",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    credentials: true,
-  }),
-);
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
+// ✅ Explicitly handle ALL OPTIONS preflight requests
+// This must come BEFORE the BetterAuth handler
+app.options("*", cors(corsOptions));
 
 // ── Request Logger ────────────────────────────────────────────────────────────
 app.use((req, _res, next) => {
