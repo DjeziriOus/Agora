@@ -85,7 +85,7 @@ export const auth = betterAuth({
   ],
 
   // ── Hooks ─────────────────────────────────────────────
-  hooks: {   
+  hooks: {
     before: async (ctx) => {
       if (ctx.path === "/sign-up/email") {
         const role = ctx.body?.role;
