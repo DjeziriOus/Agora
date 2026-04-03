@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, X, Diamond } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { storesApi } from "@/lib/api";
+import { shopsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 function LoginContent() {
@@ -13,7 +13,8 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login, isLoading, emailNotVerified, clearEmailNotVerified } = useAuth();
+  const { login, isLoading, emailNotVerified, clearEmailNotVerified } =
+    useAuth();
   const router = useRouter();
 
   // Consume the one-time unverified-email flag and redirect the user to the verification screen.
@@ -35,16 +36,20 @@ function LoginContent() {
       }
 
       if (user.role === "seller") {
-        const hasStore = await storesApi
-          .getMyStore()
-          .then((store) => !!store)
+        const hasStore = await shopsApi
+          .getMyShop()
+          .then((shop) => !!shop)
           .catch(() => false);
         router.push(hasStore ? "/vendeur" : "/vendeur/boutique");
       } else {
         router.push("/catalogue");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue lors de la connexion");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Une erreur est survenue lors de la connexion",
+      );
     }
   };
 
@@ -55,7 +60,10 @@ function LoginContent() {
         <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-xl)] p-8 shadow-[var(--shadow-md)]">
           {/* Logo */}
           <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center gap-2 justify-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 justify-center"
+            >
               <Diamond className="w-6 h-6 text-[var(--agora-primary)]" />
               <span className="font-display text-2xl font-bold text-[var(--agora-primary)]">
                 Agora
@@ -65,7 +73,6 @@ function LoginContent() {
               Connectez-vous à votre compte
             </p>
           </div>
-
 
           {/* Error Banner */}
           {error && (
@@ -123,7 +130,11 @@ function LoginContent() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--agora-mid)] hover:text-[var(--agora-ink)]"
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  aria-label={
+                    showPassword
+                      ? "Masquer le mot de passe"
+                      : "Afficher le mot de passe"
+                  }
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -142,7 +153,7 @@ function LoginContent() {
                 "w-full py-3 px-4 rounded-[var(--radius-md)] font-medium text-white transition-all",
                 isLoading
                   ? "bg-[var(--agora-primary)]/70 cursor-not-allowed"
-                  : "bg-[var(--agora-primary)] hover:bg-[var(--agora-primary-hover)] active:scale-[0.98]"
+                  : "bg-[var(--agora-primary)] hover:bg-[var(--agora-primary-hover)] active:scale-[0.98]",
               )}
             >
               {isLoading ? (
@@ -177,7 +188,8 @@ function LoginContent() {
                 <span className="font-mono">client@agora.fr</span> / password123
               </p>
               <p>
-                <span className="font-mono">vendeur@agora.fr</span> / password123
+                <span className="font-mono">vendeur@agora.fr</span> /
+                password123
               </p>
             </div>
           </div>
