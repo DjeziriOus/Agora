@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, X, Diamond } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { storesApi } from "@/lib/api";
+import { shopsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 function LoginContent() {
@@ -35,7 +35,7 @@ function LoginContent() {
       }
 
       if (user.role === "seller") {
-        const hasStore = await storesApi
+        const hasStore = await shopsApi
           .getMyStore()
           .then((store) => !!store)
           .catch(() => false);
