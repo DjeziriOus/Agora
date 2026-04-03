@@ -104,9 +104,10 @@ export default function RegisterPage() {
     setError(null);
     setGoogleLoading(true);
     try {
+      sessionStorage.setItem("agora_oauth_needs_role", "true");
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: `/oauth-callback?role=${role}`,
+        callbackURL: "http://localhost:3000/oauth-callback",
       });
     } catch (err) {
       setError(
