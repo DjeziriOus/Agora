@@ -22,6 +22,8 @@ const db = client.db("multivendor");
 export const requireEmailVerification =
   process.env.REQUIRE_EMAIL_VERIFICATION === "true";
 
+console.log("IS EMAIL VERIFICATION REQUIRED?", requireEmailVerification);
+
 export const auth = betterAuth({
   database: mongodbAdapter(db, {
     // Keep plural collection names consistent with Mongoose defaults
@@ -98,7 +100,6 @@ export const auth = betterAuth({
       }
     },
   },
-
   databaseHooks: {
     user: {
       create: {
