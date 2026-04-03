@@ -1,0 +1,15 @@
+{
+  "_id": "69cc3fba59e0eaf7722d7c29",
+  "name": "My Awesome Shop",
+  "description": "Selling the best gadgets in town.",
+  "contactEmail": "shop@example.com",
+  "contactPhone": "+1234567890",
+  "contactAddress": "123 Main St, Tech City",
+  "status": "active",
+  "owner": null,
+  "isDeleted": false,
+  "createdAt": "2026-03-31T21:42:18.201Z",
+  "updatedAt": "2026-03-31T21:42:18.201Z",
+  "slug": "my-awesome-shop",
+  "__v": 0
+}

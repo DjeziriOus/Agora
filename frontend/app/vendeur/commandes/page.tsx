@@ -92,11 +92,10 @@ export default function VendorOrdersPage() {
   if (error) {
     return (
       <EmptyState
-        icon={ShoppingCart}
+        icon={<ShoppingCart className="w-12 h-12" />}
         title="Erreur de chargement"
         description="Impossible de charger vos commandes."
-        actionLabel="Réessayer"
-        actionHref="/vendeur/commandes"
+        action={{ label: "Réessayer", href: "/vendeur/commandes" }}
       />
     );
   }
@@ -225,7 +224,7 @@ export default function VendorOrdersPage() {
         </Card>
       ) : (
         <EmptyState
-          icon={ShoppingCart}
+          icon={<ShoppingCart className="w-12 h-12" />}
           title={
             search || statusFilter !== "all"
               ? "Aucun résultat"

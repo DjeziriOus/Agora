@@ -1,4 +1,5 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
+import { requireEmailVerification } from "../auth.js";
 
 /**
  * Thin Mongoose User model — mirrors BetterAuth's `users` collection.
@@ -10,24 +11,27 @@ import mongoose from 'mongoose';
  */
 const userSchema = new mongoose.Schema(
   {
-    email:         { type: String },
-    emailVerified: { type: Boolean, default: false },
-    firstName:     { type: String, default: '' },
-    lastName:      { type: String, default: '' },
-    name:          { type: String, default: '' }, // kept for BetterAuth compat
-    photo:         { type: String, default: '' },
-    age:           { type: Number, default: null },
-    gender:        { type: String, default: '' },
+    email: { type: String },
+    emailVerified: {
+      type: Boolean,
+      default: !requireEmailVerification, // auto-verified if email verification is disabled
+    },
+    firstName: { type: String, default: "" },
+    lastName: { type: String, default: "" },
+    name: { type: String, default: "" }, // kept for BetterAuth compat
+    photo: { type: String, default: "" },
+    age: { type: Number, default: null },
+    gender: { type: String, default: "" },
     role: {
       type: String,
-      enum: ['buyer', 'seller', 'admin'],
-      default: 'buyer',
+      enum: ["buyer", "seller", "admin"],
+      default: "buyer",
     },
   },
   {
     timestamps: true,
-    collection: 'users', // explicit — must match BetterAuth collectionNames
-  }
+    collection: "user", // explicit — must match BetterAuth collectionNames
+  },
 );
 
-export default mongoose.model('User', userSchema);
+export default mongoose.model("User", userSchema);

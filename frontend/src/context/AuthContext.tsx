@@ -12,13 +12,27 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import type { User } from "@/types";
 
+const PENDING_VERIFICATION_EMAIL_STORAGE_KEY =
+  "agora_pending_verification_email";
+
+type AuthConfigResponse = {
+  requireEmailVerification: boolean;
+};
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isSeller: boolean;
   isLoading: boolean;
+  isAuthConfigLoading: boolean;
+  requireEmailVerification: boolean;
   /** true when the server rejected login specifically because email is unverified */
   emailNotVerified: boolean;
+  pendingVerificationEmail: string | null;
+  clearEmailNotVerified: () => void;
+  ensureAuthConfig: () => Promise<boolean>;
+  setPendingVerificationEmail: (email: string) => void;
+  clearPendingVerificationEmail: () => void;
   login: (email: string, password: string) => Promise<void>;
   register: (data: {
     firstName: string;
@@ -49,25 +63,96 @@ function mapUser(sessionUser: Record<string, unknown>): User {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthConfigLoading, setIsAuthConfigLoading] = useState(true);
+  const [requireEmailVerification, setRequireEmailVerification] =
+    useState(true);
   const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [pendingVerificationEmailState, setPendingVerificationEmailState] =
+    useState<string | null>(null);
   const router = useRouter();
+
+  // // Fetch the backend auth flags so register and verify-email flows stay in sync.
+  // const ensureAuthConfig = useCallback(async () => {
+  //   try {
+  //     setRequireEmailVerification(data.requireEmailVerification);
+  //     return data.requireEmailVerification;
+  //   } catch {
+  //     // Fail closed: keep verification enabled in the UI when config cannot be loaded.
+  //     return true;
+  //   } finally {
+  //     setIsAuthConfigLoading(false);
+  //   }
+  // }, []);
+
+  // Persist the pending verification email so the verify page survives navigation and refreshes.
+  const setPendingVerificationEmail = useCallback((email: string) => {
+    setPendingVerificationEmailState(email);
+
+    try {
+      window.sessionStorage.setItem(
+        PENDING_VERIFICATION_EMAIL_STORAGE_KEY,
+        email,
+      );
+    } catch {
+      // Ignore storage failures and keep the in-memory state.
+    }
+  }, []);
+
+  // Clear the pending verification email once the user leaves or completes the verification flow.
+  const clearPendingVerificationEmail = useCallback(() => {
+    setPendingVerificationEmailState(null);
+
+    try {
+      window.sessionStorage.removeItem(PENDING_VERIFICATION_EMAIL_STORAGE_KEY);
+    } catch {
+      // Ignore storage failures and keep the in-memory state cleared.
+    }
+  }, []);
 
   // Hydrate session on mount
   useEffect(() => {
-    authClient.getSession().then(({ data }) => {
-      if (data?.user) {
-        setUser(mapUser(data.user as Record<string, unknown>));
+    // Restore the Better Auth session so route guards and role redirects have the current user.
+    const initAuth = async () => {
+      try {
+        const { data } = await authClient.getSession();
+        // console.log(data);
+        if (data?.user) {
+          setUser(mapUser(data.user as Record<string, unknown>));
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    };
+
+    initAuth();
+
+    try {
+      const storedEmail = window.sessionStorage.getItem(
+        PENDING_VERIFICATION_EMAIL_STORAGE_KEY,
+      );
+      if (storedEmail) {
+        setPendingVerificationEmailState(storedEmail);
+      }
+    } catch {
+      // Ignore storage failures and keep the pending email empty.
+    }
   }, []);
 
+  // Sign in the user and raise a one-shot redirect flag if the backend says the email is still unverified.
   const login = useCallback(
     async (email: string, password: string) => {
       setIsLoading(true);
       setEmailNotVerified(false);
+      clearPendingVerificationEmail();
 
-      const { data, error } = await authClient.signIn.email({ email, password });
+      const { data, error } = await authClient.signIn.email({
+        email,
+        password,
+      });
 
       setIsLoading(false);
 
@@ -78,21 +163,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           error.status === 403 ||
           (error.message ?? "").toLowerCase().includes("verif")
         ) {
+          setPendingVerificationEmail(email);
           setEmailNotVerified(true);
           return;
         }
         throw new Error(error.message ?? "Une erreur est survenue");
       }
 
+      // On success, remap the Better Auth user payload to our own User model,
+      // then redirect to the appropriate page based on the user's role.
       if (data?.user) {
         const mapped = mapUser(data.user as Record<string, unknown>);
         setUser(mapped);
-        router.push(mapped.role === "seller" ? "/vendeur" : "/catalogue");
+        return mapped;
       }
+      return null;
     },
-    [router]
+    [clearPendingVerificationEmail, router, setPendingVerificationEmail],
   );
 
+  // Create the account and let the caller decide whether to continue to login or email verification.
   const register = useCallback(
     async (data: {
       firstName: string;
@@ -103,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }) => {
       setIsLoading(true);
 
-      const { error } = await authClient.signUp.email({
+      const d = await authClient.signUp.email({
         email: data.email,
         password: data.password,
         name: `${data.firstName} ${data.lastName}`,
@@ -111,23 +201,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastName: data.lastName,
         role: data.role,
       } as Parameters<typeof authClient.signUp.email>[0]);
-
+      // console.log(d);
+      // {
+      //   "data": {
+      //     "token": null,
+      //     "user": {
+      //       "name": "Oussama DJEZIRI",
+      //       "email": "djezirioussama22@gmail.com",
+      //       "emailVerified": false,
+      //       "createdAt": "2026-03-29T16:32:46.164Z",
+      //       "updatedAt": "2026-03-29T16:32:46.164Z",
+      //       "firstName": "Oussama",
+      //       "lastName": "DJEZIRI",
+      //       "age": null,
+      //       "gender": "",
+      //       "photo": "",
+      //       "role": "buyer",
+      //       "id": "69c9542ec62f47b54e04f1a7"
+      //     }
+      //   },
+      //   "error": null
+      // }
+      const { error, data: userData } = d;
       setIsLoading(false);
 
+      //Handle register errors
       if (error) {
-        throw new Error(error.message ?? "Une erreur est survenue lors de l'inscription");
+        if (error.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL") {
+          throw new Error(
+            "Cette adresse e-mail est déjà utilisée. Veuillez en choisir une autre.",
+          );
+        } else {
+          throw new Error(error.message ?? "Une erreur est survenue");
+        }
       }
       // Success — caller handles the UI message (no redirect)
+      return { emailVerified: userData?.user?.emailVerified };
     },
-    []
+    [],
   );
 
+  // End the Better Auth session and clear any verification state that should not leak across users.
   const logout = useCallback(async () => {
     await authClient.signOut();
     setUser(null);
+    clearPendingVerificationEmail();
     router.push("/login");
-  }, [router]);
+  }, [clearPendingVerificationEmail, router]);
 
+  // Reset the one-shot redirect flag after the login page has consumed it.
+  const clearEmailNotVerified = useCallback(() => {
+    setEmailNotVerified(false);
+  }, []);
+
+  // Ask Better Auth to send a fresh verification email for the pending address.
   const resendVerification = useCallback(async (email: string) => {
     const { error } = await authClient.sendVerificationEmail({
       email,
@@ -143,7 +270,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isSeller: user?.role === "seller",
         isLoading,
+        isAuthConfigLoading,
+        requireEmailVerification,
         emailNotVerified,
+        pendingVerificationEmail: pendingVerificationEmailState,
+        clearEmailNotVerified,
+        // ensureAuthConfig,
+        setPendingVerificationEmail,
+        clearPendingVerificationEmail,
         login,
         register,
         logout,
