@@ -81,6 +81,7 @@ export const auth = betterAuth({
 
   trustedOrigins: [
     process.env.FRONTEND_URL || "http://localhost:3000",
+    "https://agora-git-f1-auth-google-oauth-djeziri-oussamas-projects.vercel.app",
     process.env.BETTER_AUTH_URL || "http://localhost:5000",
     "http://localhost:5000",
     "http://localhost:3000",
