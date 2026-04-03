@@ -19,18 +19,13 @@ const app = express();
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // credentials: true is required for BetterAuth session cookies
-const corsOptions = {
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
-
-// ✅ Explicitly handle ALL OPTIONS preflight requests
-// This must come BEFORE the BetterAuth handler
-app.options("*", cors(corsOptions));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "https://localhost:3000",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    credentials: true,
+  }),
+);
 
 // ── Request Logger ────────────────────────────────────────────────────────────
 app.use((req, _res, next) => {
