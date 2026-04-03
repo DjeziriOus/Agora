@@ -8,7 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import type { User } from "@/types";
 
@@ -33,6 +33,7 @@ interface AuthContextType {
   ensureAuthConfig: () => Promise<boolean>;
   setPendingVerificationEmail: (email: string) => void;
   clearPendingVerificationEmail: () => void;
+  refreshSession: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (data: {
     firstName: string;
@@ -54,7 +55,9 @@ function mapUser(sessionUser: Record<string, unknown>): User {
     email: sessionUser.email as string,
     firstName: (sessionUser.firstName as string) ?? "",
     lastName: (sessionUser.lastName as string) ?? "",
-    role: (sessionUser.role as "buyer" | "seller") ?? "buyer",
+    role:
+      (sessionUser.role as "buyer" | "seller" | "unassigned") ??
+      "unassigned",
     emailVerified: Boolean(sessionUser.emailVerified),
     photo: (sessionUser.photo as string | undefined) ?? undefined,
   };
@@ -70,6 +73,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [pendingVerificationEmailState, setPendingVerificationEmailState] =
     useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const { data } = await authClient.getSession();
+      if (data?.user) {
+        setUser(mapUser(data.user as Record<string, unknown>));
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    }
+  }, []);
 
   // // Fetch the backend auth flags so register and verify-email flows stay in sync.
   // const ensureAuthConfig = useCallback(async () => {
@@ -141,6 +158,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ignore storage failures and keep the pending email empty.
     }
   }, []);
+
+  useEffect(() => {
+    if (isLoading || !user) return;
+    if (user.role !== "unassigned") return;
+
+    const allowedPaths = [
+      "/choose-role",
+      "/login",
+      "/register",
+      "/verify-email",
+      "/oauth-callback",
+    ];
+
+    if (allowedPaths.includes(pathname)) return;
+
+    router.replace("/choose-role");
+  }, [isLoading, pathname, router, user]);
 
   // Sign in the user and raise a one-shot redirect flag if the backend says the email is still unverified.
   const login = useCallback(
@@ -278,6 +312,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // ensureAuthConfig,
         setPendingVerificationEmail,
         clearPendingVerificationEmail,
+        refreshSession,
         login,
         register,
         logout,
