@@ -106,7 +106,7 @@ export default function RegisterPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/catalogue",
+        callbackURL: `/oauth-callback?role=${role}`,
       });
     } catch (err) {
       setError(

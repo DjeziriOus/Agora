@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initAuth = async () => {
       try {
         const { data } = await authClient.getSession();
-        // console.log(data);
+        console.log(data);
         if (data?.user) {
           setUser(mapUser(data.user as Record<string, unknown>));
         } else {

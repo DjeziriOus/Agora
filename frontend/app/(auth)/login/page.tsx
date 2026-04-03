@@ -25,7 +25,7 @@ function LoginContent() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "http://localhost:3000/catalogue",
+        callbackURL: "http://localhost:3000/oauth-callback",
       });
     } catch (err) {
       setError(
@@ -56,7 +56,7 @@ function LoginContent() {
       }
 
       if (user.role === "seller") {
-        const hasStore = await storesApi
+        const hasStore = await shopsApi
           .getMyStore()
           .then((store) => !!store)
           .catch(() => false);

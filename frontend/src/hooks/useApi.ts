@@ -8,7 +8,14 @@ import {
   // vendorApi,
   // authApi,
 } from "@/lib/api";
-import type { ProductQuery, ProductPayload, OrderPayload, StorePayload, Product, Category } from "@/types";
+import type {
+  ProductQuery,
+  ProductPayload,
+  OrderPayload,
+  StorePayload,
+  Product,
+  Category,
+} from "@/types";
 
 // Query Keys
 export const queryKeys = {
@@ -21,7 +28,8 @@ export const queryKeys = {
   },
   stores: {
     detail: (id: string) => ["stores", id] as const,
-    products: (id: string, params?: ProductQuery) => ["stores", id, "products", params] as const,
+    products: (id: string, params?: ProductQuery) =>
+      ["stores", id, "products", params] as const,
     my: ["stores", "my"] as const,
   },
   categories: {
@@ -79,7 +87,7 @@ export function useSellerProducts() {
 export function useLowStockProducts() {
   return useQuery({
     queryKey: queryKeys.products.lowStock,
-    // queryFn: () => vendorApi.getLowStockProducts(),
+    // queryFn: () => productsApi.getLowStockProducts(),
     queryFn: () => {},
   });
 }
@@ -101,7 +109,9 @@ export function useUpdateProduct() {
       productsApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.products.detail(id),
+      });
     },
   });
 }
@@ -124,7 +134,9 @@ export function useUpdateProductStock() {
       productsApi.updateStock(id, stock),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.products.detail(id),
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
     },
   });
@@ -195,7 +207,7 @@ export function useCategories() {
 // ORDER HOOKS
 export function useClientOrders() {
   return useQuery({
-    queryKey: queryKeys.orders.client,
+    queryKey: queryKeys.orders.buyer,
     queryFn: () => ordersApi.getClientOrders(),
   });
 }
@@ -241,7 +253,9 @@ export function useUpdateOrderStatus() {
       ordersApi.updateStatus(id, status),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.seller });
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.sellerDetail(id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.orders.sellerDetail(id),
+      });
     },
   });
 }
@@ -257,8 +271,13 @@ export function useCart() {
 export function useAddToCart() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
-      cartApi.add(productId, quantity),
+    mutationFn: ({
+      productId,
+      quantity,
+    }: {
+      productId: string;
+      quantity: number;
+    }) => cartApi.add(productId, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
     },
@@ -268,8 +287,13 @@ export function useAddToCart() {
 export function useUpdateCartQuantity() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
-      cartApi.updateQuantity(productId, quantity),
+    mutationFn: ({
+      productId,
+      quantity,
+    }: {
+      productId: string;
+      quantity: number;
+    }) => cartApi.updateQuantity(productId, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
     },
