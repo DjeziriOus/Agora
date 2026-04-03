@@ -100,7 +100,7 @@ export const storesApi = {
   create: (data: unknown) =>
     apiFetch<unknown>("/api/shops", {
       method: "POST",
-      body: data,
+      body: data as FormData,
     }),
   update: (id: string, data: unknown) =>
     apiFetch<unknown>(`/api/shops/${id}`, {
