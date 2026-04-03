@@ -191,7 +191,7 @@ export function useMyStore() {
 export function useCreateStore() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: StorePayload) => shopsApi.create(data),
+    mutationFn: (data: FormData) => shopsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.my });
     },

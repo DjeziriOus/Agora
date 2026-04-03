@@ -5,18 +5,33 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMyStore, useUpdateStore, useCreateStore } from "@/hooks/useApi";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Form, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Store, Save, ExternalLink, Upload } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
 const storeSchema = z.object({
   name: z.string().min(3, "Le nom doit contenir au moins 3 caractères"),
-  description: z.string().min(20, "La description doit contenir au moins 20 caractères"),
+  description: z
+    .string()
+    .min(20, "La description doit contenir au moins 20 caractères"),
   logo: z.any().optional(),
   banner: z.any().optional(),
 });
@@ -53,9 +68,12 @@ export default function VendorStorePage() {
       formData.append("description", data.description);
       if (logoFile) formData.append("logo", logoFile);
       if (bannerFile) formData.append("banner", bannerFile);
-
+      console.log(data);
       if (store) {
-        await updateStore.mutateAsync({ id: store._id as string, data: formData });
+        await updateStore.mutateAsync({
+          id: store._id as string,
+          data: formData,
+        });
         toast.success("Boutique mise à jour");
       } else {
         await createStore.mutateAsync(formData);
@@ -82,9 +100,13 @@ export default function VendorStorePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-foreground">Ma boutique</h1>
+          <h1 className="text-2xl font-heading font-bold text-foreground">
+            Ma boutique
+          </h1>
           <p className="text-muted-foreground mt-1">
-            {hasStore ? "Gérez les informations de votre boutique" : "Créez votre boutique pour commencer à vendre"}
+            {hasStore
+              ? "Gérez les informations de votre boutique"
+              : "Créez votre boutique pour commencer à vendre"}
           </p>
         </div>
         {hasStore && (
@@ -106,7 +128,9 @@ export default function VendorStorePage() {
                 <Store className="h-5 w-5" />
                 Informations de la boutique
               </CardTitle>
-              <CardDescription>Ces informations seront visibles par vos clients</CardDescription>
+              <CardDescription>
+                Ces informations seront visibles par vos clients
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
@@ -115,7 +139,11 @@ export default function VendorStorePage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nom de la boutique</FormLabel>
-                    <input className="w-full border rounded px-3 py-2" placeholder="Ma Super Boutique" {...field} />
+                    <input
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="Ma Super Boutique"
+                      {...field}
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
@@ -126,8 +154,15 @@ export default function VendorStorePage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Description</FormLabel>
-                    <Textarea placeholder="Décrivez votre boutique..." className="min-h-[120px]" {...field} />
-                    <FormDescription>Une bonne description aide les clients à découvrir votre boutique.</FormDescription>
+                    <Textarea
+                      placeholder="Décrivez votre boutique..."
+                      className="min-h-[120px]"
+                      {...field}
+                    />
+                    <FormDescription>
+                      Une bonne description aide les clients à découvrir votre
+                      boutique.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -139,7 +174,9 @@ export default function VendorStorePage() {
           <Card>
             <CardHeader>
               <CardTitle>Identité visuelle</CardTitle>
-              <CardDescription>Logo et bannière de votre boutique</CardDescription>
+              <CardDescription>
+                Logo et bannière de votre boutique
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Logo */}
@@ -152,22 +189,47 @@ export default function VendorStorePage() {
                     <div className="flex items-center gap-4">
                       <div className="w-20 h-20 rounded-xl border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted overflow-hidden">
                         {logoFile ? (
-                          <img src={URL.createObjectURL(logoFile)} alt="Logo" className="w-full h-full object-cover" />
+                          <img
+                            src={URL.createObjectURL(logoFile)}
+                            alt="Logo"
+                            className="w-full h-full object-cover"
+                          />
                         ) : field.value ? (
-                          <img src={field.value} alt="Logo" className="w-full h-full object-cover" />
+                          <img
+                            src={field.value}
+                            alt="Logo"
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <Store className="h-8 w-8 text-muted-foreground" />
                         )}
                       </div>
                       <div className="flex-1 space-y-2">
-                        <input type="file" accept="image/jpeg,image/png,image/webp" id="logo-upload" className="hidden"
-                          onChange={(e) => { const file = e.target.files?.[0]; if (file) setLogoFile(file); }}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          id="logo-upload"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setLogoFile(file);
+                          }}
                         />
-                        <Button type="button" variant="outline" onClick={() => document.getElementById("logo-upload")?.click()}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() =>
+                            document.getElementById("logo-upload")?.click()
+                          }
+                        >
                           <Upload className="mr-2 h-4 w-4" />
                           Choisir un logo
                         </Button>
-                        {logoFile && <p className="text-xs text-muted-foreground">{logoFile.name}</p>}
+                        {logoFile && (
+                          <p className="text-xs text-muted-foreground">
+                            {logoFile.name}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <FormMessage />
@@ -185,24 +247,51 @@ export default function VendorStorePage() {
                     <div className="space-y-3">
                       <div className="w-full h-32 rounded-xl border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted overflow-hidden">
                         {bannerFile ? (
-                          <img src={URL.createObjectURL(bannerFile)} alt="Bannière" className="w-full h-full object-cover" />
+                          <img
+                            src={URL.createObjectURL(bannerFile)}
+                            alt="Bannière"
+                            className="w-full h-full object-cover"
+                          />
                         ) : field.value ? (
-                          <img src={field.value} alt="Bannière" className="w-full h-full object-cover" />
+                          <img
+                            src={field.value}
+                            alt="Bannière"
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <div className="text-center">
                             <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">Aucune bannière</p>
+                            <p className="text-sm text-muted-foreground">
+                              Aucune bannière
+                            </p>
                           </div>
                         )}
                       </div>
-                      <input type="file" accept="image/jpeg,image/png,image/webp" id="banner-upload" className="hidden"
-                        onChange={(e) => { const file = e.target.files?.[0]; if (file) setBannerFile(file); }}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        id="banner-upload"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setBannerFile(file);
+                        }}
                       />
-                      <Button type="button" variant="outline" onClick={() => document.getElementById("banner-upload")?.click()}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          document.getElementById("banner-upload")?.click()
+                        }
+                      >
                         <Upload className="mr-2 h-4 w-4" />
                         Choisir une bannière
                       </Button>
-                      {bannerFile && <p className="text-xs text-muted-foreground">{bannerFile.name}</p>}
+                      {bannerFile && (
+                        <p className="text-xs text-muted-foreground">
+                          {bannerFile.name}
+                        </p>
+                      )}
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -214,23 +303,35 @@ export default function VendorStorePage() {
           {/* Stats */}
           {hasStore && (
             <Card>
-              <CardHeader><CardTitle>Statistiques</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>Statistiques</CardTitle>
+              </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <p className="text-2xl font-bold">{store.productCount || 0}</p>
+                    <p className="text-2xl font-bold">
+                      {store.productCount || 0}
+                    </p>
                     <p className="text-sm text-muted-foreground">Produits</p>
                   </div>
                   <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <p className="text-2xl font-bold">{store.rating?.toFixed(1) || "N/A"}</p>
-                    <p className="text-sm text-muted-foreground">Note moyenne</p>
+                    <p className="text-2xl font-bold">
+                      {store.rating?.toFixed(1) || "N/A"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Note moyenne
+                    </p>
                   </div>
                   <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <p className="text-2xl font-bold">{store.reviewCount || 0}</p>
+                    <p className="text-2xl font-bold">
+                      {store.reviewCount || 0}
+                    </p>
                     <p className="text-sm text-muted-foreground">Avis</p>
                   </div>
                   <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <p className="text-2xl font-bold">{store.followerCount || 0}</p>
+                    <p className="text-2xl font-bold">
+                      {store.followerCount || 0}
+                    </p>
                     <p className="text-sm text-muted-foreground">Abonnés</p>
                   </div>
                 </div>
@@ -240,7 +341,10 @@ export default function VendorStorePage() {
 
           {/* Actions */}
           <div className="flex justify-end">
-            <Button type="submit" disabled={updateStore.isPending || createStore.isPending}>
+            <Button
+              type="submit"
+              disabled={updateStore.isPending || createStore.isPending}
+            >
               {updateStore.isPending || createStore.isPending ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2" />
