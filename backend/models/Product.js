@@ -74,6 +74,16 @@ const productSchema = new mongoose.Schema(
 
 productSchema.index({ shop: 1, isDeleted: 1, stock: 1 });
 
+//Map the MongoDB _id to id for frontend access
+productSchema.set("toJSON", {
+  virtuals: true,
+  transform: (_, ret) => {
+    ret.id = ret._id.toString();
+    return ret;
+  },
+});
+
+
 export default mongoose.model("Product", productSchema);
 
 
