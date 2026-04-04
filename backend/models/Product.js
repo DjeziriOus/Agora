@@ -16,6 +16,12 @@ const productSchema = new mongoose.Schema(
             trim: true,
             maxlength: [1000, "Product description must be at most 1000 characters long"],
         },
+        category: {
+            type: String,
+            required: [true, "Product category is required"],
+            trim: true,
+            maxlength: [100, "Product category must be at most 100 characters long"],
+        },
         price: {
             type: Number,
             required: [true, "Product price is required"],
@@ -69,6 +75,5 @@ const productSchema = new mongoose.Schema(
 productSchema.index({ shop: 1, isDeleted: 1, stock: 1 });
 
 export default mongoose.model("Product", productSchema);
-
 
 

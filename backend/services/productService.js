@@ -177,6 +177,12 @@ const createProduct = async ({ ownerId, body, files = [] }) => {
 		throw error;
 	}
 
+	if (!String(body.category || "").trim()) {
+		const error = new Error("La categorie du produit est requise.");
+		error.statusCode = 400;
+		throw error;
+	}
+
 	const shop = await getSellerShopOrThrow(ownerId);
 
 	// Upload each file buffer to Cloudinary in parallel.
@@ -187,10 +193,12 @@ const createProduct = async ({ ownerId, body, files = [] }) => {
 	const product = new Product({
 		name: body.name,
 		description: body.description || "",
+		category: body.category,
 		price: body.price,
 		stock: body.stock ?? 0,
 		stockThreshold: body.stockThreshold ?? 5,
 		images,
+		isActive: body.isActive === "true" || body.isActive === true,
 		shop: shop._id,
 	});
 
@@ -222,6 +230,7 @@ const updateProduct = async ({ ownerId, productId, body, files = [] }) => {
 	// ── Update text fields if provided ───────────────────────────────────────
 	if (body.name !== undefined) product.name = body.name;
 	if (body.description !== undefined) product.description = body.description;
+	if (body.category !== undefined) product.category = body.category;
 	if (body.price !== undefined) product.price = body.price;
 	if (body.stock !== undefined) product.stock = body.stock;
 	if (body.stockThreshold !== undefined) product.stockThreshold = body.stockThreshold;

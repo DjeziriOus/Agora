@@ -16,12 +16,14 @@ export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const isFormData = options.body instanceof FormData;
+
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
       "ngrok-skip-browser-warning": "true",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(options.headers ?? {}),
     },
   });
@@ -58,11 +60,14 @@ export const productsApi = {
     );
   },
   getById: (id: string) => apiFetch<Product>(`/api/products/${id}`),
-  getMine: () => apiFetch<Product[]>(`/api/products/mine`),
-  create: (data: unknown) =>
+  getMine: () =>
+    apiFetch<{ products: Product[]; total: number; page: number; limit: number }>(
+      `/api/products/mine`,
+    ),
+  create: (data: FormData) =>
     apiFetch<unknown>("/api/products", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: data,
     }),
   update: (id: string, data: unknown) =>
     apiFetch<unknown>(`/api/products/${id}`, {

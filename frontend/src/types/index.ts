@@ -34,7 +34,7 @@ export interface Product {
   description: string;
   price: number;
   category: string;
-  categoryId: string;
+  categoryId?: string;
   stock: number;
   stockThreshold: number;
   rating: number;
@@ -154,10 +154,11 @@ export interface ProductPayload {
   name: string;
   description: string;
   price: number;
-  categoryId: string;
+  category: string;
+  categoryId?: string;
   stock: number;
-  stockThreshold: number;
-  images: string[];
+  stockThreshold?: number;
+  images: File[] | string[];
   isActive: boolean;
 }
 

@@ -2,12 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   productsApi,
   shopsApi,
-  // categoriesApi,
   ordersApi,
   // cartApi,
   // vendorApi,
   // authApi,
 } from "@/lib/api";
+import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
 import type { ProductQuery, ProductPayload, OrderPayload, StorePayload, Product, Category } from "@/types";
 
 // Query Keys
@@ -71,25 +71,27 @@ export function useProduct(id: string) {
 export function useSellerProducts() {
   return useQuery({
     queryKey: queryKeys.products.seller,
-    // queryFn: () => productsApi.getSellerProducts(),
-    queryFn: () => {},
+    queryFn: () => productsApi.getMine(),
   });
 }
 
 export function useLowStockProducts() {
-  return useQuery({
+  return useQuery<Product[]>({
     queryKey: queryKeys.products.lowStock,
-    // queryFn: () => vendorApi.getLowStockProducts(),
-    queryFn: () => {},
+    queryFn: async () => {
+      const result = await productsApi.getMine();
+      return result.products.filter((product) => product.stock <= product.stockThreshold);
+    },
   });
 }
 
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: ProductPayload) => productsApi.create(data),
+    mutationFn: (data: FormData) => productsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
     },
   });
 }
@@ -188,7 +190,13 @@ export function useUpdateStore() {
 export function useCategories() {
   return useQuery<Category[]>({
     queryKey: queryKeys.categories.all,
-    queryFn: () => categoriesApi.getAll(),
+    queryFn: async () =>
+      PRODUCT_CATEGORIES.map((name, index) => ({
+        id: `category-${index + 1}`,
+        name,
+        productCount: 0,
+      })),
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }
 
