@@ -5,17 +5,17 @@ const BASE_URL = API_URL;
 type BackendProductImage =
   | string
   | {
-      url?: string;
-      publicId?: string;
-    };
+    url?: string;
+    publicId?: string;
+  };
 
 type BackendProductShop =
   | string
   | {
-      _id?: string;
-      id?: string;
-      name?: string;
-    };
+    _id?: string;
+    id?: string;
+    name?: string;
+  };
 
 type BackendProduct = {
   _id?: string;
@@ -116,11 +116,11 @@ export const productsApi = {
   getAll: (params?: Record<string, string | undefined>) => {
     const qs = params
       ? "?" +
-        new URLSearchParams(
-          Object.fromEntries(
-            Object.entries(params).filter(([, v]) => v !== undefined),
-          ) as Record<string, string>,
-        ).toString()
+      new URLSearchParams(
+        Object.fromEntries(
+          Object.entries(params).filter(([, v]) => v !== undefined),
+        ) as Record<string, string>,
+      ).toString()
       : "";
     return apiFetch<{ products: Product[]; total: number }>(
       `/api/products${qs}`,
@@ -145,7 +145,15 @@ export const productsApi = {
       body: JSON.stringify(data),
     }),
   delete: (id: string) =>
-    apiFetch<void>(`/api/products/${id}`, { method: "DELETE" }),
+    apiFetch<void>(`/api/products/${id}`, {
+      method: "DELETE"
+    }),
+  updateStock: (id: string, stock: number) =>
+    apiFetch<unknown>(`/api/products/${id}/stock`, {
+      method: "PATCH",
+      body: JSON.stringify({ stock }),
+    }),
+
 };
 
 // ── Shops ────────────────────────────────────────────────────────────────────
@@ -154,11 +162,11 @@ export const shopsApi = {
   getProducts: (id: string, params?: Record<string, string | undefined>) => {
     const qs = params
       ? "?" +
-        new URLSearchParams(
-          Object.fromEntries(
-            Object.entries(params).filter(([, v]) => v !== undefined),
-          ) as Record<string, string>,
-        ).toString()
+      new URLSearchParams(
+        Object.fromEntries(
+          Object.entries(params).filter(([, v]) => v !== undefined),
+        ) as Record<string, string>,
+      ).toString()
       : "";
     return apiFetch<unknown>(`/api/shops/${id}/products${qs}`);
   },
