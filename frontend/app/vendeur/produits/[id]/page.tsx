@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  useProduct,
+  useSellerProduct,
   useUpdateProduct,
   useUpdateProductStock,
   useCategories,
@@ -62,7 +62,7 @@ export default function EditProductPage() {
   const productId = params.id as string;
   const router = useRouter();
 
-  const { data: product, isLoading } = useProduct(productId);
+  const { data: product, isLoading } = useSellerProduct(productId);
   const { data: categories } = useCategories();
   const updateProduct = useUpdateProduct();
   const updateStock = useUpdateProductStock();

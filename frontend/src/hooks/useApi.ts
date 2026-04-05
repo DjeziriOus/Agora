@@ -16,6 +16,7 @@ export const queryKeys = {
     all: ["products"] as const,
     list: (params?: ProductQuery) => ["products", "list", params] as const,
     detail: (id: string) => ["products", "detail", id] as const,
+    sellerDetail: (id: string) => ["products", "seller", "detail", id] as const,
     seller: ["products", "seller"] as const,
     lowStock: ["products", "lowStock"] as const,
   },
@@ -68,6 +69,14 @@ export function useProduct(id: string) {
   });
 }
 
+export function useSellerProduct(id: string) {
+  return useQuery<Product>({
+    queryKey: queryKeys.products.sellerDetail(id),
+    queryFn: () => productsApi.getMineById(id),
+    enabled: !!id,
+  });
+}
+
 export function useSellerProducts() {
   return useQuery({
     queryKey: queryKeys.products.seller,
@@ -104,6 +113,7 @@ export function useUpdateProduct() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.sellerDetail(id) });
     },
   });
 }
@@ -111,10 +121,12 @@ export function useUpdateProduct() {
 export function useToggleProductActive() {
   const queryClient = useQueryClient();
   return useMutation({
-    // mutationFn: (id: string) => productsApi.toggleActive(id),
-    // mutationFn: (id: string) => {},
-    onSuccess: () => {
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      productsApi.toggleActive(id, isActive),
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.sellerDetail(id) });
     },
   });
 }
@@ -127,6 +139,7 @@ export function useUpdateProductStock() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.sellerDetail(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
     },
   });

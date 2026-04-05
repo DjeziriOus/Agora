@@ -130,6 +130,10 @@ export const productsApi = {
     const product = await apiFetch<BackendProduct>(`/api/products/${id}`);
     return mapProduct(product);
   },
+  getMineById: async (id: string) => {
+    const product = await apiFetch<BackendProduct>(`/api/products/mine/${id}`);
+    return mapProduct(product);
+  },
   getMine: () =>
     apiFetch<{ products: Product[]; total: number; page: number; limit: number }>(
       `/api/products/mine`,
@@ -153,6 +157,12 @@ export const productsApi = {
       method: "PATCH",
       body: JSON.stringify({ stock }),
     }),
+  toggleActive: (id: string, isActive: boolean) =>
+    apiFetch<unknown>(`/api/products/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ isActive }),
+    }),
+
 
 };
 

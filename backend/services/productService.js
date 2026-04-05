@@ -134,6 +134,27 @@ const getProductById = async (productId) => {
 	return product;
 };
 
+// ── Seller product detail ───────────────────────────────────────────────────
+const getMyProductById = async ({ ownerId, productId }) => {
+	assertObjectId(productId, "product id");
+
+	const shop = await getSellerShopOrThrow(ownerId);
+
+	const product = await Product.findOne({
+		_id: productId,
+		shop: shop._id,
+		isDeleted: false,
+	}).populate("shop", "name");
+
+	if (!product) {
+		const error = new Error("Product not found.");
+		error.statusCode = 404;
+		throw error;
+	}
+
+	return product;
+};
+
 // ── Seller inventory listing ─────────────────────────────────────────────────
 const getMyProducts = async ({ ownerId, query = {} }) => {
 	const shop = await getSellerShopOrThrow(ownerId);
@@ -343,6 +364,7 @@ export default {
 	deleteProduct,
 	getProducts,
 	getProductById,
+	getMyProductById,
 	getMyProducts,
 	updateProductStock,
 };
