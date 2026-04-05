@@ -23,9 +23,10 @@ function LoginContent() {
     setError(null);
     setGoogleLoading(true);
     try {
+      console.log(process.env.NEXT_PUBLIC_APP_URL);
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "http://localhost:3000/oauth-callback",
+        callbackURL: `${process.env.NEXT_PUBLIC_APP_URL}/oauth-callback`,
       });
     } catch (err) {
       setError(
