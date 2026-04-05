@@ -2,17 +2,27 @@
   "info": {
     "name": "Agora API — BetterAuth",
     "_postman_id": "agora-betterauth-v2",
-    "description": "Full Agora multi-vendor API collection. Base URL: http://localhost:5000/api\n\nAuth routes are handled by BetterAuth at /api/auth/*\nAll protected routes use session cookies — Postman must have 'Send cookies' enabled.",
+    "description": "Full Agora multi-vendor API collection. Base URL: {{backend_origin}}/api\n\nAuth routes are handled by BetterAuth at /api/auth/*\nAll protected routes use session cookies — Postman must have 'Send cookies' enabled.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
+      "key": "backend_origin",
+      "value": "http://localhost:5001",
+      "type": "string"
+    },
+    {
       "key": "base_url",
-      "value": "http://localhost:5000/api",
+      "value": "{{backend_origin}}/api",
       "type": "string"
     },
     {
       "key": "product_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "product_image_public_id",
       "value": "",
       "type": "string"
     },
@@ -496,6 +506,32 @@
           "response": []
         },
         {
+          "name": "Get My Product by ID (Seller)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const firstImage = j.images && j.images[0];",
+                  "if (firstImage && firstImage.publicId) pm.collectionVariables.set('product_image_public_id', firstImage.publicId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/mine/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "mine", "{{product_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Create Product (Seller)",
           "event": [
             {
@@ -503,7 +539,10 @@
               "script": {
                 "exec": [
                   "const j = pm.response.json();",
-                  "if(j._id) pm.collectionVariables.set('product_id', j._id);"
+                  "const product = j.product || {};",
+                  "if (product.id || product._id) pm.collectionVariables.set('product_id', product.id || product._id);",
+                  "const firstImage = product.images && product.images[0];",
+                  "if (firstImage && firstImage.publicId) pm.collectionVariables.set('product_image_public_id', firstImage.publicId);"
                 ],
                 "type": "text/javascript"
               }
@@ -511,20 +550,51 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/products",
               "host": ["{{base_url}}"],
               "path": ["products"]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Smartphone XYZ\",\n  \"description\": \"Dernier modèle avec 128GB de stockage.\",\n  \"price\": 45000,\n  \"category\": \"Electronics\",\n  \"stock\": 20,\n  \"images\": []\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Smartphone XYZ",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Dernier modèle avec 128GB de stockage.",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "45000",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Electronics",
+                  "type": "text"
+                },
+                {
+                  "key": "stock",
+                  "value": "20",
+                  "type": "text"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": []
+                }
+              ]
             }
           },
           "response": []
@@ -546,7 +616,57 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"price\": 42000,\n  \"stock\": 15\n}"
+              "raw": "{\n  \"price\": 42000,\n  \"category\": \"Electronics\",\n  \"isActive\": false\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product Images (Seller)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "keepImages",
+                  "value": "[\"{{product_image_public_id}}\"]",
+                  "type": "text"
+                },
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product Stock (Seller)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}/stock",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}", "stock"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 15\n}"
             }
           },
           "response": []
