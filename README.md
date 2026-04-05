@@ -14,6 +14,8 @@ The goal of this README is to document the **current repository structure** and 
 ├── backend/
 │   ├── auth.js
 │   ├── server.js
+│   ├── package.json
+│   ├── package-lock.json
 │   ├── config/
 │   │   ├── cloudinary.js
 │   │   └── db.js
@@ -30,7 +32,9 @@ The goal of this README is to document the **current repository structure** and 
 │   │   ├── Order.js
 │   │   ├── Product.js
 │   │   ├── Shop.js
-│   │   └── User.js
+│   │   ├── User.js
+│   │   ├── createStore.json
+│   │   └── getStore.json
 │   ├── postman/
 │   │   ├── agora-betterauth.postman_collection.json
 │   │   ├── collection copy.json
@@ -46,8 +50,8 @@ The goal of this README is to document the **current repository structure** and 
 │   │   ├── productService.js
 │   │   └── shopService.js
 │   ├── test-email.mjs
-│   ├── package.json
-│   └── package-lock.json
+│   ├── gantt tasks.txt
+│   └── startup.log
 ├── frontend/
 │   ├── app/
 │   │   ├── (auth)/
@@ -59,6 +63,7 @@ The goal of this README is to document the **current repository structure** and 
 │   │   │   │   └── [id]/
 │   │   │   ├── catalogue/
 │   │   │   ├── checkout/
+│   │   │   ├── layout.tsx
 │   │   │   ├── compte/
 │   │   │   │   ├── adresses/
 │   │   │   │   ├── commandes/
@@ -74,10 +79,13 @@ The goal of this README is to document the **current repository structure** and 
 │   │   │   ├── boutique/
 │   │   │   ├── commandes/
 │   │   │   │   └── [id]/
+│   │   │   ├── layout.tsx
 │   │   │   ├── parametres/
+│   │   │   ├── page.tsx
 │   │   │   └── produits/
 │   │   │       ├── [id]/
 │   │   │       └── nouveau/
+│   │   ├── VendorLayoutClient.tsx
 │   │   ├── global-error.tsx
 │   │   ├── globals.css
 │   │   ├── icon.jpg
@@ -94,11 +102,15 @@ The goal of this README is to document the **current repository structure** and 
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── ui/
+│   │   │   ├── AgoraBadge.tsx
+│   │   │   ├── EmptyState.tsx
 │   │   │   ├── Footer.tsx
 │   │   │   ├── Navbar.tsx
+│   │   │   ├── OrderStepBar.tsx
 │   │   │   ├── ProductCard.tsx
+│   │   │   ├── SkeletonCard.tsx
+│   │   │   ├── StarRating.tsx
 │   │   │   └── VendorSidebar.tsx
-│   │   ├── config.ts
 │   │   ├── context/
 │   │   │   ├── AuthContext.tsx
 │   │   │   └── CartContext.tsx
@@ -108,6 +120,7 @@ The goal of this README is to document the **current repository structure** and 
 │   │   │   ├── api.ts
 │   │   │   ├── auth-client.ts
 │   │   │   ├── mockData.ts
+│   │   │   ├── productCategories.ts
 │   │   │   ├── queryClient.tsx
 │   │   │   └── utils.ts
 │   │   └── types/
@@ -122,8 +135,6 @@ The goal of this README is to document the **current repository structure** and 
 │   ├── package.json
 │   ├── package-lock.json
 │   └── pnpm-lock.yaml
-├── agora-betterauth.postman_collection.json
-├── Projet L3Q2.code-workspace
 ├── .gitignore
 └── README.md
 ```
@@ -159,6 +170,9 @@ The goal of this README is to document the **current repository structure** and 
 
 - `backend/services/`
   Reusable backend services such as email sending helpers.
+
+- `backend/postman/`
+  Postman collections for backend route testing, including the Better Auth collection used by the team.
 
 - `frontend/`
   Frontend application built with Next.js App Router.
@@ -206,35 +220,10 @@ The goal of this README is to document the **current repository structure** and 
   Shared React hooks.
 
 - `frontend/src/lib/`
-  Frontend utility modules such as API helpers, auth client setup, mock data, and React Query setup.
+  Frontend utility modules such as API helpers, auth client setup, mock data, React Query setup, and fixed product categories.
 
 - `frontend/src/types/`
   Shared TypeScript types for the domain model and API payloads.
-
-- `agora-betterauth.postman_collection.json`
-  Postman collection used to test backend authentication flows.
-
-- `Projet L3Q2.code-workspace`
-  Local VS Code workspace file.
-
-## Notes About Generated or Local Files
-
-Some folders and files exist for local development and should not be treated as core source structure:
-
-- `frontend/.next/`
-  Next.js build output.
-
-- `frontend/node_modules/`
-  Frontend dependencies.
-
-- `backend/node_modules/`
-  Backend dependencies.
-
-- `frontend/tsconfig.tsbuildinfo`
-  TypeScript incremental build cache.
-
-- `backend/startup.log`
-  Local log/debug artifact.
 
 ## Current Architectural Split
 
