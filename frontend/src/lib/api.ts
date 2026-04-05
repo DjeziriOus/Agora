@@ -148,10 +148,19 @@ export const productsApi = {
     const product = await apiFetch<BackendProduct>(`/api/products/mine/${id}`);
     return mapSellerProduct(product);
   },
-  getMine: () =>
-    apiFetch<{ products: Product[]; total: number; page: number; limit: number }>(
-      `/api/products/mine`,
-    ),
+  getMine: async () => {
+    const result = await apiFetch<{
+      products: BackendProduct[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`/api/products/mine`);
+
+    return {
+      ...result,
+      products: result.products.map(mapProduct),
+    };
+  },
   create: (data: FormData) =>
     apiFetch<unknown>("/api/products", {
       method: "POST",
