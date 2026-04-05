@@ -8,7 +8,15 @@ import {
   // authApi,
 } from "@/lib/api";
 import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
-import type { ProductQuery, ProductPayload, OrderPayload, StorePayload, Product, Category } from "@/types";
+import type {
+  ProductQuery,
+  ProductPayload,
+  OrderPayload,
+  StorePayload,
+  Product,
+  Category,
+  SellerProduct,
+} from "@/types";
 
 // Query Keys
 export const queryKeys = {
@@ -70,7 +78,7 @@ export function useProduct(id: string) {
 }
 
 export function useSellerProduct(id: string) {
-  return useQuery<Product>({
+  return useQuery<SellerProduct>({
     queryKey: queryKeys.products.sellerDetail(id),
     queryFn: () => productsApi.getMineById(id),
     enabled: !!id,
@@ -108,7 +116,7 @@ export function useCreateProduct() {
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<ProductPayload> }) =>
+    mutationFn: ({ id, data }: { id: string; data: FormData | Partial<ProductPayload> }) =>
       productsApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });

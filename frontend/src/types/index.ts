@@ -46,6 +46,15 @@ export interface Product {
   createdAt: string;
 }
 
+export interface ProductImage {
+  url: string;
+  publicId: string;
+}
+
+export interface SellerProduct extends Omit<Product, "images"> {
+  images: ProductImage[];
+}
+
 export interface CartItem {
   productId: string;
   product: Product;

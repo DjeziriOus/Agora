@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type ChangeEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/form";
 import { ArrowLeft, Save, Upload, X, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
+import type { ProductImage } from "@/types";
 
 const productSchema = z.object({
   name: z.string().min(3, "Le nom doit contenir au moins 3 caractères"),
@@ -67,8 +68,11 @@ export default function EditProductPage() {
   const updateProduct = useUpdateProduct();
   const updateStock = useUpdateProductStock();
 
-  const [images, setImages] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<ProductImage[]>([]);
+  const [newImages, setNewImages] = useState<File[]>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
   const [stockAdjustment, setStockAdjustment] = useState(0);
+  const newImagePreviewsRef = useRef<string[]>([]);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -81,6 +85,10 @@ export default function EditProductPage() {
       isActive: true,
     },
   });
+
+  useEffect(() => {
+    newImagePreviewsRef.current = newImagePreviews;
+  }, [newImagePreviews]);
 
   useEffect(() => {
     if (product) {
@@ -97,18 +105,53 @@ export default function EditProductPage() {
         category: matchedCategory?.name ?? product.category,
         isActive: product.isActive,
       });
-      setImages(product.images || []);
+      setExistingImages(product.images || []);
+      setNewImages([]);
+      newImagePreviewsRef.current.forEach((preview) => URL.revokeObjectURL(preview));
+      newImagePreviewsRef.current = [];
+      setNewImagePreviews([]);
     }
   }, [categories, product, form]);
 
+  useEffect(
+    () => () => {
+      newImagePreviewsRef.current.forEach((preview) =>
+        URL.revokeObjectURL(preview),
+      );
+    },
+    [],
+  );
+
   const onSubmit = async (data: ProductFormData) => {
     try {
+      const totalImages = existingImages.length + newImages.length;
+      if (totalImages === 0) {
+        toast.error("Le produit doit garder au moins une image");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("name", data.name);
+      formData.append("description", data.description);
+      formData.append("price", String(data.price));
+      formData.append("category", data.category);
+      formData.append("isActive", String(data.isActive));
+      formData.append(
+        "keepImages",
+        JSON.stringify(
+          existingImages
+            .map((image) => image.publicId)
+            .filter((publicId) => publicId),
+        ),
+      );
+
+      newImages.forEach((image) => {
+        formData.append("images", image);
+      });
+
       await updateProduct.mutateAsync({
         id: productId,
-        data: {
-          ...data,
-          images,
-        },
+        data: formData,
       });
       toast.success("Produit mis à jour");
       router.push("/vendeur/produits");
@@ -133,20 +176,44 @@ export default function EditProductPage() {
     }
   };
 
-  const handleImageUpload = () => {
-    const placeholderImages = [
-      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
-      "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400",
-    ];
-    const randomImage =
-      placeholderImages[Math.floor(Math.random() * placeholderImages.length)];
-    setImages([...images, randomImage]);
-    toast.success("Image ajoutée");
+  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    if (!selectedFiles.length) return;
+
+    const remainingSlots = 5 - existingImages.length - newImages.length;
+    if (remainingSlots <= 0) {
+      toast.error("Vous pouvez ajouter jusqu'à 5 images");
+      event.target.value = "";
+      return;
+    }
+
+    const filesToAdd = selectedFiles.slice(0, remainingSlots);
+    if (filesToAdd.length < selectedFiles.length) {
+      toast.error("Seules les 5 premières images sont conservées");
+    }
+
+    setNewImages((currentImages) => [...currentImages, ...filesToAdd]);
+    setNewImagePreviews((currentPreviews) => [
+      ...currentPreviews,
+      ...filesToAdd.map((file) => URL.createObjectURL(file)),
+    ]);
+    event.target.value = "";
   };
 
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+  const removeExistingImage = (index: number) => {
+    setExistingImages((currentImages) =>
+      currentImages.filter((_, currentIndex) => currentIndex !== index),
+    );
+  };
+
+  const removeNewImage = (index: number) => {
+    URL.revokeObjectURL(newImagePreviews[index]);
+    setNewImages((currentImages) =>
+      currentImages.filter((_, currentIndex) => currentIndex !== index),
+    );
+    setNewImagePreviews((currentPreviews) =>
+      currentPreviews.filter((_, currentIndex) => currentIndex !== index),
+    );
   };
 
   if (isLoading) {
@@ -247,37 +314,67 @@ export default function EditProductPage() {
                   <CardTitle>Images</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <input
+                    id="product-images-edit"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {images.map((image, index) => (
+                    {existingImages.map((image, index) => (
                       <div
-                        key={index}
+                        key={image.publicId || image.url || `existing-${index}`}
                         className="relative aspect-square rounded-lg overflow-hidden bg-muted"
                       >
                         <img
-                          src={image}
+                          src={image.url}
                           alt={`Product ${index + 1}`}
                           className="w-full h-full object-cover"
                         />
                         <button
                           type="button"
-                          onClick={() => removeImage(index)}
+                          onClick={() => removeExistingImage(index)}
                           className="absolute top-2 right-2 p-1 rounded-full bg-background/80 hover:bg-background transition-colors"
                         >
                           <X className="h-4 w-4" />
                         </button>
                       </div>
                     ))}
-                    {images.length < 5 && (
-                      <button
-                        type="button"
-                        onClick={handleImageUpload}
-                        className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+                    {newImagePreviews.map((imagePreview, index) => (
+                      <div
+                        key={`new-${index}`}
+                        className="relative aspect-square rounded-lg overflow-hidden bg-muted"
+                      >
+                        <img
+                          src={imagePreview}
+                          alt={`New product ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeNewImage(index)}
+                          className="absolute top-2 right-2 p-1 rounded-full bg-background/80 hover:bg-background transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {existingImages.length + newImagePreviews.length < 5 && (
+                      <label
+                        htmlFor="product-images-edit"
+                        className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary cursor-pointer"
                       >
                         <Upload className="h-6 w-6" />
                         <span className="text-xs">Ajouter</span>
-                      </button>
+                      </label>
                     )}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Gardez au moins une image. Vous pouvez conserver les images
+                    existantes, en supprimer et en ajouter de nouvelles.
+                  </p>
                 </CardContent>
               </Card>
             </div>

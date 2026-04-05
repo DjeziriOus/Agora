@@ -1,5 +1,5 @@
 import { API_URL } from "../config";
-import type { Product } from "@/types";
+import type { Product, ProductImage, SellerProduct } from "@/types";
 const BASE_URL = API_URL;
 
 type BackendProductImage =
@@ -69,6 +69,20 @@ const mapProduct = (product: BackendProduct): Product => {
   };
 };
 
+const mapProductImage = (image: BackendProductImage): ProductImage => ({
+  url: typeof image === "string" ? image : image.url ?? "",
+  publicId: typeof image === "string" ? "" : image.publicId ?? "",
+});
+
+const mapSellerProduct = (product: BackendProduct): SellerProduct => {
+  const mappedProduct = mapProduct(product);
+
+  return {
+    ...mappedProduct,
+    images: (product.images ?? []).map(mapProductImage),
+  };
+};
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -132,7 +146,7 @@ export const productsApi = {
   },
   getMineById: async (id: string) => {
     const product = await apiFetch<BackendProduct>(`/api/products/mine/${id}`);
-    return mapProduct(product);
+    return mapSellerProduct(product);
   },
   getMine: () =>
     apiFetch<{ products: Product[]; total: number; page: number; limit: number }>(
@@ -143,10 +157,10 @@ export const productsApi = {
       method: "POST",
       body: data,
     }),
-  update: (id: string, data: unknown) =>
+  update: (id: string, data: FormData | unknown) =>
     apiFetch<unknown>(`/api/products/${id}`, {
       method: "PUT",
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     }),
   delete: (id: string) =>
     apiFetch<void>(`/api/products/${id}`, {
