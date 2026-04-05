@@ -4,6 +4,7 @@ import {
 	updateProduct,
 	deleteProduct,
 	getProducts,
+	getProductById,
 	getMyProducts,
 	updateProductStock,
 } from "../controllers/productController.js";
@@ -20,6 +21,9 @@ router.post("/", verifyToken, isSeller, uploadProductImages, createProduct);
 
 // Seller inventory listing with search/filter/pagination.
 router.get("/mine", verifyToken, isSeller, getMyProducts);
+
+// Public product detail endpoint for the product page.
+router.get("/:id", getProductById);
 
 // Seller: update product text fields + manage images.
 router.put("/:id", verifyToken, isSeller, uploadProductImages, updateProduct);

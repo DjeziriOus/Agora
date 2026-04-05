@@ -2,6 +2,73 @@ import { API_URL } from "../config";
 import type { Product } from "@/types";
 const BASE_URL = API_URL;
 
+type BackendProductImage =
+  | string
+  | {
+      url?: string;
+      publicId?: string;
+    };
+
+type BackendProductShop =
+  | string
+  | {
+      _id?: string;
+      id?: string;
+      name?: string;
+    };
+
+type BackendProduct = {
+  _id?: string;
+  id?: string;
+  name: string;
+  description?: string;
+  category?: string;
+  price: number;
+  stock?: number;
+  stockThreshold?: number;
+  rating?: number;
+  reviewCount?: number;
+  images?: BackendProductImage[];
+  isActive?: boolean;
+  createdAt?: string;
+  shop?: BackendProductShop;
+};
+
+const mapProduct = (product: BackendProduct): Product => {
+  const id = product.id ?? product._id;
+
+  if (!id) {
+    throw new Error("Product id is missing in API response.");
+  }
+
+  const storeId =
+    typeof product.shop === "string"
+      ? product.shop
+      : product.shop?.id ?? product.shop?._id ?? "";
+
+  const storeName =
+    typeof product.shop === "string" ? "" : product.shop?.name ?? "";
+
+  return {
+    id,
+    name: product.name,
+    description: product.description ?? "",
+    price: product.price,
+    category: product.category ?? "",
+    stock: product.stock ?? 0,
+    stockThreshold: product.stockThreshold ?? 5,
+    rating: product.rating ?? 0,
+    reviewCount: product.reviewCount ?? 0,
+    storeId,
+    storeName,
+    images: (product.images ?? []).map((image) =>
+      typeof image === "string" ? image : image.url ?? "",
+    ),
+    isActive: product.isActive ?? true,
+    createdAt: product.createdAt ?? "",
+  };
+};
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -59,7 +126,10 @@ export const productsApi = {
       `/api/products${qs}`,
     );
   },
-  getById: (id: string) => apiFetch<Product>(`/api/products/${id}`),
+  getById: async (id: string) => {
+    const product = await apiFetch<BackendProduct>(`/api/products/${id}`);
+    return mapProduct(product);
+  },
   getMine: () =>
     apiFetch<{ products: Product[]; total: number; page: number; limit: number }>(
       `/api/products/mine`,

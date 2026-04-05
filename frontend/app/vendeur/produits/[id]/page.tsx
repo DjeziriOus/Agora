@@ -43,11 +43,19 @@ const productSchema = z.object({
     .string()
     .min(20, "La description doit contenir au moins 20 caractères"),
   price: z.coerce.number().min(0.01, "Le prix doit être supérieur à 0"),
-  categoryId: z.string().min(1, "Veuillez sélectionner une catégorie"),
+  // categoryId: z.string().min(1, "Veuillez sélectionner une catégorie"),
+  category: z.string().min(1, "Veuillez sélectionner une catégorie"),
   isActive: z.boolean(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
+
+const normalizeCategory = (value = "") =>
+  value
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 export default function EditProductPage() {
   const params = useParams();
@@ -68,23 +76,30 @@ export default function EditProductPage() {
       name: "",
       description: "",
       price: 0,
-      categoryId: "",
+      // categoryId: "",
+      category: "",
       isActive: true,
     },
   });
 
   useEffect(() => {
     if (product) {
+      const matchedCategory = categories?.find(
+        (category) =>
+          normalizeCategory(category.name) === normalizeCategory(product.category),
+      );
+
       form.reset({
         name: product.name,
         description: product.description,
         price: product.price,
-        categoryId: product.categoryId,
+        // categoryId: product.categoryId,
+        category: matchedCategory?.name ?? product.category,
         isActive: product.isActive,
       });
       setImages(product.images || []);
     }
-  }, [product, form]);
+  }, [categories, product, form]);
 
   const onSubmit = async (data: ProductFormData) => {
     try {
@@ -360,30 +375,42 @@ export default function EditProductPage() {
                 <CardContent className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="categoryId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Catégorie</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionner..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categories?.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    name="category"
+                    render={({ field }) => {
+                      const matchedCategory = categories?.find(
+                        (category) =>
+                          normalizeCategory(category.name) ===
+                          normalizeCategory(product.category),
+                      );
+                      const selectedCategory =
+                        field.value || matchedCategory?.name || product.category;
+
+                      return (
+                        <FormItem>
+                          <FormLabel>Catégorie</FormLabel>
+                          {/* Old dynamic category path used categoryId; first backend version now uses category string. */}
+                          <Select
+                            onValueChange={field.onChange}
+                            value={selectedCategory || undefined}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Sélectionner..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {/* Old dynamic version used value={category.id}. */}
+                              {categories?.map((category) => (
+                                <SelectItem key={category.id} value={category.name}>
+                                  {category.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
 
                   <FormField
