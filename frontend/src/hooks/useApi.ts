@@ -202,7 +202,7 @@ export function useUpdateStore() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: FormData }) =>
-      storesApi.update(id, data),
+      shopsApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.my });
     },
