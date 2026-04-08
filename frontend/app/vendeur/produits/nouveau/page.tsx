@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -38,7 +38,7 @@ const productSchema = z.object({
     .min(20, "La description doit contenir au moins 20 caractères"),
   price: z.coerce.number().min(0.01, "Le prix doit être supérieur à 0"),
   stock: z.coerce.number().int().min(0, "Le stock ne peut pas être négatif"),
-  categoryId: z.string().min(1, "Veuillez sélectionner une catégorie"),
+  category: z.string().min(1, "Veuillez sélectionner une catégorie"),
   isActive: z.boolean().default(true),
 });
 
@@ -48,7 +48,8 @@ export default function NewProductPage() {
   const router = useRouter();
   const createProduct = useCreateProduct();
   const { data: categories } = useCategories();
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -57,17 +58,31 @@ export default function NewProductPage() {
       description: "",
       price: 0,
       stock: 0,
-      categoryId: "",
+      category: "",
       isActive: true,
     },
   });
 
   const onSubmit = async (data: ProductFormData) => {
+    if (!images.length) {
+      toast.error("Ajoutez au moins une image pour créer le produit");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", data.name);
+    formData.append("description", data.description);
+    formData.append("price", String(data.price));
+    formData.append("stock", String(data.stock));
+    formData.append("category", data.category);
+    formData.append("isActive", String(data.isActive));
+
+    images.forEach((image) => {
+      formData.append("images", image);
+    });
+
     try {
-      await createProduct.mutateAsync({
-        ...data,
-        images,
-      });
+      await createProduct.mutateAsync(formData);
       toast.success("Produit créé avec succès");
       router.push("/vendeur/produits");
     } catch {
@@ -75,22 +90,36 @@ export default function NewProductPage() {
     }
   };
 
-  const handleImageUpload = () => {
-    // In a real app, this would upload to a storage service
-    // For now, we'll use placeholder URLs
-    const placeholderImages = [
-      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
-      "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400",
-    ];
-    const randomImage =
-      placeholderImages[Math.floor(Math.random() * placeholderImages.length)];
-    setImages([...images, randomImage]);
-    toast.success("Image ajoutée");
+  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    if (!selectedFiles.length) return;
+
+    const remainingSlots = 5 - images.length;
+    if (remainingSlots <= 0) {
+      toast.error("Vous pouvez ajouter jusqu'à 5 images");
+      event.target.value = "";
+      return;
+    }
+
+    const filesToAdd = selectedFiles.slice(0, remainingSlots);
+    if (filesToAdd.length < selectedFiles.length) {
+      toast.error("Seules les 5 premières images sont conservées");
+    }
+
+    setImages((currentImages) => [...currentImages, ...filesToAdd]);
+    setImagePreviews((currentPreviews) => [
+      ...currentPreviews,
+      ...filesToAdd.map((file) => URL.createObjectURL(file)),
+    ]);
+    event.target.value = "";
   };
 
   const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+    URL.revokeObjectURL(imagePreviews[index]);
+    setImages((currentImages) => currentImages.filter((_, i) => i !== index));
+    setImagePreviews((currentPreviews) =>
+      currentPreviews.filter((_, i) => i !== index),
+    );
   };
 
   return (
@@ -169,14 +198,22 @@ export default function NewProductPage() {
                   <CardTitle>Images</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <input
+                    id="product-images"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {images.map((image, index) => (
+                    {imagePreviews.map((imagePreview, index) => (
                       <div
                         key={index}
                         className="relative aspect-square rounded-lg overflow-hidden bg-muted"
                       >
                         <img
-                          src={image}
+                          src={imagePreview}
                           alt={`Product ${index + 1}`}
                           className="w-full h-full object-cover"
                         />
@@ -189,20 +226,19 @@ export default function NewProductPage() {
                         </button>
                       </div>
                     ))}
-                    {images.length < 5 && (
-                      <button
-                        type="button"
-                        onClick={handleImageUpload}
+                    {imagePreviews.length < 5 && (
+                      <label
+                        htmlFor="product-images"
                         className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
                       >
                         <Upload className="h-6 w-6" />
                         <span className="text-xs">Ajouter</span>
-                      </button>
+                      </label>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-3">
-                    Ajoutez jusqu'à 5 images. La première sera l'image
-                    principale.
+                    Ajoutez jusqu'à 5 images JPEG, PNG ou WebP. La première
+                    sera l'image principale.
                   </p>
                 </CardContent>
               </Card>
@@ -273,7 +309,7 @@ export default function NewProductPage() {
                 <CardContent className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="categoryId"
+                    name="category"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Catégorie</FormLabel>
@@ -288,12 +324,16 @@ export default function NewProductPage() {
                           </FormControl>
                           <SelectContent>
                             {categories?.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
+                              <SelectItem key={category.id} value={category.name}>
                                 {category.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormDescription className="text-xs">
+                          Liste fixe pour la premiere version. La categorie sera
+                          ensuite envoyee comme simple texte au backend.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

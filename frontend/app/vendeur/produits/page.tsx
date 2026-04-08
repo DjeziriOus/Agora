@@ -78,9 +78,15 @@ function VendorProductsContent() {
     filteredProducts = filteredProducts.filter((p) => p.stock <= 5);
   }
 
-  const handleToggleActive = async (productId: string) => {
+  const handleToggleActive = async (
+    productId: string,
+    currentIsActive: boolean,
+  ) => {
     try {
-      await toggleActive.mutateAsync(productId);
+      await toggleActive.mutateAsync({
+        id: productId,
+        isActive: !currentIsActive,
+      });
       toast.success("Statut du produit mis à jour");
     } catch {
       toast.error("Erreur lors de la mise à jour");
@@ -253,12 +259,14 @@ function VendorProductsContent() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/produit/${product.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              Voir la page
-                            </Link>
-                          </DropdownMenuItem>
+                          {product.isActive && (
+                            <DropdownMenuItem asChild>
+                              <Link href={`/produit/${product.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Voir la page
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem asChild>
                             <Link href={`/vendeur/produits/${product.id}`}>
                               <Edit className="mr-2 h-4 w-4" />
@@ -266,7 +274,9 @@ function VendorProductsContent() {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleToggleActive(product.id)}
+                            onClick={() =>
+                              handleToggleActive(product.id, product.isActive)
+                            }
                           >
                             {product.isActive ? (
                               <>

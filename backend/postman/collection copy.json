@@ -16,8 +16,12 @@
   },
   "variable": [
     {
+      "key": "backend_origin",
+      "value": "http://localhost:5001"
+    },
+    {
       "key": "base_url",
-      "value": "http://localhost:5001/api"
+      "value": "{{backend_origin}}/api"
     },
     {
       "key": "token",
