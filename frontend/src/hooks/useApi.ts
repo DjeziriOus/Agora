@@ -195,7 +195,7 @@ export function useCategories() {
 // ORDER HOOKS
 export function useClientOrders() {
   return useQuery({
-    queryKey: queryKeys.orders.client,
+    queryKey: queryKeys.orders.buyer,
     queryFn: () => ordersApi.getClientOrders(),
   });
 }
@@ -228,7 +228,7 @@ export function useCreateOrder() {
   return useMutation({
     mutationFn: (data: OrderPayload) => ordersApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.client });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.buyer });
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
     },
   });

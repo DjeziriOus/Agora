@@ -87,34 +87,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setItems((currentItems) => {
-      const existingItem = currentItems.find(
-        (item) => item.productId === productId
-      );
+    const existingItem = items.find((item) => item.productId === productId);
 
-      if (existingItem) {
-        const newQuantity = existingItem.quantity + quantity;
-        if (newQuantity > product.stock) {
-          toast.error(`Stock insuffisant (${product.stock} disponibles)`);
-          return currentItems;
-        }
-        toast.success("Quantité mise à jour dans le panier");
-        return currentItems.map((item) =>
+    if (existingItem) {
+      const newQuantity = existingItem.quantity + quantity;
+      if (newQuantity > product.stock) {
+        toast.error(`Stock insuffisant (${product.stock} disponibles)`);
+        return;
+      }
+      setItems((currentItems) =>
+        currentItems.map((item) =>
           item.productId === productId
             ? { ...item, quantity: newQuantity }
             : item
-        );
-      }
+        )
+      );
+      toast.success("Quantité mise à jour dans le panier");
+      return;
+    }
 
-      if (quantity > product.stock) {
-        toast.error(`Stock insuffisant (${product.stock} disponibles)`);
-        return currentItems;
-      }
+    if (quantity > product.stock) {
+      toast.error(`Stock insuffisant (${product.stock} disponibles)`);
+      return;
+    }
 
-      toast.success("Produit ajouté au panier");
-      return [...currentItems, { productId, product, quantity }];
-    });
-  }, []);
+    setItems((currentItems) => [
+      ...currentItems,
+      { productId, product, quantity },
+    ]);
+    toast.success("Produit ajouté au panier");
+  }, [items]);
 
   const updateQuantity = useCallback((productId: string, quantity: number) => {
     if (quantity < 1) {

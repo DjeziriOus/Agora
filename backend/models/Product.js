@@ -40,6 +40,46 @@ const productSchema = new mongoose.Schema(
                 message: "Stock threshold must be an integer",
             },
         },
+        variants: [
+            {
+                // Stable identifier used by cart.variantId (example: "black-m")
+                code: {
+                    type: String,
+                    required: true,
+                    trim: true,
+                },
+                name: {
+                    type: String,
+                    required: true,
+                    trim: true,
+                },
+                sku: {
+                    type: String,
+                    default: "",
+                    trim: true,
+                },
+                // Optional price override; fallback to product.price when null
+                price: {
+                    type: Number,
+                    default: null,
+                    min: [0, "Variant price must be a positive number"],
+                },
+                stock: {
+                    type: Number,
+                    required: true,
+                    default: 0,
+                    min: [0, "Variant stock cannot be negative"],
+                    validate: {
+                        validator: Number.isInteger,
+                        message: "Variant stock must be an integer",
+                    },
+                },
+                isActive: {
+                    type: Boolean,
+                    default: true,
+                },
+            },
+        ],
         images: [
             {
                 url: { type: String, required: true },

@@ -2,13 +2,13 @@
   "info": {
     "name": "Agora API — BetterAuth",
     "_postman_id": "agora-betterauth-v2",
-    "description": "Full Agora multi-vendor API collection. Base URL: http://localhost:5000/api\n\nAuth routes are handled by BetterAuth at /api/auth/*\nAll protected routes use session cookies — Postman must have 'Send cookies' enabled.",
+    "description": "Full Agora multi-vendor API collection. Base URL: http://localhost:5001/api\n\nAuth routes are handled by BetterAuth at /api/auth/*\nAll protected routes use session cookies — Postman must have 'Send cookies' enabled.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "base_url",
-      "value": "http://localhost:5000/api",
+      "value": "http://localhost:5001/api",
       "type": "string"
     },
     {
