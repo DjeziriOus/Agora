@@ -19,6 +19,16 @@ import { AgoraBadge } from "@/components/AgoraBadge";
 import { ProductCard } from "@/components/ProductCard";
 import { useCart } from "@/context/CartContext";
 import { useProduct } from "@/hooks/useApi";
+import { mockProducts } from "@/lib/mockData";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import type { Product, Review } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -29,12 +39,18 @@ export default function ProductDetailPage({
 }) {
   const { id } = use(params);
   const { addToCart } = useCart();
-  const { data: product, isLoading, error } = useProduct(id);
+  const { data: apiProduct, isLoading, error } = useProduct(id);
+  const fallbackProduct = mockProducts.find((p) => p.id === id);
+  const product = apiProduct ?? fallbackProduct;
   const store = product?.storeId
     ? { id: product.storeId, name: product.storeName, logo: undefined }
     : null;
   const reviews: Review[] = [];
-  const relatedProducts: Product[] = [];
+  const relatedProducts: Product[] = product
+    ? mockProducts
+        .filter((p) => p.id !== product.id && p.category === product.category)
+        .slice(0, 4)
+    : [];
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -42,6 +58,10 @@ export default function ProductDetailPage({
   const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isVariantDialogOpen, setIsVariantDialogOpen] = useState(false);
+  const [selectedVariantCode, setSelectedVariantCode] = useState<string | null>(
+    null,
+  );
 
   if (!product) {
     return (
@@ -61,19 +81,34 @@ export default function ProductDetailPage({
     );
   }
 
+  const activeVariants = (product.variants ?? []).filter(
+    (variant) => variant.isActive,
+  );
+  const hasVariants = activeVariants.length > 0;
+  const selectedVariant = activeVariants.find(
+    (variant) => variant.code === selectedVariantCode,
+  );
+  const displayPrice = selectedVariant?.price ?? product.price;
+  const displayStock = selectedVariant?.stock ?? product.stock;
+
   const handleAddToCart = async () => {
-    if (product.stock === 0) return;
+    if (displayStock === 0) return;
+
+    if (hasVariants && !selectedVariant) {
+      setIsVariantDialogOpen(true);
+      return;
+    }
 
     setIsAdding(true);
     await new Promise((resolve) => setTimeout(resolve, 300));
-    addToCart(product.id, quantity);
+    await addToCart(product, quantity, selectedVariant?.code ?? null);
     setIsAdding(false);
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 2000);
   };
 
-  const isOutOfStock = product.stock === 0;
-  const isLowStock = product.stock > 0 && product.stock <= product.stockThreshold;
+  const isOutOfStock = displayStock === 0;
+  const isLowStock = displayStock > 0 && displayStock <= product.stockThreshold;
 
   return (
     <div className="min-h-screen bg-[var(--agora-bg)]">
@@ -179,8 +214,25 @@ export default function ProductDetailPage({
 
             {/* Price */}
             <p className="font-display text-3xl font-bold text-[var(--agora-ink)] mb-6">
-              {product.price.toFixed(2).replace(".", ",")} €
+              {displayPrice.toFixed(2).replace(".", ",")} €
             </p>
+
+            {hasVariants && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-[var(--agora-ink)] mb-2">
+                  Option
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsVariantDialogOpen(true)}
+                  className="w-full text-left px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] hover:border-[var(--agora-primary)] transition-colors"
+                >
+                  {selectedVariant
+                    ? `${selectedVariant.name} (${selectedVariant.stock} en stock)`
+                    : "Choisir une option"}
+                </button>
+              </div>
+            )}
 
             {/* Quantity Selector */}
             <div className="mb-6">
@@ -200,9 +252,9 @@ export default function ProductDetailPage({
                 </span>
                 <button
                   onClick={() =>
-                    setQuantity((q) => Math.min(product.stock, q + 1))
+                    setQuantity((q) => Math.min(displayStock, q + 1))
                   }
-                  disabled={quantity >= product.stock}
+                  disabled={quantity >= displayStock}
                   className="p-3 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-4 h-4" />
@@ -319,14 +371,14 @@ export default function ProductDetailPage({
                 <>
                   <span className="w-2 h-2 rounded-full bg-[var(--agora-warning)]" />
                   <span className="text-sm text-[var(--agora-warning)]">
-                    Stock faible ({product.stock} restants)
+                    Stock faible ({displayStock} restants)
                   </span>
                 </>
               ) : (
                 <>
                   <span className="w-2 h-2 rounded-full bg-[var(--agora-green)]" />
                   <span className="text-sm text-[var(--agora-green)]">
-                    En stock ({product.stock} disponibles)
+                    En stock ({displayStock} disponibles)
                   </span>
                 </>
               )}
@@ -427,6 +479,59 @@ export default function ProductDetailPage({
           </section>
         )}
       </div>
+
+      <Dialog open={isVariantDialogOpen} onOpenChange={setIsVariantDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Choisir une option</DialogTitle>
+            <DialogDescription>
+              Selectionnez un variant avant d'ajouter au panier.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 max-h-72 overflow-auto">
+            {activeVariants.map((variant) => {
+              const variantPrice = variant.price ?? product.price;
+              const isSelected = selectedVariantCode === variant.code;
+              return (
+                <button
+                  key={variant.code}
+                  type="button"
+                  onClick={() => setSelectedVariantCode(variant.code)}
+                  className={cn(
+                    "w-full rounded-md border px-3 py-2 text-left transition-colors",
+                    isSelected
+                      ? "border-[var(--agora-primary)] bg-[var(--agora-accent)]"
+                      : "border-[var(--agora-line)] hover:border-[var(--agora-primary)]",
+                  )}
+                >
+                  <p className="font-medium text-[var(--agora-ink)]">{variant.name}</p>
+                  <p className="text-sm text-[var(--agora-mid)]">
+                    {variantPrice.toFixed(2).replace(".", ",")} € · {variant.stock} en stock
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsVariantDialogOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              disabled={!selectedVariant}
+              onClick={() => setIsVariantDialogOpen(false)}
+            >
+              Confirmer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

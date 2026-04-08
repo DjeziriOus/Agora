@@ -88,12 +88,14 @@ export default function CartPage() {
                 <div className="divide-y divide-[var(--agora-line)]">
                   {groupedItems[storeId].items.map((item) => (
                     <CartItemRow
-                      key={item.productId}
+                      key={`${item.productId}-${item.variantId ?? "default"}`}
                       item={item}
                       onUpdateQuantity={(qty) =>
-                        updateQuantity(item.productId, qty)
+                        updateQuantity(item.productId, qty, item.variantId)
                       }
-                      onRemove={() => removeFromCart(item.productId)}
+                      onRemove={() =>
+                        removeFromCart(item.productId, item.variantId)
+                      }
                     />
                   ))}
                 </div>
@@ -213,8 +215,13 @@ function CartItemRow({
           {item.product.name}
         </Link>
         <p className="text-sm text-[var(--agora-mid)] mt-1">
-          {item.product.price.toFixed(2).replace(".", ",")} € / unité
+          {(item.unitPrice ?? item.product.price).toFixed(2).replace(".", ",")} € / unite
         </p>
+        {item.variantId && (
+          <p className="text-xs text-[var(--agora-mid)] mt-1">
+            Option: {item.product.variants?.find((v) => v.code === item.variantId)?.name ?? item.variantId}
+          </p>
+        )}
 
         {/* Quantity Controls */}
         <div className="flex items-center gap-4 mt-3">
@@ -251,7 +258,9 @@ function CartItemRow({
       {/* Item Total */}
       <div className="text-right">
         <p className="font-semibold text-[var(--agora-ink)]">
-          {(item.product.price * item.quantity).toFixed(2).replace(".", ",")} €
+          {((item.unitPrice ?? item.product.price) * item.quantity)
+            .toFixed(2)
+            .replace(".", ",")} €
         </p>
       </div>
     </div>

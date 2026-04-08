@@ -44,12 +44,31 @@ const productSchema = z.object({
 
 type ProductFormData = z.infer<typeof productSchema>;
 
+type VariantForm = {
+  code: string;
+  name: string;
+  sku: string;
+  price: string;
+  stock: number;
+  isActive: boolean;
+};
+
+const createEmptyVariant = (index: number): VariantForm => ({
+  code: `variant-${index + 1}`,
+  name: "",
+  sku: "",
+  price: "",
+  stock: 0,
+  isActive: true,
+});
+
 export default function NewProductPage() {
   const router = useRouter();
   const createProduct = useCreateProduct();
   const { data: categories } = useCategories();
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [variants, setVariants] = useState<VariantForm[]>([]);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -69,6 +88,32 @@ export default function NewProductPage() {
       return;
     }
 
+    const normalizedVariants = variants
+      .map((variant) => ({
+        code: variant.code.trim(),
+        name: variant.name.trim(),
+        sku: variant.sku.trim(),
+        price: variant.price.trim(),
+        stock: Number(variant.stock),
+        isActive: variant.isActive,
+      }))
+      .filter((variant) => variant.code.length > 0 || variant.name.length > 0);
+
+    for (const variant of normalizedVariants) {
+      if (!variant.code || !variant.name) {
+        toast.error("Chaque variant doit avoir un code et un nom");
+        return;
+      }
+      if (!Number.isInteger(variant.stock) || variant.stock < 0) {
+        toast.error("Le stock variant doit etre un entier positif");
+        return;
+      }
+      if (variant.price && Number(variant.price) < 0) {
+        toast.error("Le prix variant doit etre positif");
+        return;
+      }
+    }
+
     const formData = new FormData();
     formData.append("name", data.name);
     formData.append("description", data.description);
@@ -76,6 +121,19 @@ export default function NewProductPage() {
     formData.append("stock", String(data.stock));
     formData.append("category", data.category);
     formData.append("isActive", String(data.isActive));
+    formData.append(
+      "variants",
+      JSON.stringify(
+        normalizedVariants.map((variant) => ({
+          code: variant.code,
+          name: variant.name,
+          sku: variant.sku,
+          price: variant.price ? Number(variant.price) : null,
+          stock: variant.stock,
+          isActive: variant.isActive,
+        })),
+      ),
+    );
 
     images.forEach((image) => {
       formData.append("images", image);
@@ -119,6 +177,31 @@ export default function NewProductPage() {
     setImages((currentImages) => currentImages.filter((_, i) => i !== index));
     setImagePreviews((currentPreviews) =>
       currentPreviews.filter((_, i) => i !== index),
+    );
+  };
+
+  const addVariant = () => {
+    setVariants((currentVariants) => [
+      ...currentVariants,
+      createEmptyVariant(currentVariants.length),
+    ]);
+  };
+
+  const removeVariant = (index: number) => {
+    setVariants((currentVariants) =>
+      currentVariants.filter((_, currentIndex) => currentIndex !== index),
+    );
+  };
+
+  const updateVariant = <K extends keyof VariantForm>(
+    index: number,
+    key: K,
+    value: VariantForm[K],
+  ) => {
+    setVariants((currentVariants) =>
+      currentVariants.map((variant, currentIndex) =>
+        currentIndex === index ? { ...variant, [key]: value } : variant,
+      ),
     );
   };
 
@@ -240,6 +323,91 @@ export default function NewProductPage() {
                     Ajoutez jusqu'à 5 images JPEG, PNG ou WebP. La première
                     sera l'image principale.
                   </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Variants</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    {variants.map((variant, index) => (
+                      <div
+                        key={`${variant.code}-${index}`}
+                        className="rounded-lg border p-3 space-y-3"
+                      >
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <Input
+                            placeholder="Code (ex: red-m)"
+                            value={variant.code}
+                            onChange={(event) =>
+                              updateVariant(index, "code", event.target.value)
+                            }
+                          />
+                          <Input
+                            placeholder="Nom (ex: Rouge - M)"
+                            value={variant.name}
+                            onChange={(event) =>
+                              updateVariant(index, "name", event.target.value)
+                            }
+                          />
+                          <Input
+                            placeholder="SKU (optionnel)"
+                            value={variant.sku}
+                            onChange={(event) =>
+                              updateVariant(index, "sku", event.target.value)
+                            }
+                          />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Prix override (optionnel)"
+                            value={variant.price}
+                            onChange={(event) =>
+                              updateVariant(index, "price", event.target.value)
+                            }
+                          />
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="Stock variant"
+                            value={variant.stock}
+                            onChange={(event) =>
+                              updateVariant(
+                                index,
+                                "stock",
+                                Number.parseInt(event.target.value || "0", 10),
+                              )
+                            }
+                          />
+                          <div className="flex items-center justify-between rounded-md border px-3 py-2">
+                            <span className="text-sm text-muted-foreground">Actif</span>
+                            <Switch
+                              checked={variant.isActive}
+                              onCheckedChange={(value) =>
+                                updateVariant(index, "isActive", value)
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeVariant(index)}
+                          >
+                            Supprimer variant
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Button type="button" variant="outline" onClick={addVariant}>
+                    Ajouter un variant
+                  </Button>
                 </CardContent>
               </Card>
             </div>

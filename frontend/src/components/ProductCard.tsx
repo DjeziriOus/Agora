@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Heart, Check, ShoppingCart } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { AgoraBadge } from "./AgoraBadge";
 import { StarRating } from "./StarRating";
@@ -19,20 +20,28 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+  const router = useRouter();
   const { addToCart } = useCart();
+  const productId =
+    product.id ||
+    ((product as unknown as { _id?: string })._id ?? "");
+  const mainImage =
+    typeof product.images?.[0] === "string" && product.images[0].trim().length > 0
+      ? product.images[0]
+      : "/placeholder-product.png";
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (product.stock === 0) return;
+    if (product.stock === 0 || !productId) return;
 
     setIsAdding(true);
 
     // Simulate slight delay for feedback
     await new Promise((resolve) => setTimeout(resolve, 300));
 
-    addToCart(product.id, 1);
+    addToCart(product, 1);
     setIsAdding(false);
     setJustAdded(true);
 
@@ -48,16 +57,22 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
   const isOutOfStock = product.stock === 0;
 
-  const handleNavigate = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    window.location.href = `/produit/${product.id}`;
+  const handleNavigate = () => {
+    if (!productId) return;
+    router.push(`/produit/${productId}`);
   };
 
   return (
     <div
-      // type="button"
+      role="link"
+      tabIndex={0}
       onClick={handleNavigate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleNavigate();
+        }
+      }}
       className={cn(
         "group block bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] overflow-hidden card-hover hover:border-[var(--agora-primary)] transition-colors cursor-pointer ",
         className,
@@ -66,7 +81,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
       {/* Image Container */}
       <div className="relative aspect-[4/3] overflow-hidden bg-[var(--agora-accent)]">
         <Image
-          src={product.images[0]}
+          src={mainImage}
           alt={product.name}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"
