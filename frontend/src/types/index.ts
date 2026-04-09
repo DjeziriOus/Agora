@@ -7,7 +7,7 @@ export interface User {
   lastName: string;
   role: "buyer" | "seller" | "unassigned";
   emailVerified: boolean;
-  photo?: string;
+  image?: string;
 }
 
 export interface Store {

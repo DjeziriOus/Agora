@@ -68,7 +68,6 @@ export const auth = betterAuth({
           // Map Google's response to your custom fields
           firstName: profile.given_name || "",
           lastName: profile.family_name || "",
-          photo: profile.picture || "",
         };
       },
     },
@@ -81,7 +80,6 @@ export const auth = betterAuth({
       lastName: { type: "string", input: true, defaultValue: "" },
       age: { type: "number", input: true, defaultValue: null },
       gender: { type: "string", input: true, defaultValue: "" },
-      photo: { type: "string", input: true, defaultValue: "" },
       role: { type: "string", input: true, defaultValue: "unassigned" },
     },
   },

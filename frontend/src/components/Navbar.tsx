@@ -131,9 +131,9 @@ export function Navbar() {
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-lg hover:bg-[var(--agora-accent)] transition-colors"
                   >
-                    {user?.photo ? (
+                    {user?.image ? (
                       <img
-                        src={user.photo}
+                        src={user.image}
                         alt={`${user.firstName} ${user.lastName}`}
                         className="w-8 h-8 rounded-full object-cover"
                         referrerPolicy="no-referrer"
