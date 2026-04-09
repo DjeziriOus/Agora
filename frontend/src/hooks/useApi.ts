@@ -2,12 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   productsApi,
   shopsApi,
-  // categoriesApi,
   ordersApi,
   // cartApi,
   // vendorApi,
   // authApi,
 } from "@/lib/api";
+import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
 import type {
   ProductQuery,
   ProductPayload,
@@ -15,6 +15,7 @@ import type {
   StorePayload,
   Product,
   Category,
+  SellerProduct,
 } from "@/types";
 
 // Query Keys
@@ -23,6 +24,7 @@ export const queryKeys = {
     all: ["products"] as const,
     list: (params?: ProductQuery) => ["products", "list", params] as const,
     detail: (id: string) => ["products", "detail", id] as const,
+    sellerDetail: (id: string) => ["products", "seller", "detail", id] as const,
     seller: ["products", "seller"] as const,
     lowStock: ["products", "lowStock"] as const,
   },
@@ -76,28 +78,40 @@ export function useProduct(id: string) {
   });
 }
 
+export function useSellerProduct(id: string) {
+  return useQuery<SellerProduct>({
+    queryKey: queryKeys.products.sellerDetail(id),
+    queryFn: () => productsApi.getMineById(id),
+    enabled: !!id,
+  });
+}
+
 export function useSellerProducts() {
   return useQuery({
     queryKey: queryKeys.products.seller,
-    // queryFn: () => productsApi.getSellerProducts(),
-    queryFn: () => {},
+    queryFn: () => productsApi.getMine(),
   });
 }
 
 export function useLowStockProducts() {
-  return useQuery({
+  return useQuery<Product[]>({
     queryKey: queryKeys.products.lowStock,
-    // queryFn: () => productsApi.getLowStockProducts(),
-    queryFn: () => {},
+    queryFn: async () => {
+      const result = await productsApi.getMine();
+      return result.products.filter(
+        (product) => product.stock <= product.stockThreshold,
+      );
+    },
   });
 }
 
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: ProductPayload) => productsApi.create(data),
+    mutationFn: (data: FormData) => productsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
     },
   });
 }
@@ -105,12 +119,20 @@ export function useCreateProduct() {
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<ProductPayload> }) =>
-      productsApi.update(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: FormData | Partial<ProductPayload>;
+    }) => productsApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
       queryClient.invalidateQueries({
         queryKey: queryKeys.products.detail(id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.products.sellerDetail(id),
       });
     },
   });
@@ -119,10 +141,16 @@ export function useUpdateProduct() {
 export function useToggleProductActive() {
   const queryClient = useQueryClient();
   return useMutation({
-    // mutationFn: (id: string) => productsApi.toggleActive(id),
-    // mutationFn: (id: string) => {},
-    onSuccess: () => {
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      productsApi.toggleActive(id, isActive),
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.products.detail(id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.products.sellerDetail(id),
+      });
     },
   });
 }
@@ -200,7 +228,13 @@ export function useUpdateStore() {
 export function useCategories() {
   return useQuery<Category[]>({
     queryKey: queryKeys.categories.all,
-    queryFn: () => categoriesApi.getAll(),
+    queryFn: async () =>
+      PRODUCT_CATEGORIES.map((name, index) => ({
+        id: `category-${index + 1}`,
+        name,
+        productCount: 0,
+      })),
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }
 

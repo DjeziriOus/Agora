@@ -75,6 +75,35 @@ export const getProducts = async (req, res) => {
 	}
 };
 
+// GET /api/products/:id
+// Return one active, non-deleted product for the public product page.
+export const getProductById = async (req, res) => {
+	try {
+		const product = await productService.getProductById(req.params.id);
+		return res.status(200).json(product);
+	} catch (error) {
+		return res
+			.status(error.statusCode || 500)
+			.json({ message: error.message || "Internal server error." });
+	}
+};
+
+// GET /api/products/mine/:id
+// Return one seller-owned product for the edit page, even if it is inactive.
+export const getMyProductById = async (req, res) => {
+	try {
+		const product = await productService.getMyProductById({
+			ownerId: req.user.id,
+			productId: req.params.id,
+		});
+		return res.status(200).json(product);
+	} catch (error) {
+		return res
+			.status(error.statusCode || 500)
+			.json({ message: error.message || "Internal server error." });
+	}
+};
+
 // GET /api/products/mine
 // Return seller-owned products with optional search/filter/pagination query params.
 export const getMyProducts = async (req, res) => {

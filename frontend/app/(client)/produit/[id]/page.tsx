@@ -3,7 +3,6 @@
 import { useState, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ChevronRight,
   Heart,
@@ -19,7 +18,8 @@ import { StarRating } from "@/components/StarRating";
 import { AgoraBadge } from "@/components/AgoraBadge";
 import { ProductCard } from "@/components/ProductCard";
 import { useCart } from "@/context/CartContext";
-import { mockProducts, mockStores, mockReviews } from "@/lib/mockData";
+import { useProduct } from "@/hooks/useApi";
+import type { Product, Review } from "@/types";
 import { cn } from "@/lib/utils";
 
 export default function ProductDetailPage({
@@ -28,15 +28,13 @@ export default function ProductDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const router = useRouter();
   const { addToCart } = useCart();
-
-  const product = mockProducts.find((p) => p.id === id);
-  const store = product ? mockStores.find((s) => s.id === product.storeId) : null;
-  const reviews = mockReviews.filter((r) => r.productId === id);
-  const relatedProducts = mockProducts
-    .filter((p) => p.category === product?.category && p.id !== id)
-    .slice(0, 4);
+  const { data: product, isLoading, error } = useProduct(id);
+  const store = product?.storeId
+    ? { id: product.storeId, name: product.storeName, logo: undefined }
+    : null;
+  const reviews: Review[] = [];
+  const relatedProducts: Product[] = [];
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -263,7 +261,7 @@ export default function ProductDetailPage({
                 <div className="flex-1">
                   <p className="text-sm text-[var(--agora-mid)]">Vendu par</p>
                   <p className="font-medium text-[var(--agora-ink)]">
-                    {store.name}
+                    {store.name || "Boutique"}
                   </p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-[var(--agora-mid)]" />

@@ -115,6 +115,46 @@ const getProducts = async (query = {}) => {
 	};
 };
 
+// ── Public product detail ───────────────────────────────────────────────────
+const getProductById = async (productId) => {
+	assertObjectId(productId, "product id");
+
+	const product = await Product.findOne({
+		_id: productId,
+		isDeleted: false,
+		isActive: true,
+	}).populate("shop", "name");
+
+	if (!product) {
+		const error = new Error("Product not found.");
+		error.statusCode = 404;
+		throw error;
+	}
+
+	return product;
+};
+
+// ── Seller product detail ───────────────────────────────────────────────────
+const getMyProductById = async ({ ownerId, productId }) => {
+	assertObjectId(productId, "product id");
+
+	const shop = await getSellerShopOrThrow(ownerId);
+
+	const product = await Product.findOne({
+		_id: productId,
+		shop: shop._id,
+		isDeleted: false,
+	}).populate("shop", "name");
+
+	if (!product) {
+		const error = new Error("Product not found.");
+		error.statusCode = 404;
+		throw error;
+	}
+
+	return product;
+};
+
 // ── Seller inventory listing ─────────────────────────────────────────────────
 const getMyProducts = async ({ ownerId, query = {} }) => {
 	const shop = await getSellerShopOrThrow(ownerId);
@@ -177,6 +217,12 @@ const createProduct = async ({ ownerId, body, files = [] }) => {
 		throw error;
 	}
 
+	if (!String(body.category || "").trim()) {
+		const error = new Error("La categorie du produit est requise.");
+		error.statusCode = 400;
+		throw error;
+	}
+
 	const shop = await getSellerShopOrThrow(ownerId);
 
 	// Upload each file buffer to Cloudinary in parallel.
@@ -187,10 +233,12 @@ const createProduct = async ({ ownerId, body, files = [] }) => {
 	const product = new Product({
 		name: body.name,
 		description: body.description || "",
+		category: body.category,
 		price: body.price,
 		stock: body.stock ?? 0,
 		stockThreshold: body.stockThreshold ?? 5,
 		images,
+		isActive: body.isActive === "true" || body.isActive === true,
 		shop: shop._id,
 	});
 
@@ -222,6 +270,7 @@ const updateProduct = async ({ ownerId, productId, body, files = [] }) => {
 	// ── Update text fields if provided ───────────────────────────────────────
 	if (body.name !== undefined) product.name = body.name;
 	if (body.description !== undefined) product.description = body.description;
+	if (body.category !== undefined) product.category = body.category;
 	if (body.price !== undefined) product.price = body.price;
 	if (body.stock !== undefined) product.stock = body.stock;
 	if (body.stockThreshold !== undefined) product.stockThreshold = body.stockThreshold;
@@ -314,6 +363,8 @@ export default {
 	updateProduct,
 	deleteProduct,
 	getProducts,
+	getProductById,
+	getMyProductById,
 	getMyProducts,
 	updateProductStock,
 };

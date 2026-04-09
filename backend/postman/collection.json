@@ -12,7 +12,8 @@
     ]
   },
   "variable": [
-    { "key": "base_url", "value": "http://localhost:5000/api", "type": "string" },
+    { "key": "backend_origin", "value": "http://localhost:5001", "type": "string" },
+    { "key": "base_url", "value": "{{backend_origin}}/api", "type": "string" },
     { "key": "token", "value": "", "type": "string" },
     { "key": "sellerToken", "value": "", "type": "string" },
     { "key": "buyerToken", "value": "", "type": "string" },

@@ -34,7 +34,7 @@ export interface Product {
   description: string;
   price: number;
   category: string;
-  categoryId: string;
+  categoryId?: string;
   stock: number;
   stockThreshold: number;
   rating: number;
@@ -44,6 +44,15 @@ export interface Product {
   images: string[];
   isActive: boolean;
   createdAt: string;
+}
+
+export interface ProductImage {
+  url: string;
+  publicId: string;
+}
+
+export interface SellerProduct extends Omit<Product, "images"> {
+  images: ProductImage[];
 }
 
 export interface CartItem {
@@ -154,10 +163,11 @@ export interface ProductPayload {
   name: string;
   description: string;
   price: number;
-  categoryId: string;
+  category: string;
+  categoryId?: string;
   stock: number;
-  stockThreshold: number;
-  images: string[];
+  stockThreshold?: number;
+  images: File[] | string[];
   isActive: boolean;
 }
 

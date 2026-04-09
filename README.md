@@ -14,17 +14,44 @@ The goal of this README is to document the **current repository structure** and 
 ├── backend/
 │   ├── auth.js
 │   ├── server.js
-│   ├── config/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
-│   ├── routes/
-│   ├── services/
-│   ├── postman/
-│   ├── test-email.mjs
-│   ├── startup.log
 │   ├── package.json
-│   └── package-lock.json
+│   ├── package-lock.json
+│   ├── config/
+│   │   ├── cloudinary.js
+│   │   └── db.js
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── productController.js
+│   │   └── shopController.js
+│   ├── data/
+│   │   └── mockData.js
+│   ├── middleware/
+│   │   ├── auth.js
+│   │   └── upload.js
+│   ├── models/
+│   │   ├── Order.js
+│   │   ├── Product.js
+│   │   ├── Shop.js
+│   │   ├── User.js
+│   │   ├── createStore.json
+│   │   └── getStore.json
+│   ├── postman/
+│   │   ├── agora-betterauth.postman_collection.json
+│   │   ├── collection copy.json
+│   │   └── collection.json
+│   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── orderRoutes.js
+│   │   ├── productRoutes.js
+│   │   └── shopRoutes.js
+│   ├── services/
+│   │   ├── authService.js
+│   │   ├── emailService.js
+│   │   ├── productService.js
+│   │   └── shopService.js
+│   ├── test-email.mjs
+│   ├── gantt tasks.txt
+│   └── startup.log
 ├── frontend/
 │   ├── app/
 │   │   ├── (auth)/
@@ -32,40 +59,82 @@ The goal of this README is to document the **current repository structure** and 
 │   │   │   ├── register/
 │   │   │   └── verify-email/
 │   │   ├── (client)/
+│   │   │   ├── boutique/
+│   │   │   │   └── [id]/
 │   │   │   ├── catalogue/
-│   │   │   └── checkout/
+│   │   │   ├── checkout/
+│   │   │   ├── layout.tsx
+│   │   │   ├── compte/
+│   │   │   │   ├── adresses/
+│   │   │   │   ├── commandes/
+│   │   │   │   │   └── [id]/
+│   │   │   │   └── parametres/
+│   │   │   ├── confirmation/
+│   │   │   │   └── [orderId]/
+│   │   │   ├── panier/
+│   │   │   ├── produit/
+│   │   │   │   └── [id]/
+│   │   │   └── recherche/
 │   │   ├── vendeur/
 │   │   │   ├── boutique/
 │   │   │   ├── commandes/
 │   │   │   │   └── [id]/
+│   │   │   ├── layout.tsx
 │   │   │   ├── parametres/
+│   │   │   ├── page.tsx
 │   │   │   └── produits/
 │   │   │       ├── [id]/
 │   │   │       └── nouveau/
-│   │   ├── components/
-│   │   │   └── [slug]/
+│   │   ├── VendorLayoutClient.tsx
 │   │   ├── global-error.tsx
 │   │   ├── globals.css
+│   │   ├── icon.jpg
 │   │   ├── layout.tsx
 │   │   ├── not-found.tsx
 │   │   └── page.tsx
+│   ├── hooks/
+│   │   ├── use-mobile.ts
+│   │   └── use-toast.ts
+│   ├── lib/
+│   │   └── utils copy.ts
 │   ├── public/
+│   │   └── logo.png
 │   ├── src/
 │   │   ├── components/
-│   │   │   └── ui/
+│   │   │   ├── ui/
+│   │   │   ├── AgoraBadge.tsx
+│   │   │   ├── EmptyState.tsx
+│   │   │   ├── Footer.tsx
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── OrderStepBar.tsx
+│   │   │   ├── ProductCard.tsx
+│   │   │   ├── SkeletonCard.tsx
+│   │   │   ├── StarRating.tsx
+│   │   │   └── VendorSidebar.tsx
 │   │   ├── context/
+│   │   │   ├── AuthContext.tsx
+│   │   │   └── CartContext.tsx
 │   │   ├── hooks/
+│   │   │   └── useApi.ts
 │   │   ├── lib/
+│   │   │   ├── api.ts
+│   │   │   ├── auth-client.ts
+│   │   │   ├── mockData.ts
+│   │   │   ├── productCategories.ts
+│   │   │   ├── queryClient.tsx
+│   │   │   └── utils.ts
 │   │   └── types/
+│   │       └── index.ts
 │   ├── styles/
+│   │   └── globals.css
+│   ├── components.json
+│   ├── findHooks.js
 │   ├── next.config.mjs
 │   ├── postcss.config.mjs
 │   ├── tsconfig.json
 │   ├── package.json
 │   ├── package-lock.json
 │   └── pnpm-lock.yaml
-├── agora-betterauth.postman_collection.json
-├── Projet L3Q2.code-workspace
 ├── .gitignore
 └── README.md
 ```
@@ -87,6 +156,9 @@ The goal of this README is to document the **current repository structure** and 
 - `backend/controllers/`
   Route handlers for backend requests.
 
+- `backend/data/`
+  Backend mock or seed data used during development.
+
 - `backend/middleware/`
   Shared middleware for session validation, role checks, and verified-email checks.
 
@@ -98,6 +170,9 @@ The goal of this README is to document the **current repository structure** and 
 
 - `backend/services/`
   Reusable backend services such as email sending helpers.
+
+- `backend/postman/`
+  Postman collections for backend route testing, including the Better Auth collection used by the team.
 
 - `frontend/`
   Frontend application built with Next.js App Router.
@@ -113,6 +188,12 @@ The goal of this README is to document the **current repository structure** and 
 
 - `frontend/app/vendeur/`
   Seller-facing dashboard area.
+
+- `frontend/hooks/`
+  Root-level frontend hooks kept outside `src/`.
+
+- `frontend/lib/`
+  Root-level frontend utility files kept outside `src/`.
 
 - `frontend/app/layout.tsx`
   Root application layout. It wraps the app with shared providers such as auth, cart, and React Query.
@@ -139,35 +220,10 @@ The goal of this README is to document the **current repository structure** and 
   Shared React hooks.
 
 - `frontend/src/lib/`
-  Frontend utility modules such as API helpers, auth client setup, mock data, and React Query setup.
+  Frontend utility modules such as API helpers, auth client setup, mock data, React Query setup, and fixed product categories.
 
 - `frontend/src/types/`
   Shared TypeScript types for the domain model and API payloads.
-
-- `agora-betterauth.postman_collection.json`
-  Postman collection used to test backend authentication flows.
-
-- `Projet L3Q2.code-workspace`
-  Local VS Code workspace file.
-
-## Notes About Generated or Local Files
-
-Some folders and files exist for local development and should not be treated as core source structure:
-
-- `frontend/.next/`
-  Next.js build output.
-
-- `frontend/node_modules/`
-  Frontend dependencies.
-
-- `backend/node_modules/`
-  Backend dependencies.
-
-- `frontend/tsconfig.tsbuildinfo`
-  TypeScript incremental build cache.
-
-- `backend/startup.log`
-  Local log/debug artifact.
 
 ## Current Architectural Split
 
