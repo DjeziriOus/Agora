@@ -84,7 +84,7 @@ export const getMyShop = async (req, res) => {
     const shop = await shopService.getMyShop(req.user.id);
     res.status(200).json(shop);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
