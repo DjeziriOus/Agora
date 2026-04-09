@@ -5,9 +5,9 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: "buyer" | "seller";
+  role: "buyer" | "seller" | "unassigned";
   emailVerified: boolean;
-  photo?: string;
+  image?: string;
 }
 
 export interface Store {
