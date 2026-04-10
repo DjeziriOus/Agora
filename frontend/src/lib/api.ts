@@ -1,5 +1,5 @@
 import { API_URL } from "../config";
-import type { Product, ProductImage, SellerProduct } from "@/types";
+import type { Product, ProductImage, SellerProduct, CartItem } from "@/types";
 const BASE_URL = API_URL;
 
 type BackendProductImage =
@@ -127,7 +127,7 @@ export async function apiFetch<T>(
 
 // ── Products ────────────────────────────────────────────────────────────────
 export const productsApi = {
-  getAll: (params?: Record<string, string | undefined>) => {
+  getAll: async (params?: Record<string, string | undefined>) => {
     const qs = params
       ? "?" +
       new URLSearchParams(
@@ -136,9 +136,10 @@ export const productsApi = {
         ) as Record<string, string>,
       ).toString()
       : "";
-    return apiFetch<{ products: Product[]; total: number }>(
+    const result = await apiFetch<{ products: BackendProduct[]; total: number; page: number; limit: number }>(
       `/api/products${qs}`,
     );
+    return { ...result, products: result.products.map(mapProduct) };
   },
   getById: async (id: string) => {
     const product = await apiFetch<BackendProduct>(`/api/products/${id}`);
@@ -217,6 +218,54 @@ export const shopsApi = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+};
+
+// ── Cart ─────────────────────────────────────────────────────────────────────
+
+type BackendCartItem = {
+  productId: BackendProduct & { shop: BackendProductShop };
+  quantity: number;
+};
+
+type BackendCart = {
+  userId: string;
+  items: BackendCartItem[];
+};
+
+const mapCartItem = (item: BackendCartItem): CartItem => ({
+  productId: item.productId.id ?? item.productId._id ?? "",
+  quantity: item.quantity,
+  product: mapProduct(item.productId),
+});
+
+export const cartApi = {
+  get: async (): Promise<CartItem[]> => {
+    const cart = await apiFetch<BackendCart>("/api/cart");
+    return cart.items.map(mapCartItem);
+  },
+  add: async (productId: string, quantity: number): Promise<CartItem[]> => {
+    const cart = await apiFetch<BackendCart>("/api/cart/items", {
+      method: "POST",
+      body: JSON.stringify({ productId, quantity }),
+    });
+    return cart.items.map(mapCartItem);
+  },
+  updateQuantity: async (productId: string, quantity: number): Promise<CartItem[]> => {
+    const cart = await apiFetch<BackendCart>(`/api/cart/items/${productId}`, {
+      method: "PUT",
+      body: JSON.stringify({ quantity }),
+    });
+    return cart.items.map(mapCartItem);
+  },
+  remove: async (productId: string): Promise<CartItem[]> => {
+    const cart = await apiFetch<BackendCart>(`/api/cart/items/${productId}`, {
+      method: "DELETE",
+    });
+    return cart.items.map(mapCartItem);
+  },
+  clear: async (): Promise<void> => {
+    await apiFetch<BackendCart>("/api/cart", { method: "DELETE" });
+  },
 };
 
 // ── Orders ───────────────────────────────────────────────────────────────────
