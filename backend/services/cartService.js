@@ -31,10 +31,11 @@ const getActiveProductOrThrow = async (productId) => {
 // Return the user's cart (creates an empty one if it doesn't exist yet),
 // with product details populated.
 const getCart = async (userId) => {
-  let cart = await Cart.findOne({ userId }).populate(
-    "items.productId",
-    "name price images stock isActive isDeleted shop",
-  );
+  let cart = await Cart.findOne({ userId }).populate({
+    path: "items.productId",
+    select: "name price images stock isActive isDeleted shop",
+    populate: { path: "shop", select: "name" },
+  });
 
   if (!cart) {
     cart = await Cart.create({ userId, items: [] });

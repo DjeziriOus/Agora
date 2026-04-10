@@ -8,12 +8,14 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import type { CartItem, Product } from "@/types";
-import { mockProducts } from "@/lib/mockData";
+import type { CartItem } from "@/types";
+import { cartApi, ApiError } from "@/lib/api";
+import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
 
 interface CartContextType {
   items: CartItem[];
+  isLoading: boolean;
   itemCount: number;
   subtotal: number;
   storeGroups: {
@@ -22,146 +24,119 @@ interface CartContextType {
     items: CartItem[];
     subtotal: number;
   }[];
-  addToCart: (productId: string, quantity?: number) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeFromCart: (productId: string) => void;
-  clearCart: () => void;
+  addToCart: (productId: string, quantity?: number) => Promise<void>;
+  updateQuantity: (productId: string, quantity: number) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+  clearCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = "agora_cart";
-
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load cart from localStorage on mount
+  // Fetch cart from backend whenever auth state resolves.
+  // Clear local state on logout.
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-      if (savedCart) {
-        const parsedItems = JSON.parse(savedCart) as CartItem[];
-        // Re-hydrate product data from mock data
-        const hydratedItems = parsedItems
-          .map((item) => {
-            const product = mockProducts.find((p) => p.id === item.productId);
-            if (product) {
-              return { ...item, product };
-            }
-            return null;
-          })
-          .filter(Boolean) as CartItem[];
-        setItems(hydratedItems);
+    if (isAuthLoading) return;
+
+    if (!isAuthenticated) {
+      setItems([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    (async () => {
+      try {
+        const cartItems: CartItem[] = await cartApi.get() as CartItem[];
+        setItems(cartItems);
+      } catch {
+        setItems([]);
+      } finally {
+        setIsLoading(false);
       }
-    } catch {
-      localStorage.removeItem(CART_STORAGE_KEY);
-    }
-  }, []);
+    })();
+  }, [isAuthenticated, isAuthLoading]);
 
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    if (items.length > 0) {
-      localStorage.setItem(
-        CART_STORAGE_KEY,
-        JSON.stringify(
-          items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          }))
-        )
-      );
-    } else {
-      localStorage.removeItem(CART_STORAGE_KEY);
-    }
-  }, [items]);
-
-  const addToCart = useCallback((productId: string, quantity = 1) => {
-    const product = mockProducts.find((p) => p.id === productId);
-    if (!product) {
-      toast.error("Produit introuvable");
-      return;
-    }
-
-    if (product.stock === 0) {
-      toast.error("Ce produit est en rupture de stock");
-      return;
-    }
-
-    setItems((currentItems) => {
-      const existingItem = currentItems.find(
-        (item) => item.productId === productId
-      );
-
-      if (existingItem) {
-        const newQuantity = existingItem.quantity + quantity;
-        if (newQuantity > product.stock) {
-          toast.error(`Stock insuffisant (${product.stock} disponibles)`);
-          return currentItems;
-        }
-        toast.success("Quantité mise à jour dans le panier");
-        return currentItems.map((item) =>
-          item.productId === productId
-            ? { ...item, quantity: newQuantity }
-            : item
+  const addToCart = useCallback(
+    async (productId: string, quantity = 1) => {
+      if (!isAuthenticated) {
+        toast.error("Connectez-vous pour ajouter au panier");
+        return;
+      }
+      try {
+        const updated: CartItem[] = await cartApi.add(productId, quantity) as CartItem[];
+        setItems(updated);
+        toast.success("Produit ajouté au panier");
+      } catch (err) {
+        toast.error(
+          err instanceof ApiError ? err.message : "Erreur lors de l'ajout",
         );
       }
-
-      if (quantity > product.stock) {
-        toast.error(`Stock insuffisant (${product.stock} disponibles)`);
-        return currentItems;
-      }
-
-      toast.success("Produit ajouté au panier");
-      return [...currentItems, { productId, product, quantity }];
-    });
-  }, []);
-
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
-    if (quantity < 1) {
-      return;
-    }
-
-    const product = mockProducts.find((p) => p.id === productId);
-    if (product && quantity > product.stock) {
-      toast.error(`Stock insuffisant (${product.stock} disponibles)`);
-      return;
-    }
-
-    setItems((currentItems) =>
-      currentItems.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item
-      )
-    );
-  }, []);
-
-  const removeFromCart = useCallback((productId: string) => {
-    setItems((currentItems) =>
-      currentItems.filter((item) => item.productId !== productId)
-    );
-    toast.success("Produit retiré du panier");
-  }, []);
-
-  const clearCart = useCallback(() => {
-    setItems([]);
-    localStorage.removeItem(CART_STORAGE_KEY);
-  }, []);
-
-  // Calculate derived values
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
+    },
+    [isAuthenticated],
   );
 
-  // Group items by store
+  const updateQuantity = useCallback(
+    async (productId: string, quantity: number) => {
+      if (quantity < 1) return;
+      try {
+        const updated: CartItem[] = await cartApi.updateQuantity(productId, quantity) as CartItem[];
+        setItems(updated);
+      } catch (err) {
+        toast.error(
+          err instanceof ApiError
+            ? err.message
+            : "Erreur lors de la mise à jour",
+        );
+      }
+    },
+    [],
+  );
+
+  const removeFromCart = useCallback(async (productId: string) => {
+    try {
+      const updated: CartItem[] = await cartApi.remove(productId) as CartItem[];
+      setItems(updated);
+      toast.success("Produit retiré du panier");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Erreur lors de la suppression",
+      );
+    }
+  }, []);
+
+  const clearCart = useCallback(async () => {
+    try {
+      await cartApi.clear();
+      setItems([]);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Erreur lors du vidage du panier",
+      );
+    }
+  }, []);
+
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0,
+  );
+
   const storeGroups = items.reduce(
     (groups, item) => {
-      const existingGroup = groups.find(
-        (g) => g.storeId === item.product.storeId
-      );
-      if (existingGroup) {
-        existingGroup.items.push(item);
-        existingGroup.subtotal += item.product.price * item.quantity;
+      const existing = groups.find((g) => g.storeId === item.product.storeId);
+      if (existing) {
+        existing.items.push(item);
+        existing.subtotal += item.product.price * item.quantity;
       } else {
         groups.push({
           storeId: item.product.storeId,
@@ -177,13 +152,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       storeName: string;
       items: CartItem[];
       subtotal: number;
-    }[]
+    }[],
   );
 
   return (
     <CartContext.Provider
       value={{
         items,
+        isLoading,
         itemCount,
         subtotal,
         storeGroups,
