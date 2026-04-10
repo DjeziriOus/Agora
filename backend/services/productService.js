@@ -103,7 +103,7 @@ const getProducts = async (query = {}) => {
 	const filters = buildPublicFilters(query);
 
 	const [products, total] = await Promise.all([
-		Product.find(filters).sort({ createdAt: -1 }).skip(skip).limit(limit),
+		Product.find(filters).populate("shop", "name").sort({ createdAt: -1 }).skip(skip).limit(limit),
 		Product.countDocuments(filters),
 	]);
 
