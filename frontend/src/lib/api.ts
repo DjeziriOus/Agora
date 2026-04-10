@@ -15,11 +15,16 @@ export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const isFormData = options.body instanceof FormData;
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: "include",
     headers: {
-
+      "ngrok-skip-browser-warning": "true",
+      // Only add JSON header if we ARE NOT sending FormData
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...(options.headers ?? {}),
+    },
   });
 
   if (!res.ok) {
