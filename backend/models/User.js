@@ -24,8 +24,8 @@ const userSchema = new mongoose.Schema(
     gender: { type: String, default: "" },
     role: {
       type: String,
-      enum: ["buyer", "seller", "admin"],
-      default: "buyer",
+      enum: ["unassigned", "buyer", "seller", "admin"],
+      default: "unassigned",
     },
   },
   {
