@@ -69,7 +69,10 @@ export default function CheckoutPage() {
   const currentStepIndex = steps.findIndex((s) => s.key === currentStep);
 
   const total = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    return items.reduce(
+      (sum, item) => sum + (item.unitPrice ?? item.product.price) * item.quantity,
+      0,
+    );
   }, [items]);
 
   const isShippingValid = useMemo(() => {

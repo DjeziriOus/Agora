@@ -42,8 +42,18 @@ export interface Product {
   storeId: string;
   storeName: string;
   images: string[];
+  variants?: ProductVariant[];
   isActive: boolean;
   createdAt: string;
+}
+
+export interface ProductVariant {
+  code: string;
+  name: string;
+  sku?: string;
+  price?: number | null;
+  stock: number;
+  isActive: boolean;
 }
 
 export interface ProductImage {
@@ -59,6 +69,9 @@ export interface CartItem {
   productId: string;
   product: Product;
   quantity: number;
+  variantId?: string | null;
+  selected?: boolean;
+  unitPrice?: number;
 }
 
 export interface Cart {
@@ -168,6 +181,7 @@ export interface ProductPayload {
   stock: number;
   stockThreshold?: number;
   images: File[] | string[];
+  variants?: ProductVariant[];
   isActive: boolean;
 }
 

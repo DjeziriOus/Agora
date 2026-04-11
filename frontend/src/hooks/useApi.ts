@@ -274,7 +274,7 @@ export function useCreateOrder() {
   return useMutation({
     mutationFn: (data: OrderPayload) => ordersApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.client });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.buyer });
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
     },
   });

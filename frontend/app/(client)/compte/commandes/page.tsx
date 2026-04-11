@@ -52,11 +52,10 @@ export default function OrdersPage() {
   if (error) {
     return (
       <EmptyState
-        icon={<PackageIcon/>}
+        icon={<PackageIcon className="w-12 h-12" />}
         title="Erreur de chargement"
         description="Impossible de charger vos commandes. Veuillez réessayer."
-        actionLabel="Réessayer"
-        actionHref="/compte/commandes"
+        action={{ label: "Réessayer", href: "/compte/commandes" }}
       />
     );
   }
@@ -126,11 +125,10 @@ export default function OrdersPage() {
         </div>
       ) : (
         <EmptyState
-          icon={Package}
+          icon={<Package className="w-12 h-12" />}
           title="Aucune commande"
           description="Vous n'avez pas encore passé de commande sur Agora."
-          actionLabel="Découvrir nos produits"
-          actionHref="/catalogue"
+          action={{ label: "Découvrir nos produits", href: "/catalogue" }}
         />
       )}
     </div>

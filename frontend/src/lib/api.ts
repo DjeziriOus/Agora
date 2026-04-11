@@ -1,5 +1,12 @@
 import { API_URL } from "../config";
-import type { Product, ProductImage, SellerProduct, CartItem } from "@/types";
+import type {
+  Cart,
+  CartItem,
+  Product,
+  ProductImage,
+  ProductVariant,
+  SellerProduct,
+} from "@/types";
 const BASE_URL = API_URL;
 
 type BackendProductImage =
@@ -29,10 +36,63 @@ type BackendProduct = {
   rating?: number;
   reviewCount?: number;
   images?: BackendProductImage[];
+  variants?: Array<{
+    code?: string;
+    name?: string;
+    sku?: string;
+    price?: number | null;
+    stock?: number;
+    isActive?: boolean;
+  }>;
   isActive?: boolean;
   createdAt?: string;
   shop?: BackendProductShop;
 };
+
+type BackendCartItem = {
+  productId: BackendProduct;
+  variantId?: string | null;
+  selected?: boolean;
+  quantity: number;
+};
+
+type BackendCart = {
+  _id?: string;
+  userId?: string;
+  items?: BackendCartItem[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type CartMutationResponse = {
+  message?: string;
+  cart: BackendCart;
+};
+
+type CheckoutSummaryResponse = {
+  selectedItems: BackendCartItem[];
+  subtotal: number;
+  itemCount: number;
+};
+
+const mapVariant = (variant: {
+  code?: string;
+  name?: string;
+  sku?: string;
+  price?: number | null;
+  stock?: number;
+  isActive?: boolean;
+}): ProductVariant => ({
+  code: variant.code ?? "",
+  name: variant.name ?? "",
+  sku: variant.sku ?? "",
+  price:
+    variant.price === undefined || variant.price === null
+      ? null
+      : Number(variant.price),
+  stock: variant.stock ?? 0,
+  isActive: variant.isActive ?? true,
+});
 
 const mapProduct = (product: BackendProduct): Product => {
   const id = product.id ?? product._id;
@@ -64,6 +124,7 @@ const mapProduct = (product: BackendProduct): Product => {
     images: (product.images ?? []).map((image) =>
       typeof image === "string" ? image : (image.url ?? ""),
     ),
+    variants: (product.variants ?? []).map(mapVariant),
     isActive: product.isActive ?? true,
     createdAt: product.createdAt ?? "",
   };
@@ -80,6 +141,75 @@ const mapSellerProduct = (product: BackendProduct): SellerProduct => {
   return {
     ...mappedProduct,
     images: (product.images ?? []).map(mapProductImage),
+  };
+};
+
+const resolveCartItemUnitPrice = (
+  product: Product,
+  variantId?: string | null,
+) => {
+  // Use the variant-specific price when a cart line targets a variant.
+  if (!variantId) {
+    return product.price;
+  }
+
+  const variant = (product.variants ?? []).find(
+    (item) => item.code === variantId,
+  );
+
+  return variant?.price ?? product.price;
+};
+
+const mapCartItem = (item: BackendCartItem): CartItem => {
+  // The backend populates productId with the full product document.
+  const product = mapProduct(item.productId);
+
+  return {
+    productId: product.id,
+    product,
+    quantity: item.quantity,
+    variantId: item.variantId ?? null,
+    selected: item.selected ?? true,
+    unitPrice: resolveCartItemUnitPrice(product, item.variantId),
+  } as CartItem;
+};
+
+const mapCart = (cart: BackendCart): Cart => {
+  // Normalize the backend cart payload into the shape expected by the frontend.
+  const items = (cart.items ?? []).map(mapCartItem);
+  const subtotal = items.reduce(
+    (sum, item) => sum + (item.unitPrice ?? item.product.price) * item.quantity,
+    0,
+  );
+
+  const storeGroups = items.reduce(
+    (groups, item) => {
+      const existingGroup = groups.find(
+        (group) => group.storeId === item.product.storeId,
+      );
+
+      if (existingGroup) {
+        existingGroup.items.push(item);
+        existingGroup.subtotal +=
+          (item.unitPrice ?? item.product.price) * item.quantity;
+      } else {
+        groups.push({
+          storeId: item.product.storeId,
+          storeName: item.product.storeName,
+          items: [item],
+          subtotal: (item.unitPrice ?? item.product.price) * item.quantity,
+        });
+      }
+
+      return groups;
+    },
+    [] as Cart["storeGroups"],
+  );
+
+  return {
+    items,
+    subtotal,
+    storeGroups,
   };
 };
 
@@ -288,6 +418,86 @@ export const ordersApi = {
     apiFetch<unknown>("/api/orders", {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+};
+
+// ── Cart ─────────────────────────────────────────────────────────────────────
+export const cartApi = {
+  get: async () => {
+    // Fetch the authenticated user's server-side cart.
+    const cart = await apiFetch<BackendCart>("/api/cart");
+    return mapCart(cart);
+  },
+  add: async (productId: string, quantity = 1, variantId?: string | null) => {
+    const response = await apiFetch<CartMutationResponse>("/api/cart/add", {
+      method: "POST",
+      body: JSON.stringify({
+        productId,
+        quantity,
+        variantId: variantId ?? null,
+      }),
+    });
+
+    return mapCart(response.cart);
+  },
+  updateQuantity: async (
+    productId: string,
+    quantity: number,
+    variantId?: string | null,
+  ) => {
+    const response = await apiFetch<CartMutationResponse>(
+      "/api/cart/update-quantity",
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          productId,
+          quantity,
+          variantId: variantId ?? null,
+        }),
+      },
+    );
+
+    return mapCart(response.cart);
+  },
+  remove: async (productId: string, variantId?: string | null) => {
+    const response = await apiFetch<CartMutationResponse>("/api/cart/remove", {
+      method: "DELETE",
+      body: JSON.stringify({
+        productId,
+        variantId: variantId ?? null,
+      }),
+    });
+
+    return mapCart(response.cart);
+  },
+  toggleSelected: async (productId: string, variantId?: string | null) => {
+    const response = await apiFetch<CartMutationResponse>(
+      "/api/cart/toggle-selected",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          productId,
+          variantId: variantId ?? null,
+        }),
+      },
+    );
+
+    return mapCart(response.cart);
+  },
+  getCheckoutSummary: async () => {
+    const summary = await apiFetch<CheckoutSummaryResponse>(
+      "/api/cart/checkout-summary",
+    );
+
+    return {
+      selectedItems: summary.selectedItems.map(mapCartItem),
+      subtotal: summary.subtotal,
+      itemCount: summary.itemCount,
+    };
+  },
+  clear: () =>
+    apiFetch<{ message: string }>("/api/cart/clear", {
+      method: "DELETE",
     }),
 };
 

@@ -5,6 +5,7 @@ import {
 	uploadToCloudinary,
 	deleteFromCloudinary,
 	deleteMultipleFromCloudinary,
+	hasCloudinaryConfig,
 } from "../config/cloudinary.js";
 
 const DEFAULT_PAGE = 1;
@@ -28,6 +29,32 @@ const assertObjectId = (value, label) => {
 		error.statusCode = 400;
 		throw error;
 	}
+};
+
+// Parse variants from multipart/form-data body (stringified JSON) or plain object.
+const parseVariantsInput = (rawVariants) => {
+	if (rawVariants === undefined || rawVariants === null || rawVariants === "") {
+		return [];
+	}
+
+	let parsed = rawVariants;
+	if (typeof rawVariants === "string") {
+		try {
+			parsed = JSON.parse(rawVariants);
+		} catch {
+			const error = new Error("variants must be a valid JSON array.");
+			error.statusCode = 400;
+			throw error;
+		}
+	}
+
+	if (!Array.isArray(parsed)) {
+		const error = new Error("variants must be an array.");
+		error.statusCode = 400;
+		throw error;
+	}
+
+	return parsed;
 };
 
 // Resolve seller shop once; all seller product operations are scoped to it.
@@ -224,11 +251,15 @@ const createProduct = async ({ ownerId, body, files = [] }) => {
 	}
 
 	const shop = await getSellerShopOrThrow(ownerId);
+	const variants = parseVariantsInput(body.variants);
 
-	// Upload each file buffer to Cloudinary in parallel.
-	const images = await Promise.all(
-		files.map((file) => uploadToCloudinary(file.buffer, "product")),
-	);
+	// Upload each file to Cloudinary when configured; otherwise use dev placeholders.
+	const images = hasCloudinaryConfig
+		? await Promise.all(files.map((file) => uploadToCloudinary(file.buffer, "product")))
+		: files.map((_file, index) => ({
+				url: "https://placehold.co/1200x1200?text=Product+Image",
+				publicId: `dev-placeholder-${Date.now()}-${index}`,
+		  }));
 
 	const product = new Product({
 		name: body.name,
@@ -237,6 +268,7 @@ const createProduct = async ({ ownerId, body, files = [] }) => {
 		price: body.price,
 		stock: body.stock ?? 0,
 		stockThreshold: body.stockThreshold ?? 5,
+		variants,
 		images,
 		isActive: body.isActive === "true" || body.isActive === true,
 		shop: shop._id,
@@ -274,6 +306,7 @@ const updateProduct = async ({ ownerId, productId, body, files = [] }) => {
 	if (body.price !== undefined) product.price = body.price;
 	if (body.stock !== undefined) product.stock = body.stock;
 	if (body.stockThreshold !== undefined) product.stockThreshold = body.stockThreshold;
+	if (body.variants !== undefined) product.variants = parseVariantsInput(body.variants);
 	if (body.isActive !== undefined) product.isActive = body.isActive === "true" || body.isActive === true;
 
 	// ── Handle image changes ─────────────────────────────────────────────────
@@ -308,10 +341,13 @@ const updateProduct = async ({ ownerId, productId, body, files = [] }) => {
 		}
 	}
 
-	// Upload new images.
-	const newImages = await Promise.all(
-		files.map((file) => uploadToCloudinary(file.buffer, "product")),
-	);
+	// Upload new images when Cloudinary is configured; otherwise use dev placeholders.
+	const newImages = hasCloudinaryConfig
+		? await Promise.all(files.map((file) => uploadToCloudinary(file.buffer, "product")))
+		: files.map((_file, index) => ({
+				url: "https://placehold.co/1200x1200?text=Product+Image",
+				publicId: `dev-placeholder-update-${Date.now()}-${index}`,
+		  }));
 
 	const finalImages = [...imagesToKeep, ...newImages];
 
@@ -325,8 +361,10 @@ const updateProduct = async ({ ownerId, productId, body, files = [] }) => {
 	product.images = finalImages;
 	await product.save();
 
-	// Clean up deleted images from Cloudinary (fire-and-forget, don't block response).
-	deleteMultipleFromCloudinary(imagesToDelete);
+	// Clean up deleted Cloudinary images (skip for dev placeholders).
+	if (hasCloudinaryConfig) {
+		deleteMultipleFromCloudinary(imagesToDelete);
+	}
 
 	return product;
 };
@@ -352,8 +390,10 @@ const deleteProduct = async ({ ownerId, productId }) => {
 	product.isDeleted = true;
 	await product.save();
 
-	// Delete all product images from Cloudinary to free storage.
-	deleteMultipleFromCloudinary(product.images);
+	// Delete all Cloudinary images when configured.
+	if (hasCloudinaryConfig) {
+		deleteMultipleFromCloudinary(product.images);
+	}
 
 	return product;
 };
