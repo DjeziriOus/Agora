@@ -346,25 +346,26 @@ export default function VendorStockPage() {
                       <TableRow key={`${group.productId}-parent`} className="bg-muted/30">
                         <TableCell>
                           <div className="flex items-center gap-3 min-w-[240px]">
-                            <button
-                              type="button"
-                              onClick={() => hasVariants && toggleExpanded(group.productId)}
-                              className="h-6 w-6 rounded-md border flex items-center justify-center disabled:opacity-40"
-                              disabled={!hasVariants}
-                              aria-label={
-                                hasVariants
-                                  ? isExpanded
+                            {hasVariants ? (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpanded(group.productId)}
+                                className="h-6 w-6 rounded-md border flex items-center justify-center"
+                                aria-label={
+                                  isExpanded
                                     ? "Replier les variantes"
                                     : "Afficher les variantes"
-                                  : "Pas de variantes"
-                              }
-                            >
-                              <ChevronDown
-                                className={`h-4 w-4 transition-transform ${
-                                  isExpanded ? "rotate-0" : "-rotate-90"
-                                }`}
-                              />
-                            </button>
+                                }
+                              >
+                                <ChevronDown
+                                  className={`h-4 w-4 transition-transform ${
+                                    isExpanded ? "rotate-0" : "-rotate-90"
+                                  }`}
+                                />
+                              </button>
+                            ) : (
+                              <span className="h-6 w-6 shrink-0" aria-hidden="true" />
+                            )}
                             <div className="relative h-10 w-10 rounded-md overflow-hidden bg-muted shrink-0">
                               {group.image ? (
                                 <Image
