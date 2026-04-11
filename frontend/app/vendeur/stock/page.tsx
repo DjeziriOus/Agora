@@ -395,9 +395,11 @@ export default function VendorStockPage() {
                         <TableCell>-</TableCell>
                         <TableCell>{group.category}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={productStatus.className}>
-                            {productStatus.label}
-                          </Badge>
+                          {hasVariants ? null : (
+                            <Badge variant="outline" className={productStatus.className}>
+                              {productStatus.label}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="font-medium">
                           {hasVariants ? "" : group.stock}
