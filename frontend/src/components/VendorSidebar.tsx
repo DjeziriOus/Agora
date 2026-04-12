@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Package,
+  Boxes,
   ShoppingCart,
   Store,
   Settings,
@@ -30,6 +31,11 @@ const vendorNavItems = [
     label: "Mes produits",
     href: "/vendeur/produits",
     icon: Package,
+  },
+  {
+    label: "Gestion du stock",
+    href: "/vendeur/stock",
+    icon: Boxes,
   },
   {
     label: "Commandes",
