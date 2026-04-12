@@ -11,13 +11,13 @@ import {
   ShoppingBag,
   Store,
 } from "lucide-react";
-import { useCart } from "@/context/CartContext";
+import { useCart } from "@/hooks/useCart";
 import type { CartItem as CartItemType } from "@/types";
 import { EmptyState } from "@/components/EmptyState";
 import { cn } from "@/lib/utils";
 
 export default function CartPage() {
-  const { items, subtotal, updateQuantity, removeFromCart, clearCart } =
+  const { items, subtotal, updateQuantity, removeFromCart, clearCart, isLoading } =
     useCart();
   const total = subtotal;
 
@@ -34,10 +34,18 @@ export default function CartPage() {
       acc[storeId].items.push(item);
       return acc;
     },
-    {} as Record<string, { storeName: string; items: CartItem[] }>,
+    {} as Record<string, { storeName: string; items: CartItemType[] }>,
   );
 
   const storeIds = Object.keys(groupedItems);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center">
+        <span className="w-8 h-8 border-3 border-[var(--agora-line)] border-t-[var(--agora-primary)] rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -99,7 +107,7 @@ export default function CartPage() {
                 <div className="divide-y divide-[var(--agora-line)]">
                   {groupedItems[storeId].items.map((item) => (
                     <CartItemRow
-                      key={`${item.productId}-${item.variantId ?? "default"}`}
+                      key={`${item.productId}-${item.variantId}`}
                       item={item}
                       onUpdateQuantity={(qty) =>
                         updateQuantity(item.productId, qty, item.variantId)
@@ -185,7 +193,7 @@ function CartItemRow({
   onUpdateQuantity,
   onRemove,
 }: {
-  item: CartItem;
+  item: CartItemType;
   onUpdateQuantity: (quantity: number) => void;
   onRemove: () => void;
 }) {
@@ -196,6 +204,10 @@ function CartItemRow({
     await new Promise((resolve) => setTimeout(resolve, 200));
     onRemove();
   };
+
+  // Show variant name unless it's the auto-generated default
+  const showVariant =
+    item.variant && item.variant.code !== "default" && item.variant.name !== "Standard";
 
   return (
     <div
@@ -226,14 +238,12 @@ function CartItemRow({
           {item.product.name}
         </Link>
         <p className="text-sm text-[var(--agora-mid)] mt-1">
-          {(item.unitPrice ?? item.product.price).toFixed(2).replace(".", ",")}{" "}
-          € / unite
+          {item.unitPrice.toFixed(2).replace(".", ",")}{" "}
+          € / unité
         </p>
-        {item.variantId && (
+        {showVariant && (
           <p className="text-xs text-[var(--agora-mid)] mt-1">
-            Option:{" "}
-            {item.product.variants?.find((v) => v.code === item.variantId)
-              ?.name ?? item.variantId}
+            Option: {item.variant.name}
           </p>
         )}
 
@@ -272,7 +282,7 @@ function CartItemRow({
       {/* Item Total */}
       <div className="text-right">
         <p className="font-semibold text-[var(--agora-ink)]">
-          {((item.unitPrice ?? item.product.price) * item.quantity)
+          {(item.unitPrice * item.quantity)
             .toFixed(2)
             .replace(".", ",")}{" "}
           €

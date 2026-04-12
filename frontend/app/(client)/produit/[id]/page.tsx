@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -17,7 +17,7 @@ import {
 import { StarRating } from "@/components/StarRating";
 import { AgoraBadge } from "@/components/AgoraBadge";
 import { ProductCard } from "@/components/ProductCard";
-import { useCart } from "@/context/CartContext";
+import { useCart } from "@/hooks/useCart";
 import { useProduct } from "@/hooks/useApi";
 import { mockProducts } from "@/lib/mockData";
 import {
@@ -38,7 +38,7 @@ export default function ProductDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { addToCart } = useCart();
+  const { addToCart, isAdding } = useCart();
   const { data: apiProduct, isLoading, error } = useProduct(id);
   const fallbackProduct = mockProducts.find((p) => p.id === id);
   const product = apiProduct ?? fallbackProduct;
@@ -55,13 +55,22 @@ export default function ProductDetailPage({
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isVariantDialogOpen, setIsVariantDialogOpen] = useState(false);
   const [selectedVariantCode, setSelectedVariantCode] = useState<string | null>(
     null,
   );
+
+  // Auto-select the first active variant when product loads
+  useEffect(() => {
+    if (product?.variants?.length) {
+      const firstActive = product.variants.find((v) => v.isActive);
+      if (firstActive && !selectedVariantCode) {
+        setSelectedVariantCode(firstActive.code);
+      }
+    }
+  }, [product, selectedVariantCode]);
 
   if (!product) {
     return (
@@ -84,25 +93,25 @@ export default function ProductDetailPage({
   const activeVariants = (product.variants ?? []).filter(
     (variant) => variant.isActive,
   );
-  const hasVariants = activeVariants.length > 0;
+  const hasMultipleVariants = activeVariants.length > 1;
   const selectedVariant = activeVariants.find(
     (variant) => variant.code === selectedVariantCode,
   );
-  const displayPrice = selectedVariant?.price ?? product.price;
-  const displayStock = selectedVariant?.stock ?? product.stock;
+  const displayPrice = selectedVariant?.price ?? product.displayPrice;
+  const displayStock = selectedVariant?.stock ?? product.totalStock;
 
   const handleAddToCart = async () => {
     if (displayStock === 0) return;
 
-    if (hasVariants && !selectedVariant) {
+    if (hasMultipleVariants && !selectedVariant) {
       setIsVariantDialogOpen(true);
       return;
     }
 
-    setIsAdding(true);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    await addToCart(product, quantity, selectedVariant?.code ?? null);
-    setIsAdding(false);
+    const variantId = selectedVariant?.id ?? activeVariants[0]?.id;
+    if (!variantId) return;
+
+    addToCart(product, quantity, variantId);
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 2000);
   };
@@ -214,10 +223,16 @@ export default function ProductDetailPage({
 
             {/* Price */}
             <p className="font-display text-3xl font-bold text-[var(--agora-ink)] mb-6">
+              {product.hasMultiplePrices && !selectedVariant && (
+                <span className="text-base font-normal text-[var(--agora-mid)] mr-1">
+                  À partir de
+                </span>
+              )}
               {displayPrice.toFixed(2).replace(".", ",")} €
             </p>
 
-            {hasVariants && (
+            {/* Variant selector — only show when multiple variants exist */}
+            {hasMultipleVariants && (
               <div className="mb-6">
                 <label className="block text-sm font-medium text-[var(--agora-ink)] mb-2">
                   Option
@@ -491,7 +506,6 @@ export default function ProductDetailPage({
 
           <div className="space-y-2 max-h-72 overflow-auto">
             {activeVariants.map((variant) => {
-              const variantPrice = variant.price ?? product.price;
               const isSelected = selectedVariantCode === variant.code;
               return (
                 <button
@@ -507,7 +521,7 @@ export default function ProductDetailPage({
                 >
                   <p className="font-medium text-[var(--agora-ink)]">{variant.name}</p>
                   <p className="text-sm text-[var(--agora-mid)]">
-                    {variantPrice.toFixed(2).replace(".", ",")} € · {variant.stock} en stock
+                    {variant.price.toFixed(2).replace(".", ",")} € · {variant.stock} en stock
                   </p>
                 </button>
               );

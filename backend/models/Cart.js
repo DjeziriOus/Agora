@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-// Each entry in the cart represents one product, an optional variant, and its quantity.
+// Each entry in the cart represents one product variant and its quantity.
 const cartItemSchema = new mongoose.Schema(
   {
     productId: {
@@ -8,10 +8,11 @@ const cartItemSchema = new mongoose.Schema(
       ref: "Product",
       required: true,
     },
-    // Optional product variant identifier, used for size/color combinations.
+    // Reference to the Variant document — always required.
     variantId: {
-      type: String,
-      default: null,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Variant",
+      required: true,
     },
     // Whether this item is selected for checkout.
     selected: {
@@ -33,19 +34,6 @@ const cartItemSchema = new mongoose.Schema(
 );
 
 // A cart belongs to one user and contains a list of cart items.
-// Valid Cart document example:
-// {
-//   userId: 'user_123',
-//   items: [
-//     {
-//       productId: new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'),
-//       variantId: 'size-m-black',
-//       selected: true,
-//       addedAt: new Date(),
-//       quantity: 2,
-//     },
-//   ],
-// }
 const cartSchema = new mongoose.Schema(
   {
     userId: {

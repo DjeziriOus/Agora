@@ -1,44 +1,22 @@
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
-
-// Normalizes variant identifiers so null/undefined/empty string are treated consistently.
-const normalizeVariantId = (variantId) => {
-  if (variantId === undefined || variantId === null) {
-    return null;
-  }
-  const normalized = String(variantId).trim();
-  return normalized.length > 0 ? normalized : null;
-};
-
-// Resolves the effective unit price for a cart item.
-// If a matching variant has its own price, use it; otherwise fallback to product price.
-const getItemUnitPrice = (item) => {
-  const product = item.productId;
-  if (!product) return 0;
-
-  const normalizedVariantId = normalizeVariantId(item.variantId);
-  if (normalizedVariantId && Array.isArray(product.variants)) {
-    const variant = product.variants.find(
-      (v) => normalizeVariantId(v.code) === normalizedVariantId,
-    );
-    if (variant && typeof variant.price === "number") {
-      return variant.price;
-    }
-  }
-
-  return typeof product.price === "number" ? product.price : 0;
-};
+import Variant from "../models/Variant.js";
 
 /**
  * Fetches a user's cart, or creates an empty one if it does not exist.
- * Populates product and shop data so the frontend receives full item details.
+ * Populates product, variant, and shop data so the frontend receives full item details.
  */
 export const getCart = async (userId) => {
-  let cart = await Cart.findOne({ userId }).populate({
-    path: "items.productId",
-    select: "name price variants images stock isActive isDeleted shop",
-    populate: { path: "shop", select: "name" },
-  });
+  let cart = await Cart.findOne({ userId })
+    .populate({
+      path: "items.productId",
+      select: "name description category images isActive isDeleted shop stockThreshold",
+      populate: { path: "shop", select: "name" },
+    })
+    .populate({
+      path: "items.variantId",
+      select: "code name sku price stock attributes isActive",
+    });
 
   if (!cart) {
     cart = await Cart.create({ userId, items: [] });
@@ -48,8 +26,45 @@ export const getCart = async (userId) => {
 };
 
 /**
+ * Resolve a variant for a product.
+ * If variantId is given (as ObjectId string), validate it.
+ * Otherwise, auto-resolve to the first active variant.
+ */
+const resolveVariant = async (product, variantId) => {
+  if (variantId) {
+    const variant = await Variant.findOne({
+      _id: variantId,
+      product: product._id,
+      isActive: true,
+    });
+
+    if (!variant) {
+      const err = new Error("Variant not found or unavailable");
+      err.statusCode = 404;
+      throw err;
+    }
+
+    return variant;
+  }
+
+  // Auto-resolve to first active variant
+  const defaultVariant = await Variant.findOne({
+    product: product._id,
+    isActive: true,
+  }).sort({ createdAt: 1 });
+
+  if (!defaultVariant) {
+    const err = new Error("No active variant available for this product");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return defaultVariant;
+};
+
+/**
  * Adds a product to the cart, or increases its quantity if it already exists.
- * Supports product variants via variantId (e.g., size-m-black).
+ * Uses the Variant collection for stock checks and price resolution.
  */
 export const addItem = async (
   userId,
@@ -57,8 +72,6 @@ export const addItem = async (
   quantity = 1,
   variantId = null,
 ) => {
-  const normalizedVariantId = normalizeVariantId(variantId);
-
   const product = await Product.findOne({
     _id: productId,
     isDeleted: false,
@@ -70,23 +83,7 @@ export const addItem = async (
     throw err;
   }
 
-  // If variantId is provided, validate it and use variant-level stock.
-  let availableStock = product.stock;
-  if (normalizedVariantId) {
-    const variant = Array.isArray(product.variants)
-      ? product.variants.find(
-          (v) => normalizeVariantId(v.code) === normalizedVariantId,
-        )
-      : null;
-
-    if (!variant || variant.isActive === false) {
-      const err = new Error("Variant not found or unavailable");
-      err.statusCode = 404;
-      throw err;
-    }
-
-    availableStock = variant.stock;
-  }
+  const variant = await resolveVariant(product, variantId);
 
   let cart = await Cart.findOne({ userId });
   if (!cart) {
@@ -97,27 +94,27 @@ export const addItem = async (
   const existingItem = cart.items.find(
     (item) =>
       item.productId.toString() === productId &&
-      normalizeVariantId(item.variantId) === normalizedVariantId,
+      item.variantId.toString() === variant._id.toString(),
   );
 
   if (existingItem) {
     const newQty = existingItem.quantity + quantity;
-    if (newQty > availableStock) {
-      const err = new Error(`Insufficient stock (${availableStock} available)`);
+    if (newQty > variant.stock) {
+      const err = new Error(`Insufficient stock (${variant.stock} available)`);
       err.statusCode = 400;
       throw err;
     }
     existingItem.quantity = newQty;
   } else {
-    if (quantity > availableStock) {
-      const err = new Error(`Insufficient stock (${availableStock} available)`);
+    if (quantity > variant.stock) {
+      const err = new Error(`Insufficient stock (${variant.stock} available)`);
       err.statusCode = 400;
       throw err;
     }
     cart.items.push({
       productId,
+      variantId: variant._id,
       quantity,
-      variantId: normalizedVariantId,
       selected: true,
     });
   }
@@ -134,43 +131,24 @@ export const updateQuantity = async (
   userId,
   productId,
   quantity,
-  variantId = null,
+  variantId,
 ) => {
-  const normalizedVariantId = normalizeVariantId(variantId);
-
   if (quantity < 1) {
     const err = new Error("Quantity must be at least 1");
     err.statusCode = 400;
     throw err;
   }
 
-  const product = await Product.findById(productId);
-  if (!product) {
-    const err = new Error("Product not found");
+  // Validate variant and check stock
+  const variant = await Variant.findById(variantId);
+  if (!variant) {
+    const err = new Error("Variant not found");
     err.statusCode = 404;
     throw err;
   }
 
-  // Use variant stock when a variant is specified.
-  let availableStock = product.stock;
-  if (normalizedVariantId) {
-    const variant = Array.isArray(product.variants)
-      ? product.variants.find(
-          (v) => normalizeVariantId(v.code) === normalizedVariantId,
-        )
-      : null;
-
-    if (!variant || variant.isActive === false) {
-      const err = new Error("Variant not found or unavailable");
-      err.statusCode = 404;
-      throw err;
-    }
-
-    availableStock = variant.stock;
-  }
-
-  if (quantity > availableStock) {
-    const err = new Error(`Insufficient stock (${availableStock} available)`);
+  if (quantity > variant.stock) {
+    const err = new Error(`Insufficient stock (${variant.stock} available)`);
     err.statusCode = 400;
     throw err;
   }
@@ -185,7 +163,7 @@ export const updateQuantity = async (
   const item = cart.items.find(
     (i) =>
       i.productId.toString() === productId &&
-      normalizeVariantId(i.variantId) === normalizedVariantId,
+      i.variantId.toString() === variantId,
   );
   if (!item) {
     const err = new Error("Item not found in cart");
@@ -201,9 +179,7 @@ export const updateQuantity = async (
 /**
  * Removes one item from the cart by productId and variantId.
  */
-export const removeItem = async (userId, productId, variantId = null) => {
-  const normalizedVariantId = normalizeVariantId(variantId);
-
+export const removeItem = async (userId, productId, variantId) => {
   const cart = await Cart.findOne({ userId });
   if (!cart) {
     const err = new Error("Cart not found");
@@ -216,7 +192,7 @@ export const removeItem = async (userId, productId, variantId = null) => {
     (i) =>
       !(
         i.productId.toString() === productId &&
-        normalizeVariantId(i.variantId) === normalizedVariantId
+        i.variantId.toString() === variantId
       ),
   );
 
@@ -232,11 +208,8 @@ export const removeItem = async (userId, productId, variantId = null) => {
 
 /**
  * Toggles the selected status of a cart item.
- * When selected=true, the item will be included in checkout.
  */
-export const toggleSelected = async (userId, productId, variantId = null) => {
-  const normalizedVariantId = normalizeVariantId(variantId);
-
+export const toggleSelected = async (userId, productId, variantId) => {
   const cart = await Cart.findOne({ userId });
   if (!cart) {
     const err = new Error("Cart not found");
@@ -247,7 +220,7 @@ export const toggleSelected = async (userId, productId, variantId = null) => {
   const item = cart.items.find(
     (i) =>
       i.productId.toString() === productId &&
-      normalizeVariantId(i.variantId) === normalizedVariantId,
+      i.variantId.toString() === variantId,
   );
   if (!item) {
     const err = new Error("Item not found in cart");
@@ -269,7 +242,7 @@ export const getCheckoutSummary = async (userId) => {
   const selectedItems = cart.items.filter((item) => item.selected === true);
 
   const subtotal = selectedItems.reduce((sum, item) => {
-    const unitPrice = getItemUnitPrice(item);
+    const unitPrice = item.variantId?.price ?? 0;
     return sum + unitPrice * item.quantity;
   }, 0);
 

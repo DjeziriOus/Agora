@@ -49,7 +49,6 @@ const getErrorMessage = (error: unknown) =>
 export function CartProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const loadServerCart = useCallback(async () => {
     if (!isAuthenticated) {

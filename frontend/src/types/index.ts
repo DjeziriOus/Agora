@@ -32,27 +32,29 @@ export interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
   category: string;
-  categoryId?: string;
-  stock: number;
   stockThreshold: number;
   rating: number;
   reviewCount: number;
   storeId: string;
   storeName: string;
   images: string[];
-  variants?: ProductVariant[];
+  variants: ProductVariant[];
+  totalStock: number;
+  displayPrice: number;
+  hasMultiplePrices: boolean;
   isActive: boolean;
   createdAt: string;
 }
 
 export interface ProductVariant {
+  id: string;
   code: string;
   name: string;
   sku?: string;
-  price?: number | null;
+  price: number;
   stock: number;
+  attributes?: Record<string, string>;
   isActive: boolean;
 }
 
@@ -67,11 +69,12 @@ export interface SellerProduct extends Omit<Product, "images"> {
 
 export interface CartItem {
   productId: string;
+  variantId: string;
   product: Product;
+  variant: ProductVariant;
   quantity: number;
-  variantId?: string | null;
+  unitPrice: number;
   selected?: boolean;
-  unitPrice?: number;
 }
 
 export interface Cart {
@@ -112,6 +115,7 @@ export interface SubOrder {
 
 export interface OrderItem {
   productId: string;
+  variantId?: string;
   productName: string;
   productImage: string;
   quantity: number;
@@ -175,10 +179,7 @@ export interface LoginPayload {
 export interface ProductPayload {
   name: string;
   description: string;
-  price: number;
   category: string;
-  categoryId?: string;
-  stock: number;
   stockThreshold?: number;
   images: File[] | string[];
   variants?: ProductVariant[];
@@ -200,7 +201,7 @@ export interface StorePayload {
 }
 
 export interface OrderPayload {
-  items: { productId: string; quantity: number }[];
+  items: { productId: string; variantId: string; quantity: number }[];
   deliveryAddress: DeliveryAddress;
   paymentMethod: string;
 }

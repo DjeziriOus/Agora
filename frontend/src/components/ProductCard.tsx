@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { AgoraBadge } from "./AgoraBadge";
 import { StarRating } from "./StarRating";
-import { useCart } from "@/context/CartContext";
+import { useCart } from "@/hooks/useCart";
 import type { Product } from "@/types";
 
 interface ProductCardProps {
@@ -18,10 +18,9 @@ interface ProductCardProps {
 
 export function ProductCard({ product, className }: ProductCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { addToCart, isAdding } = useCart();
   const productId =
     product.id ||
     ((product as unknown as { _id?: string })._id ?? "");
@@ -30,22 +29,20 @@ export function ProductCard({ product, className }: ProductCardProps) {
       ? product.images[0]
       : "/placeholder-product.png";
 
+  const isOutOfStock = product.totalStock === 0;
+
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (product.stock === 0 || !productId) return;
+    if (isOutOfStock || !productId) return;
 
-    setIsAdding(true);
+    // Auto-select first active variant for quick-add from card
+    const firstVariant = product.variants?.find((v) => v.isActive);
+    if (!firstVariant) return;
 
-    // Simulate slight delay for feedback
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    addToCart(product, 1);
-    setIsAdding(false);
+    addToCart(product, 1, firstVariant.id);
     setJustAdded(true);
-
-    // Reset after animation
     setTimeout(() => setJustAdded(false), 2000);
   };
 
@@ -54,8 +51,6 @@ export function ProductCard({ product, className }: ProductCardProps) {
     e.stopPropagation();
     setIsWishlisted(!isWishlisted);
   };
-
-  const isOutOfStock = product.stock === 0;
 
   const handleNavigate = () => {
     if (!productId) return;
@@ -146,7 +141,12 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
         {/* Price */}
         <p className="font-display font-bold text-xl text-[var(--agora-ink)] mb-3">
-          {product.price.toFixed(2).replace(".", ",")} €
+          {product.hasMultiplePrices && (
+            <span className="text-sm font-normal text-[var(--agora-mid)] mr-1">
+              À partir de
+            </span>
+          )}
+          {product.displayPrice.toFixed(2).replace(".", ",")} €
         </p>
 
         {/* Add to Cart Button */}
