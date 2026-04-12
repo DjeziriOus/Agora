@@ -41,7 +41,8 @@ const productSchema = z.object({
   name: z.string().min(3, "Le nom doit contenir au moins 3 caractères"),
   description: z
     .string()
-    .min(20, "La description doit contenir au moins 20 caractères"),
+    .min(20, "La description doit contenir au moins 20 caractères")
+    .max(1000, "La description ne peut pas dépasser 1000 caractères"),
   category: z.string().min(1, "Veuillez sélectionner une catégorie"),
   isActive: z.boolean(),
 });
@@ -105,6 +106,7 @@ export default function EditProductPage() {
     },
   });
 
+
   useEffect(() => {
     newImagePreviewsRef.current = newImagePreviews;
   }, [newImagePreviews]);
@@ -113,9 +115,11 @@ export default function EditProductPage() {
   useEffect(() => {
     if (!product) return;
 
-    const matchedCategory = categories?.find(
-      (category) =>
-        normalizeCategory(category.name) === normalizeCategory(product.category),
+    // Find the matching category name from the categories list.
+    // Use the original (non-normalized) name so it matches the SelectItem values exactly.
+    const matchedCategory = (categories ?? []).find(
+      (cat) =>
+        normalizeCategory(cat.name) === normalizeCategory(product.category),
     );
 
     form.reset({
@@ -155,8 +159,10 @@ export default function EditProductPage() {
       setGlobalStock(String(loadedVariants[0].stock));
     }
 
-    setVariants(loadedVariants.length > 0 ? loadedVariants : [createEmptyVariant(0)]);
-  }, [categories, product, form]);
+    setVariants(
+      loadedVariants.length > 0 ? loadedVariants : [createEmptyVariant(0)],
+    );
+  }, [categories, product]);
 
   useEffect(
     () => () => {
@@ -411,10 +417,22 @@ export default function EditProductPage() {
                           <Textarea
                             placeholder="Décrivez votre produit en détail..."
                             className="min-h-[120px]"
+                            maxLength={1000}
                             {...field}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <div className="flex items-center justify-between">
+                          <FormMessage />
+                          <span
+                            className={`text-xs tabular-nums ${
+                              (field.value?.length ?? 0) > 950
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {field.value?.length ?? 0}/1000
+                          </span>
+                        </div>
                       </FormItem>
                     )}
                   />
@@ -665,7 +683,10 @@ export default function EditProductPage() {
                           </FormControl>
                           <SelectContent>
                             {(categories ?? []).map((cat) => (
-                              <SelectItem key={cat.id} value={cat.name}>
+                              <SelectItem
+                                key={cat.id}
+                                value={cat.name}
+                              >
                                 {cat.name}
                               </SelectItem>
                             ))}
@@ -682,7 +703,9 @@ export default function EditProductPage() {
                     render={({ field }) => (
                       <FormItem className="flex items-center justify-between rounded-lg border border-border p-3">
                         <div>
-                          <FormLabel className="text-sm">Publier le produit</FormLabel>
+                          <FormLabel className="text-sm">
+                            Publier le produit
+                          </FormLabel>
                           <FormDescription className="text-xs">
                             Rendre visible dans votre boutique
                           </FormDescription>

@@ -35,7 +35,8 @@ const productSchema = z.object({
   name: z.string().min(3, "Le nom doit contenir au moins 3 caractères"),
   description: z
     .string()
-    .min(20, "La description doit contenir au moins 20 caractères"),
+    .min(20, "La description doit contenir au moins 20 caractères")
+    .max(1000, "La description ne peut pas dépasser 1000 caractères"),
   category: z.string().min(1, "Veuillez sélectionner une catégorie"),
   isActive: z.boolean().default(true),
 });
@@ -262,10 +263,22 @@ export default function NewProductPage() {
                           <Textarea
                             placeholder="Décrivez votre produit en détail..."
                             className="min-h-[120px]"
+                            maxLength={1000}
                             {...field}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <div className="flex items-center justify-between">
+                          <FormMessage />
+                          <span
+                            className={`text-xs tabular-nums ${
+                              (field.value?.length ?? 0) > 950
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {field.value?.length ?? 0}/1000
+                          </span>
+                        </div>
                       </FormItem>
                     )}
                   />
