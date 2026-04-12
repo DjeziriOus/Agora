@@ -67,6 +67,7 @@ export default function NewProductPage() {
   const { data: categories } = useCategories();
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Seamless Toggle: simple product vs multi-variant
   const [hasMultipleOptions, setHasMultipleOptions] = useState(false);
@@ -156,31 +157,46 @@ export default function NewProductPage() {
     }
   };
 
-  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files || []);
-    if (!selectedFiles.length) return;
-
+  const processFiles = (files: File[]) => {
     const remainingSlots = 5 - images.length;
     if (remainingSlots <= 0) {
       toast.error("Vous pouvez ajouter jusqu'à 5 images");
-      event.target.value = "";
       return;
     }
 
-    const filesToAdd = selectedFiles.slice(0, remainingSlots);
+    const filesToAdd = files.slice(0, remainingSlots);
     setImages((prev) => [...prev, ...filesToAdd]);
 
-    filesToAdd.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setImagePreviews((prev) => [...prev, e.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    const newPreviews = filesToAdd.map((file) => URL.createObjectURL(file));
+    setImagePreviews((prev) => [...prev, ...newPreviews]);
+  };
 
+  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    if (!selectedFiles.length) return;
+    
+    processFiles(selectedFiles);
     event.target.value = "";
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const droppedFiles = Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith('image/'));
+    if (!droppedFiles.length) return;
+    
+    processFiles(droppedFiles);
   };
 
   const removeImage = (index: number) => {
@@ -312,7 +328,16 @@ export default function NewProductPage() {
                       </div>
                     ))}
                     {images.length < 5 && (
-                      <label className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 cursor-pointer flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors">
+                      <label 
+                        className={`aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${
+                          isDragging 
+                            ? "border-primary bg-primary/5 text-primary" 
+                            : "border-border hover:border-primary/50 text-muted-foreground hover:text-primary"
+                        }`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                      >
                         <Upload className="h-6 w-6" />
                         <span className="text-xs">Ajouter</span>
                         <input

@@ -95,6 +95,7 @@ export default function EditProductPage() {
   const [globalStock, setGlobalStock] = useState("0");
   // Ghost Memory: variant data persists when toggling
   const [variants, setVariants] = useState<VariantForm[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -115,17 +116,10 @@ export default function EditProductPage() {
   useEffect(() => {
     if (!product) return;
 
-    // Find the matching category name from the categories list.
-    // Use the original (non-normalized) name so it matches the SelectItem values exactly.
-    const matchedCategory = (categories ?? []).find(
-      (cat) =>
-        normalizeCategory(cat.name) === normalizeCategory(product.category),
-    );
-
     form.reset({
       name: product.name,
       description: product.description,
-      category: matchedCategory?.name ?? product.category,
+      category: product.category,
       isActive: product.isActive,
     });
 
@@ -162,7 +156,24 @@ export default function EditProductPage() {
     setVariants(
       loadedVariants.length > 0 ? loadedVariants : [createEmptyVariant(0)],
     );
-  }, [categories, product]);
+  }, [product, form]);
+
+  // ── Late Category Hydration ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!product || !categories?.length) return;
+
+    const matchedCategory = categories.find(
+      (cat) =>
+        normalizeCategory(cat.name) === normalizeCategory(product.category),
+    );
+
+    if (
+      matchedCategory &&
+      form.getValues("category") !== matchedCategory.name
+    ) {
+      form.setValue("category", matchedCategory.name);
+    }
+  }, [categories, product, form]);
 
   useEffect(
     () => () => {
@@ -270,32 +281,46 @@ export default function EditProductPage() {
     }
   };
 
-  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files || []);
-    if (!selectedFiles.length) return;
-
+  const processFiles = (files: File[]) => {
     const totalImages = existingImages.length + newImages.length;
     const remainingSlots = 5 - totalImages;
     if (remainingSlots <= 0) {
       toast.error("Vous pouvez ajouter jusqu'à 5 images");
-      event.target.value = "";
       return;
     }
-
-    const filesToAdd = selectedFiles.slice(0, remainingSlots);
+    const filesToAdd = files.slice(0, remainingSlots);
     setNewImages((prev) => [...prev, ...filesToAdd]);
+    const newPreviews = filesToAdd.map((file) => URL.createObjectURL(file));
+    setNewImagePreviews((prev) => [...prev, ...newPreviews]);
+  };
 
-    filesToAdd.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setNewImagePreviews((prev) => [...prev, e.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
 
+  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    if (!selectedFiles.length) return;
+    
+    processFiles(selectedFiles);
     event.target.value = "";
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const droppedFiles = Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith('image/'));
+    if (!droppedFiles.length) return;
+    
+    processFiles(droppedFiles);
   };
 
   const removeExistingImage = (index: number) => {
@@ -488,7 +513,16 @@ export default function EditProductPage() {
                     ))}
 
                     {totalImages < 5 && (
-                      <label className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 cursor-pointer flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors">
+                      <label
+                        className={`aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${
+                          isDragging
+                            ? "border-primary bg-primary/5 text-primary"
+                            : "border-border hover:border-primary/50 text-muted-foreground hover:text-primary"
+                        }`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                      >
                         <Upload className="h-6 w-6" />
                         <span className="text-xs">Ajouter</span>
                         <input
@@ -683,10 +717,7 @@ export default function EditProductPage() {
                           </FormControl>
                           <SelectContent>
                             {(categories ?? []).map((cat) => (
-                              <SelectItem
-                                key={cat.id}
-                                value={cat.name}
-                              >
+                              <SelectItem key={cat.id} value={cat.name}>
                                 {cat.name}
                               </SelectItem>
                             ))}
