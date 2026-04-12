@@ -80,8 +80,11 @@ export default function EditProductPage() {
   const productId = params.id as string;
   const router = useRouter();
 
-  const { data: product, isLoading } = useSellerProduct(productId);
-  const { data: categories } = useCategories();
+  const { data: product, isLoading: isProductLoading } =
+    useSellerProduct(productId);
+  const { data: categories, isLoading: isCategoriesLoading } = useCategories();
+
+  const isLoading = isProductLoading || isCategoriesLoading;
   const updateProduct = useUpdateProduct();
 
   const [existingImages, setExistingImages] = useState<ProductImage[]>([]);
@@ -97,6 +100,15 @@ export default function EditProductPage() {
   const [variants, setVariants] = useState<VariantForm[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
+  const matchedCategoryName =
+    product && categories
+      ? categories.find(
+          (cat) =>
+            normalizeCategory(cat.name) === normalizeCategory(product.category),
+        )?.name || product.category
+      : "";
+  console.log(matchedCategoryName);
+
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -105,9 +117,15 @@ export default function EditProductPage() {
       category: "",
       isActive: true,
     },
+    values: product
+      ? {
+          name: product.name,
+          description: product.description,
+          category: matchedCategoryName,
+          isActive: product.isActive,
+        }
+      : undefined,
   });
-
-
   useEffect(() => {
     newImagePreviewsRef.current = newImagePreviews;
   }, [newImagePreviews]);
@@ -115,13 +133,6 @@ export default function EditProductPage() {
   // ── Hydration: populate form from loaded product ──────────────────────────
   useEffect(() => {
     if (!product) return;
-
-    form.reset({
-      name: product.name,
-      description: product.description,
-      category: product.category,
-      isActive: product.isActive,
-    });
 
     setExistingImages(product.images || []);
     setNewImages([]);
@@ -157,23 +168,6 @@ export default function EditProductPage() {
       loadedVariants.length > 0 ? loadedVariants : [createEmptyVariant(0)],
     );
   }, [product, form]);
-
-  // ── Late Category Hydration ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!product || !categories?.length) return;
-
-    const matchedCategory = categories.find(
-      (cat) =>
-        normalizeCategory(cat.name) === normalizeCategory(product.category),
-    );
-
-    if (
-      matchedCategory &&
-      form.getValues("category") !== matchedCategory.name
-    ) {
-      form.setValue("category", matchedCategory.name);
-    }
-  }, [categories, product, form]);
 
   useEffect(
     () => () => {
@@ -294,11 +288,10 @@ export default function EditProductPage() {
     setNewImagePreviews((prev) => [...prev, ...newPreviews]);
   };
 
-
   const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
     if (!selectedFiles.length) return;
-    
+
     processFiles(selectedFiles);
     event.target.value = "";
   };
@@ -316,10 +309,12 @@ export default function EditProductPage() {
   const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
-    const droppedFiles = Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith('image/'));
+
+    const droppedFiles = Array.from(e.dataTransfer.files).filter((file) =>
+      file.type.startsWith("image/"),
+    );
     if (!droppedFiles.length) return;
-    
+
     processFiles(droppedFiles);
   };
 
@@ -398,7 +393,7 @@ export default function EditProductPage() {
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-heading font-bold text-foreground">
-            Modifier le produit
+            Modifier le produitt
           </h1>
           <p className="text-muted-foreground mt-1">{product.name}</p>
         </div>
@@ -707,7 +702,9 @@ export default function EditProductPage() {
                       <FormItem>
                         <FormLabel>Catégorie</FormLabel>
                         <Select
+                          key={field.value || "empty"}
                           onValueChange={field.onChange}
+                          // defaultValue={field.value}
                           value={field.value}
                         >
                           <FormControl>
