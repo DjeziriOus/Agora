@@ -38,6 +38,7 @@ export interface Product {
   reviewCount: number;
   storeId: string;
   storeName: string;
+  storeLogo?: string;
   images: string[];
   variants: ProductVariant[];
   totalStock: number;

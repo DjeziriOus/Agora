@@ -19,6 +19,7 @@ import { AgoraBadge } from "@/components/AgoraBadge";
 import { ProductCard } from "@/components/ProductCard";
 import { useCart } from "@/hooks/useCart";
 import { useProduct } from "@/hooks/useApi";
+import { ApiError } from "@/lib/api";
 import { mockProducts } from "@/lib/mockData";
 import {
   Dialog,
@@ -42,8 +43,10 @@ export default function ProductDetailPage({
   const { data: apiProduct, isLoading, error } = useProduct(id);
   const fallbackProduct = mockProducts.find((p) => p.id === id);
   const product = apiProduct ?? fallbackProduct;
+  const errorStatus = error instanceof ApiError ? error.status : null;
+  const isNotFoundError = errorStatus === 404;
   const store = product?.storeId
-    ? { id: product.storeId, name: product.storeName, logo: undefined }
+    ? { id: product.storeId, name: product.storeName, logo: product.storeLogo }
     : null;
   const reviews: Review[] = [];
   const relatedProducts: Product[] = product
@@ -72,6 +75,43 @@ export default function ProductDetailPage({
     }
   }, [product, selectedVariantCode]);
 
+  // Show a loading state while the detail request is still resolving.
+  if (isLoading && !product) {
+    return (
+      <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-10 w-10 rounded-full border-2 border-[var(--agora-line)] border-t-[var(--agora-primary)] animate-spin" />
+          <p className="text-[var(--agora-mid)]">Chargement du produit...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show a generic error state when the request failed for a reason other than a missing product.
+  if (error && !product && !isNotFoundError) {
+    return (
+      <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center">
+        <div className="text-center max-w-md px-6">
+          <h1 className="font-display text-2xl font-bold text-[var(--agora-ink)] mb-4">
+            Impossible de charger ce produit
+          </h1>
+          <p className="text-[var(--agora-mid)] mb-6">
+            {error instanceof Error
+              ? error.message
+              : "Une erreur est survenue pendant le chargement."}
+          </p>
+          <Link
+            href="/catalogue"
+            className="text-[var(--agora-primary)] hover:underline"
+          >
+            Retour au catalogue
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Only render the not-found state once loading is finished and no product was resolved.
   if (!product) {
     return (
       <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center">
@@ -101,14 +141,17 @@ export default function ProductDetailPage({
   const displayStock = selectedVariant?.stock ?? product.totalStock;
 
   const handleAddToCart = async () => {
+    // Block the add-to-cart action when the selected product option is out of stock.
     if (displayStock === 0) return;
 
+    // Force the user to pick a variant before adding products with multiple options.
     if (hasMultipleVariants && !selectedVariant) {
       setIsVariantDialogOpen(true);
       return;
     }
 
     const variantId = selectedVariant?.id ?? activeVariants[0]?.id;
+    // Abort if no valid variant identifier can be resolved for the cart payload.
     if (!variantId) return;
 
     addToCart(product, quantity, variantId);

@@ -42,6 +42,7 @@ type BackendProductShop =
       _id?: string;
       id?: string;
       name?: string;
+      logo?: BackendStoreImage;
     };
 
 type BackendVariant = {
@@ -127,6 +128,11 @@ const mapProduct = (product: BackendProduct): Product => {
   const storeName =
     typeof product.shop === "string" ? "" : (product.shop?.name ?? "");
 
+  const storeLogo =
+    typeof product.shop === "string"
+      ? ""
+      : (product.shop?.logo?.url ?? "");
+
   const variants = (product.variants ?? []).map(mapVariant);
 
   // Compute aggregates from variants if not provided by backend
@@ -150,6 +156,7 @@ const mapProduct = (product: BackendProduct): Product => {
     reviewCount: product.reviewCount ?? 0,
     storeId,
     storeName,
+    storeLogo,
     images: (product.images ?? []).map((image) =>
       typeof image === "string" ? image : (image.url ?? ""),
     ),
