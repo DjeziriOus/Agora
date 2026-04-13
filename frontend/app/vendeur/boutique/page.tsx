@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,10 +13,12 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Form,
+  FormControl,
   FormDescription,
   FormField,
   FormItem,
@@ -32,8 +34,8 @@ const storeSchema = z.object({
   description: z
     .string()
     .min(20, "La description doit contenir au moins 20 caractères"),
-  logo: z.any().optional(),
-  banner: z.any().optional(),
+  logo: z.string().optional(),
+  banner: z.string().optional(),
 });
 
 type StoreFormData = z.infer<typeof storeSchema>;
@@ -42,12 +44,15 @@ export default function VendorStorePage() {
   const { data: store, isLoading, error } = useMyStore();
   const updateStore = useUpdateStore();
   const createStore = useCreateStore();
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
 
   const form = useForm<StoreFormData>({
     resolver: zodResolver(storeSchema),
-    defaultValues: { name: "", description: "", logo: "", banner: "" },
+    defaultValues: {
+      name: "",
+      description: "",
+      logo: "",
+      banner: "",
+    },
   });
 
   useEffect(() => {
@@ -55,28 +60,21 @@ export default function VendorStorePage() {
       form.reset({
         name: store.name,
         description: store.description || "",
-        logo: store.logo?.url || "",
-        banner: store.banner?.url || "",
+        logo: store.logo?.url || "https://via.placeholder.com/200?text=Logo",
+        banner:
+          store.banner?.url ||
+          "https://via.placeholder.com/1200x300?text=Bannière",
       });
     }
   }, [store, form]);
 
   const onSubmit = async (data: StoreFormData) => {
     try {
-      const formData = new FormData();
-      formData.append("name", data.name);
-      formData.append("description", data.description);
-      if (logoFile) formData.append("logo", logoFile);
-      if (bannerFile) formData.append("banner", bannerFile);
-      console.log(data);
       if (store) {
-        await updateStore.mutateAsync({
-          id: store._id as string,
-          data: formData,
-        });
+        await updateStore.mutateAsync(data);
         toast.success("Boutique mise à jour");
       } else {
-        await createStore.mutateAsync(formData);
+        await createStore.mutateAsync(data);
         toast.success("Boutique créée");
       }
     } catch {
@@ -139,26 +137,27 @@ export default function VendorStorePage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nom de la boutique</FormLabel>
-                    <input
-                      className="w-full border rounded px-3 py-2"
-                      placeholder="Ma Super Boutique"
-                      {...field}
-                    />
+                    <FormControl>
+                      <Input placeholder="Ma Super Boutique" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Description</FormLabel>
-                    <Textarea
-                      placeholder="Décrivez votre boutique..."
-                      className="min-h-[120px]"
-                      {...field}
-                    />
+                    <FormControl>
+                      <Textarea
+                        placeholder="Décrivez votre boutique et ce que vous vendez..."
+                        className="min-h-[120px]"
+                        {...field}
+                      />
+                    </FormControl>
                     <FormDescription>
                       Une bonne description aide les clients à découvrir votre
                       boutique.
@@ -188,13 +187,7 @@ export default function VendorStorePage() {
                     <FormLabel>Logo</FormLabel>
                     <div className="flex items-center gap-4">
                       <div className="w-20 h-20 rounded-xl border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted overflow-hidden">
-                        {logoFile ? (
-                          <img
-                            src={URL.createObjectURL(logoFile)}
-                            alt="Logo"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : field.value ? (
+                        {field.value ? (
                           <img
                             src={field.value}
                             alt="Logo"
@@ -204,32 +197,13 @@ export default function VendorStorePage() {
                           <Store className="h-8 w-8 text-muted-foreground" />
                         )}
                       </div>
-                      <div className="flex-1 space-y-2">
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          id="logo-upload"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) setLogoFile(file);
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() =>
-                            document.getElementById("logo-upload")?.click()
-                          }
-                        >
-                          <Upload className="mr-2 h-4 w-4" />
-                          Choisir un logo
-                        </Button>
-                        {logoFile && (
-                          <p className="text-xs text-muted-foreground">
-                            {logoFile.name}
-                          </p>
-                        )}
+                      <div className="flex-1">
+                        <FormControl>
+                          <Input placeholder="URL du logo" {...field} />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Format recommandé: 200x200px, PNG ou JPG
+                        </p>
                       </div>
                     </div>
                     <FormMessage />
@@ -246,13 +220,7 @@ export default function VendorStorePage() {
                     <FormLabel>Bannière</FormLabel>
                     <div className="space-y-3">
                       <div className="w-full h-32 rounded-xl border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted overflow-hidden">
-                        {bannerFile ? (
-                          <img
-                            src={URL.createObjectURL(bannerFile)}
-                            alt="Bannière"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : field.value ? (
+                        {field.value ? (
                           <img
                             src={field.value}
                             alt="Bannière"
@@ -267,31 +235,12 @@ export default function VendorStorePage() {
                           </div>
                         )}
                       </div>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        id="banner-upload"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) setBannerFile(file);
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          document.getElementById("banner-upload")?.click()
-                        }
-                      >
-                        <Upload className="mr-2 h-4 w-4" />
-                        Choisir une bannière
-                      </Button>
-                      {bannerFile && (
-                        <p className="text-xs text-muted-foreground">
-                          {bannerFile.name}
-                        </p>
-                      )}
+                      <FormControl>
+                        <Input placeholder="URL de la bannière" {...field} />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Format recommandé: 1200x300px, PNG ou JPG
+                      </p>
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -300,7 +249,7 @@ export default function VendorStorePage() {
             </CardContent>
           </Card>
 
-          {/* Stats */}
+          {/* Stats (only if store exists) */}
           {hasStore && (
             <Card>
               <CardHeader>

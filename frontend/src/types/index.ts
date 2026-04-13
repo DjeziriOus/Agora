@@ -5,7 +5,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: "buyer" | "seller" | "unassigned";
+  role: "buyer" | "seller";
   emailVerified: boolean;
   photo?: string;
 }

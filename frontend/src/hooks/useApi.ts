@@ -4,19 +4,11 @@ import {
   shopsApi,
   // categoriesApi,
   ordersApi,
-  addressesApi,
-  cartApi,
-  vendorApi,
-  authApi,
+  // cartApi,
+  // vendorApi,
+  // authApi,
 } from "@/lib/api";
-import type {
-  ProductQuery,
-  ProductPayload,
-  OrderPayload,
-  StorePayload,
-  Product,
-  Category,
-} from "@/types";
+import type { ProductQuery, ProductPayload, OrderPayload, StorePayload, Product, Category } from "@/types";
 
 // Query Keys
 export const queryKeys = {
@@ -29,8 +21,7 @@ export const queryKeys = {
   },
   stores: {
     detail: (id: string) => ["stores", id] as const,
-    products: (id: string, params?: ProductQuery) =>
-      ["stores", id, "products", params] as const,
+    products: (id: string, params?: ProductQuery) => ["stores", id, "products", params] as const,
     my: ["stores", "my"] as const,
   },
   categories: {
@@ -55,7 +46,8 @@ export const queryKeys = {
 export function useCurrentUser() {
   return useQuery({
     queryKey: queryKeys.auth.me,
-    queryFn: () => authApi.me(),
+    // queryFn: () => authApi.me(),
+    queryFn: () => {},
     retry: false,
   });
 }
@@ -69,7 +61,7 @@ export function useProducts(params?: ProductQuery) {
 }
 
 export function useProduct(id: string) {
-  return useQuery({
+  return useQuery<Product>({
     queryKey: queryKeys.products.detail(id),
     queryFn: () => productsApi.getById(id),
     enabled: !!id,
@@ -79,28 +71,16 @@ export function useProduct(id: string) {
 export function useSellerProducts() {
   return useQuery({
     queryKey: queryKeys.products.seller,
-    queryFn: () => productsApi.getMine(),
+    // queryFn: () => productsApi.getSellerProducts(),
+    queryFn: () => {},
   });
 }
 
 export function useLowStockProducts() {
   return useQuery({
     queryKey: queryKeys.products.lowStock,
-    queryFn: async () => {
-      const result = await productsApi.getMine();
-      const products = Array.isArray(result)
-        ? result
-        : ((result as { products?: unknown[] })?.products ?? []);
-
-      return products.filter(
-        (product) =>
-          typeof product === "object" &&
-          product !== null &&
-          "stock" in product &&
-          "stockThreshold" in product &&
-          (product as any).stock <= (product as any).stockThreshold,
-      );
-    },
+    // queryFn: () => vendorApi.getLowStockProducts(),
+    queryFn: () => {},
   });
 }
 
@@ -121,9 +101,7 @@ export function useUpdateProduct() {
       productsApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.products.detail(id),
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) });
     },
   });
 }
@@ -146,9 +124,7 @@ export function useUpdateProductStock() {
       productsApi.updateStock(id, stock),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.products.detail(id),
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
     },
   });
@@ -191,7 +167,7 @@ export function useMyStore() {
 export function useCreateStore() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: FormData) => shopsApi.create(data),
+    mutationFn: (data: StorePayload) => shopsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.my });
     },
@@ -201,8 +177,7 @@ export function useCreateStore() {
 export function useUpdateStore() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: FormData }) =>
-      shopsApi.update(id, data),
+    mutationFn: (data: Partial<StorePayload>) => shopsApi.update(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.my });
     },
@@ -211,7 +186,7 @@ export function useUpdateStore() {
 
 // CATEGORY HOOKS
 export function useCategories() {
-  return useQuery({
+  return useQuery<Category[]>({
     queryKey: queryKeys.categories.all,
     queryFn: () => categoriesApi.getAll(),
   });
@@ -220,7 +195,7 @@ export function useCategories() {
 // ORDER HOOKS
 export function useClientOrders() {
   return useQuery({
-    queryKey: queryKeys.orders.buyer,
+    queryKey: queryKeys.orders.client,
     queryFn: () => ordersApi.getClientOrders(),
   });
 }
@@ -234,7 +209,7 @@ export function useOrder(id: string) {
 }
 
 export function useSellerOrders() {
-  return useQuery({
+  return useQuery<Order[]>({
     queryKey: queryKeys.orders.seller,
     queryFn: () => ordersApi.getSellerOrders(),
   });
@@ -266,9 +241,7 @@ export function useUpdateOrderStatus() {
       ordersApi.updateStatus(id, status),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.seller });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.orders.sellerDetail(id),
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.sellerDetail(id) });
     },
   });
 }
@@ -284,13 +257,8 @@ export function useCart() {
 export function useAddToCart() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      productId,
-      quantity,
-    }: {
-      productId: string;
-      quantity: number;
-    }) => cartApi.add(productId, quantity),
+    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
+      cartApi.add(productId, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
     },
@@ -300,13 +268,8 @@ export function useAddToCart() {
 export function useUpdateCartQuantity() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      productId,
-      quantity,
-    }: {
-      productId: string;
-      quantity: number;
-    }) => cartApi.updateQuantity(productId, quantity),
+    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
+      cartApi.updateQuantity(productId, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
     },

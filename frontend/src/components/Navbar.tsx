@@ -1,15 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Search,
-  ShoppingCart,
-  ChevronDown,
-  User,
-  LogOut,
-  Package,
-  LayoutDashboard,
-} from "lucide-react";
+import { Search, ShoppingCart, ChevronDown, User, LogOut, Package } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -17,13 +9,7 @@ import { useCart } from "@/context/CartContext";
 
 function AgoraIcon() {
   return (
-    <svg
-      width="28"
-      height="28"
-      viewBox="0 0 28 28"
-      fill="none"
-      aria-hidden="true"
-    >
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <path d="M14 3L27 25H1L14 3Z" fill="var(--agora-gold)" />
       <path d="M14 10L23 25H5L14 10Z" fill="var(--agora-primary)" />
     </svg>
@@ -31,7 +17,7 @@ function AgoraIcon() {
 }
 
 export function Navbar() {
-  const { user, isAuthenticated, isSeller, isLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { itemCount } = useCart();
   const [search, setSearch] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -40,10 +26,7 @@ export function Navbar() {
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
       }
     }
@@ -66,6 +49,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 bg-white border-b border-[var(--agora-line)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-4 h-16">
+
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <AgoraIcon />
@@ -75,22 +59,13 @@ export function Navbar() {
           </Link>
 
           {/* Nav */}
-          <nav className="hidden sm:flex items-center gap-4 shrink-0">
+          <nav className="hidden sm:block shrink-0">
             <Link
               href="/catalogue"
               className="text-sm font-medium text-[var(--agora-ink)] hover:text-[var(--agora-primary)] transition-colors"
             >
               Catalogue
             </Link>
-            {isAuthenticated && isSeller && (
-              <Link
-                href="/vendeur"
-                className="flex items-center gap-1.5 text-sm font-medium text-[var(--agora-gold)] hover:text-[var(--agora-primary)] transition-colors"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Tableau de bord
-              </Link>
-            )}
           </nav>
 
           {/* Search bar */}
@@ -109,6 +84,7 @@ export function Navbar() {
 
           {/* Right : panier + auth */}
           <div className="flex items-center gap-1 shrink-0">
+
             {/* Panier */}
             <Link
               href="/panier"
@@ -124,25 +100,16 @@ export function Navbar() {
             </Link>
 
             {/* Auth */}
-            {!isLoading &&
-              (isAuthenticated ? (
+            {!isLoading && (
+              isAuthenticated ? (
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-lg hover:bg-[var(--agora-accent)] transition-colors"
                   >
-                    {user?.photo ? (
-                      <img
-                        src={user.photo}
-                        alt={`${user.firstName} ${user.lastName}`}
-                        className="w-8 h-8 rounded-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-[var(--agora-primary)] text-white text-sm font-semibold flex items-center justify-center">
-                        {initials}
-                      </div>
-                    )}
+                    <div className="w-8 h-8 rounded-full bg-[var(--agora-primary)] text-white text-sm font-semibold flex items-center justify-center">
+                      {initials}
+                    </div>
                     <ChevronDown
                       className={`w-3.5 h-3.5 text-[var(--agora-mid)] transition-transform duration-200 ${
                         dropdownOpen ? "rotate-180" : ""
@@ -160,16 +127,6 @@ export function Navbar() {
                           {user?.email}
                         </p>
                       </div>
-                      {isSeller && (
-                        <Link
-                          href="/vendeur"
-                          onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-gold)] hover:bg-[var(--agora-accent)] transition-colors"
-                        >
-                          <LayoutDashboard className="w-4 h-4" />
-                          Tableau de bord
-                        </Link>
-                      )}
                       <Link
                         href="/compte/commandes"
                         onClick={() => setDropdownOpen(false)}
@@ -199,7 +156,8 @@ export function Navbar() {
                   <User className="w-4 h-4" />
                   Connexion
                 </Link>
-              ))}
+              )
+            )}
           </div>
         </div>
       </div>

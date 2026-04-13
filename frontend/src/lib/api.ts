@@ -1,4 +1,5 @@
-import { API_URL } from "@/config";
+import { API_URL } from "../config";
+import type { Product } from "@/types";
 const BASE_URL = API_URL;
 
 export class ApiError extends Error {
@@ -19,9 +20,7 @@ export async function apiFetch<T>(
     ...options,
     credentials: "include",
     headers: {
-      ...(options.body instanceof FormData
-        ? {}
-        : { "Content-Type": "application/json" }),
+      "Content-Type": "application/json",
       "ngrok-skip-browser-warning": "true",
       ...(options.headers ?? {}),
     },
@@ -58,8 +57,8 @@ export const productsApi = {
       `/api/products${qs}`,
     );
   },
-  getById: (id: string) => apiFetch<unknown>(`/api/products/${id}`),
-  getMine: () => apiFetch<unknown[]>(`/api/products/mine`),
+  getById: (id: string) => apiFetch<Product>(`/api/products/${id}`),
+  getMine: () => apiFetch<Product[]>(`/api/products/mine`),
   create: (data: unknown) =>
     apiFetch<unknown>("/api/products", {
       method: "POST",
@@ -70,17 +69,12 @@ export const productsApi = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
-  updateStock: (id: string, stock: number) =>
-    apiFetch<unknown>(`/api/products/${id}/stock`, {
-      method: "PUT",
-      body: JSON.stringify({ stock }),
-    }),
   delete: (id: string) =>
     apiFetch<void>(`/api/products/${id}`, { method: "DELETE" }),
 };
 
 // ── Shops ────────────────────────────────────────────────────────────────────
-export const storesApi = {
+export const shopsApi = {
   getById: (id: string) => apiFetch<unknown>(`/api/shops/${id}`),
   getProducts: (id: string, params?: Record<string, string | undefined>) => {
     const qs = params
@@ -100,65 +94,18 @@ export const storesApi = {
   create: (data: unknown) =>
     apiFetch<unknown>("/api/shops", {
       method: "POST",
-      body: data as FormData,
+      body: JSON.stringify(data),
     }),
   update: (id: string, data: unknown) =>
     apiFetch<unknown>(`/api/shops/${id}`, {
       method: "PUT",
-      body: data as FormData,
+      body: JSON.stringify(data),
     }),
-};
-
-export const shopsApi = storesApi;
-
-export const categoriesApi = {
-  getAll: () => apiFetch<unknown[]>("/api/categories"),
-};
-
-export const cartApi = {
-  get: () => apiFetch<unknown>("/api/cart"),
-  add: (productId: string, quantity: number) =>
-    apiFetch<unknown>("/api/cart/add", {
-      method: "POST",
-      body: JSON.stringify({ productId, quantity }),
-    }),
-  updateQuantity: (productId: string, quantity: number) =>
-    apiFetch<unknown>("/api/cart/update", {
-      method: "PUT",
-      body: JSON.stringify({ productId, quantity }),
-    }),
-  remove: (productId: string) =>
-    apiFetch<unknown>("/api/cart/remove", {
-      method: "DELETE",
-      body: JSON.stringify({ productId }),
-    }),
-  clear: () =>
-    apiFetch<unknown>("/api/cart/clear", {
-      method: "DELETE",
-    }),
-};
-
-export const vendorApi = {
-  getStats: () => apiFetch<unknown>("/api/vendor/stats"),
-};
-
-export const authApi = {
-  me: () => apiFetch<unknown>("/api/auth/me"),
 };
 
 // ── Orders ───────────────────────────────────────────────────────────────────
 export const ordersApi = {
   getAll: () => apiFetch<unknown[]>("/api/orders"),
-  getById: (id: string) => apiFetch<unknown>(`/api/orders/${id}`),
-  getClientOrders: () => apiFetch<unknown[]>("/api/orders/client"),
-  getSellerOrders: () => apiFetch<unknown[]>("/api/orders/seller"),
-  getSellerOrderById: (id: string) =>
-    apiFetch<unknown>(`/api/orders/seller/${id}`),
-  updateStatus: (id: string, status: string) =>
-    apiFetch<unknown>(`/api/orders/${id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    }),
   create: (data: unknown) =>
     apiFetch<unknown>("/api/orders", {
       method: "POST",

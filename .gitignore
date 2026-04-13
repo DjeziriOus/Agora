@@ -10,7 +10,5 @@ frontend/src/config.ts
 *.sh
 
 .claude
-gantt tasks.txt
-/*.txt
 
 TODO.md
