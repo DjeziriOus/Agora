@@ -4,6 +4,7 @@ import type {
   CartItem,
   Product,
   ProductImage,
+  ProductQuery,
   ProductVariant,
   SellerProduct,
 } from "@/types";
@@ -15,6 +16,25 @@ type BackendProductImage =
       url?: string;
       publicId?: string;
     };
+
+type BackendStoreImage = {
+  url?: string;
+  publicId?: string;
+};
+
+type BackendStore = {
+  _id?: string;
+  id?: string;
+  name: string;
+  description?: string;
+  logo?: BackendStoreImage;
+  banner?: BackendStoreImage;
+  productCount?: number;
+  rating?: number;
+  reviewCount?: number;
+  followerCount?: number;
+  createdAt?: string;
+};
 
 type BackendProductShop =
   | string
@@ -279,7 +299,7 @@ export async function apiFetch<T>(
 
 // ── Products ────────────────────────────────────────────────────────────────
 export const productsApi = {
-  getAll: async (params?: Record<string, string | undefined>) => {
+  getAll: async (params?: ProductQuery) => {
     const qs = params
       ? "?" +
         new URLSearchParams(
@@ -345,8 +365,11 @@ export const productsApi = {
 
 // ── Shops ────────────────────────────────────────────────────────────────────
 export const storesApi = {
-  getById: (id: string) => apiFetch<unknown>(`/api/shops/${id}`),
-  getProducts: (id: string, params?: Record<string, string | undefined>) => {
+  getById: (id: string) => apiFetch<BackendStore>(`/api/shops/${id}`),
+  getProducts: async (
+    id: string,
+    params?: ProductQuery,
+  ) => {
     const qs = params
       ? "?" +
         new URLSearchParams(
@@ -355,7 +378,10 @@ export const storesApi = {
           ) as Record<string, string>,
         ).toString()
       : "";
-    return apiFetch<unknown>(`/api/shops/${id}/products${qs}`);
+    const products = await apiFetch<BackendProduct[]>(
+      `/api/shops/${id}/products${qs}`,
+    );
+    return products.map(mapProduct);
   },
   getMyStore: async () => {
     const store = await apiFetch<unknown>("/api/shops/my");

@@ -1,8 +1,76 @@
+import mongoose from "mongoose";
 import Shop from "../models/Shop.js";
+import Product from "../models/Product.js";
+import Variant from "../models/Variant.js";
 import {
   uploadToCloudinary,
   deleteFromCloudinary,
 } from "../config/cloudinary.js";
+import { computeAggregatesFromArray } from "./variantService.js";
+
+// Validate a public shop identifier before it reaches the Mongoose query layer.
+const assertObjectId = (value, label) => {
+  if (!mongoose.Types.ObjectId.isValid(value)) {
+    const error = new Error(`Invalid ${label}.`);
+    error.statusCode = 400;
+    throw error;
+  }
+};
+
+// Normalize the public shop payload for the boutique storefront header.
+// Consumer:
+// frontend/app/(client)/boutique/[id]/page.tsx
+// This provides the shop metadata plus the public product count displayed in the page summary.
+const serializePublicShop = async (shop) => {
+  const productCount = await Product.countDocuments({
+    shop: shop._id,
+    isDeleted: false,
+    isActive: true,
+  });
+  const shopObj = shop.toJSON ? shop.toJSON() : shop;
+
+  return {
+    ...shopObj,
+    productCount,
+  };
+};
+
+// Enrich public shop products for storefront rendering.
+// Consumer:
+// frontend/app/(client)/boutique/[id]/page.tsx
+// Each item is rendered through ProductCard, which requires variant data and aggregate
+// fields such as displayPrice, totalStock, and hasMultiplePrices.
+const enrichProductsWithVariants = async (products) => {
+  if (products.length === 0) return [];
+
+  const productIds = products.map((product) => product._id);
+  const allVariants = await Variant.find({ product: { $in: productIds } }).sort({
+    createdAt: 1,
+  });
+
+  const variantsByProduct = new Map();
+  for (const variant of allVariants) {
+    const productId = variant.product.toString();
+    if (!variantsByProduct.has(productId)) {
+      variantsByProduct.set(productId, []);
+    }
+    variantsByProduct.get(productId).push(variant);
+  }
+
+  return products.map((product) => {
+    const productObj = product.toJSON ? product.toJSON() : product;
+    const variants = variantsByProduct.get(product._id.toString()) || [];
+    const aggregates = computeAggregatesFromArray(variants);
+
+    return {
+      ...productObj,
+      variants,
+      totalStock: aggregates.totalStock,
+      displayPrice: aggregates.displayPrice,
+      hasMultiplePrices: aggregates.hasMultiplePrices,
+    };
+  });
+};
 
 /**
  * Upload a single shop image (logo or banner) if a file was provided.
@@ -102,7 +170,9 @@ const createShop = async ({
  * GET /api/shops/:id
  */
 const getShopById = async (shopId) => {
-  const shop = await Shop.findById(shopId).populate(
+  assertObjectId(shopId, "shop id");
+
+  const shop = await Shop.findOne({ _id: shopId, isDeleted: false }).populate(
     "owner",
     "name email firstName lastName",
   );
@@ -111,7 +181,31 @@ const getShopById = async (shopId) => {
     error.statusCode = 404;
     throw error;
   }
-  return shop;
+  return serializePublicShop(shop);
+};
+
+/**
+ * GET /api/shops/:id/products
+ */
+const getShopProducts = async (shopId) => {
+  assertObjectId(shopId, "shop id");
+
+  const shop = await Shop.findOne({ _id: shopId, isDeleted: false });
+  if (!shop) {
+    const error = new Error("Shop not found.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const products = await Product.find({
+    shop: shop._id,
+    isDeleted: false,
+    isActive: true,
+  })
+    .populate("shop", "name")
+    .sort({ createdAt: -1 });
+
+  return enrichProductsWithVariants(products);
 };
 
 /**
@@ -176,4 +270,4 @@ const getMyShop = async (ownerId) => {
   return shop;
 };
 
-export default { createShop, getShopById, updateShop, getMyShop };
+export default { createShop, getShopById, getShopProducts, updateShop, getMyShop };

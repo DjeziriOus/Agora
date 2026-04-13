@@ -75,6 +75,18 @@ export const getShopById = async (req, res) => {
     res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
+
+/**
+ * GET /api/shops/:id/products
+ */
+export const getShopProducts = async (req, res) => {
+  try {
+    const products = await shopService.getShopProducts(req.params.id);
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ message: error.message });
+  }
+};
 /**
  * GET /api/shops/my
  * Get the authenticated seller's shop.

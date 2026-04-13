@@ -16,10 +16,14 @@ export default function StorePage({
 }) {
   const { id } = use(params);
   const { data: store, isLoading } = useStore(id);
-  const { data: productsData } = useStoreProducts(id);
-  const products = Array.isArray(productsData) ? productsData : [];
+  const {
+    data: products = [],
+    isLoading: isProductsLoading,
+    isError: isProductsError,
+    error: productsError,
+  } = useStoreProducts(id);
 
-  if (isLoading) {
+  if (isLoading || isProductsLoading) {
     return (
       <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center">
         <p>Chargement...</p>
@@ -45,9 +49,12 @@ export default function StorePage({
     );
   }
 
-  const memberSince = new Date(store.createdAt).getFullYear();
+  const memberSince = store.createdAt
+    ? new Date(store.createdAt).getFullYear()
+    : new Date().getFullYear();
   const bannerUrl = store.banner?.url?.trim() || "";
   const logoUrl = store.logo?.url?.trim() || "";
+  const productCount = store.productCount ?? products.length;
 
   return (
     <div className="min-h-screen bg-[var(--agora-bg)]">
@@ -98,7 +105,7 @@ export default function StorePage({
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 text-[var(--agora-mid)]" />
               <span className="text-sm text-[var(--agora-mid)]">
-                {store.productCount || 0} produits
+                {productCount} produits
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -118,10 +125,20 @@ export default function StorePage({
         <h2 className="font-display text-xl font-bold text-[var(--agora-ink)] mb-6">
           Produits de {store.name}
         </h2>
-        {products.length > 0 ? (
+        {isProductsError ? (
+          <EmptyState
+            type="products"
+            title="Impossible de charger les produits"
+            description={
+              productsError instanceof Error
+                ? productsError.message
+                : "La boutique est chargée, mais la liste produits a échoué."
+            }
+          />
+        ) : products.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product: any) => (
-              <ProductCard key={product._id || product.id} product={product} />
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         ) : (
