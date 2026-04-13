@@ -405,8 +405,13 @@ export default function VendorStockPage() {
                           {hasVariants ? "" : group.stock}
                         </TableCell>
                         <TableCell>
-                          {minPrice.toFixed(2)}
-                          {maxPrice !== minPrice ? ` - ${maxPrice.toFixed(2)}` : ""} €
+                          {typeof minPrice === "number" && !isNaN(minPrice)
+                            ? minPrice.toFixed(2)
+                            : "--"}
+                          {maxPrice !== minPrice && typeof maxPrice === "number" && !isNaN(maxPrice)
+                            ? ` - ${maxPrice.toFixed(2)}`
+                            : ""}
+                          €
                         </TableCell>
                         <TableCell className="text-right">
                           <Link
