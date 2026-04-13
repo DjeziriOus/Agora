@@ -1,47 +1,11 @@
 {
   "info": {
+    "_postman_id": "63386f9b-c323-4001-a70a-67a31f394d0e",
     "name": "Agora API — BetterAuth",
-    "_postman_id": "agora-betterauth-v2",
     "description": "Full Agora multi-vendor API collection. Base URL: {{backend_origin}}/api\n\nAuth routes are handled by BetterAuth at /api/auth/*\nAll protected routes use session cookies — Postman must have 'Send cookies' enabled.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53586768"
   },
-  "variable": [
-    {
-      "key": "backend_origin",
-      "value": "http://localhost:5001",
-      "type": "string"
-    },
-    {
-      "key": "base_url",
-      "value": "{{backend_origin}}/api",
-      "type": "string"
-    },
-    {
-      "key": "product_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "product_image_public_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "shop_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "order_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "address_id",
-      "value": "",
-      "type": "string"
-    }
-  ],
   "item": [
     {
       "name": "🔐 Auth (BetterAuth)",
@@ -56,6 +20,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Djeziri Oussama\",\n  \"firstName\": \"Oussama\",\n  \"lastName\": \"Djeziri\",\n  \"email\": \"buyer@test.com\",\n  \"password\": \"password123\",\n  \"role\": \"buyer\"\n}"
+            },
             "url": {
               "raw": "{{base_url}}/auth/sign-up/email",
               "host": [
@@ -66,10 +34,6 @@
                 "sign-up",
                 "email"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Djeziri Oussama\",\n  \"firstName\": \"Oussama\",\n  \"lastName\": \"Djeziri\",\n  \"email\": \"buyer@test.com\",\n  \"password\": \"password123\",\n  \"role\": \"buyer\"\n}"
             }
           },
           "response": []
@@ -84,6 +48,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vendeur Test\",\n  \"firstName\": \"Vendeur\",\n  \"lastName\": \"Test\",\n  \"email\": \"seller@test.com\",\n  \"password\": \"password123\",\n  \"role\": \"seller\"\n}"
+            },
             "url": {
               "raw": "{{base_url}}/auth/sign-up/email",
               "host": [
@@ -94,16 +62,12 @@
                 "sign-up",
                 "email"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Vendeur Test\",\n  \"firstName\": \"Vendeur\",\n  \"lastName\": \"Test\",\n  \"email\": \"seller@test.com\",\n  \"password\": \"password123\",\n  \"role\": \"seller\"\n}"
             }
           },
           "response": []
         },
         {
-          "name": "Login (Email + Password)",
+          "name": "Login Buyer",
           "request": {
             "method": "POST",
             "header": [
@@ -112,8 +76,17 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"buyer@test.com\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
-              "raw": "{{base_url}}/auth/sign-in/email",
+              "raw": "{{base_url}}/auth/sign-in/email?Origin=http://localhost:3000",
               "host": [
                 "{{base_url}}"
               ],
@@ -121,11 +94,175 @@
                 "auth",
                 "sign-in",
                 "email"
+              ],
+              "query": [
+                {
+                  "key": "Origin",
+                  "value": "http://localhost:3000",
+                  "type": "text",
+                  "id": 0
+                }
               ]
-            },
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Seller",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "name": "cache-control",
+                "sortOrder": 2,
+                "infoTitle": "We recommend using this header",
+                "info": "Postman added \"Cache-Control: no-cache\" as a precautionary measure to prevent the server from returning stale response when one makes repeated requests.\n\nYou can remove this header in the app settings or enter a new one with a different value.",
+                "allowedToToggle": false,
+                "disableEdit": true,
+                "previewSettingsLink": "Go to settings",
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true,
+                "type": "text"
+              },
+              {
+                "name": "postman-token",
+                "sortOrder": 3,
+                "infoTitle": "We recommend using this header",
+                "info": "The Postman-Token header appends a random UUID to every outgoing request. Postman adds this header for API developers to better debug requests sent and to ensure separate requests appear distinct to the receiving server.\n\nYou can remove this header in the app settings.",
+                "allowedToToggle": false,
+                "disableEdit": true,
+                "previewSettingsLink": "Go to settings",
+                "key": "Postman-Token",
+                "value": "<calculated when request is sent>",
+                "system": true,
+                "type": "text"
+              },
+              {
+                "name": "content-type",
+                "sortOrder": 4,
+                "infoTitle": "This header was automatically added",
+                "info": "The Content-Type header is added to help the server identify the media type of the request body that is present in this request.\n\nUse the request body tab to control the value or to remove this header.",
+                "allowedToToggle": true,
+                "disableEdit": true,
+                "previewSettingsLink": "Go to body",
+                "key": "Content-Type",
+                "value": "application/json",
+                "system": true,
+                "type": "text"
+              },
+              {
+                "name": "content-length",
+                "sortOrder": 5,
+                "infoTitle": "This header was automatically added",
+                "info": "The Content-Length header was added to indicate to the server the size of the request body that is added to this request. Server uses this value to parse the request body accurately.\n\nYou can remove the header or enter a new one with a different value.",
+                "allowedToToggle": true,
+                "disableEdit": true,
+                "previewSettingsLink": "Go to body",
+                "key": "Content-Length",
+                "value": "<calculated when request is sent>",
+                "system": true,
+                "type": "text"
+              },
+              {
+                "name": "host",
+                "sortOrder": 6,
+                "infoTitle": "We recommend using this header",
+                "info": "The Host header is added to identify the domain name for which a request is being sent to the server. This header is implicitly sent by every HTTP client.\n\nYou can remove the header or enter a new one with a different value. It is most likely that without this header, your request will return an HTTP 400 error.",
+                "allowedToToggle": true,
+                "disableEdit": true,
+                "key": "Host",
+                "value": "<calculated when request is sent>",
+                "system": true,
+                "type": "text"
+              },
+              {
+                "name": "user-agent",
+                "sortOrder": 7,
+                "infoTitle": "We recommend using this header",
+                "info": "The User-Agent header is added to help the server identify Postman as the HTTP requesting application or client.\n\nIt is recommended that this header be sent, but you can remove the header or enter a new one with a different value.",
+                "allowedToToggle": true,
+                "disableEdit": true,
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.1",
+                "system": true,
+                "type": "text"
+              },
+              {
+                "name": "accept",
+                "sortOrder": 8,
+                "infoTitle": "We recommend using this header",
+                "info": "The \"Accept: */*\" header is added to tell the server that Postman can understand and process all forms of response content types.\n\nIt is recommended that this header be sent, but you can remove the header or enter a new one with a different value.",
+                "allowedToToggle": true,
+                "disableEdit": true,
+                "key": "Accept",
+                "value": "*/*",
+                "system": true,
+                "type": "text"
+              },
+              {
+                "name": "accept-encoding",
+                "sortOrder": 9,
+                "infoTitle": "We recommend using this header",
+                "info": "The Accept-Encoding header is added to indicate to the server that Postman HTTP client supports a defined list of content-encoding or compression algorithms as response.\n\nYou can remove the header or enter a new one with a different value. Doing that may not accurately render the response within the app.",
+                "allowedToToggle": true,
+                "disableEdit": true,
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true,
+                "type": "text"
+              },
+              {
+                "name": "connection",
+                "sortOrder": 10,
+                "infoTitle": "We recommend using this header",
+                "info": "Postman added the Connection header to indicate the server to keep the underlying network connection open once the current response is received. This allows Postman to reuse the same connection for faster response times in subsequent requests to the same server.\n\nYou can remove this header or enter a new one with a different value, such as `Connection: Close` to control this behaviour.",
+                "allowedToToggle": true,
+                "disableEdit": true,
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true,
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "id": 0
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000",
+                "type": "text",
+                "id": 1
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"buyer@test.com\",\n  \"password\": \"password123\"\n}"
+              "raw": "{\n  \"email\": \"seller@test.com\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/sign-in/email?Origin=http://localhost:3000",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "sign-in",
+                "email"
+              ],
+              "query": [
+                {
+                  "key": "Origin",
+                  "value": "http://localhost:3000",
+                  "type": "text",
+                  "id": 0
+                }
+              ]
             }
           },
           "response": []
@@ -140,6 +277,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
             "url": {
               "raw": "{{base_url}}/auth/sign-out",
               "host": [
@@ -149,10 +290,6 @@
                 "auth",
                 "sign-out"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
             }
           },
           "response": []
@@ -209,6 +346,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"buyer@test.com\",\n  \"redirectTo\": \"http://localhost:3000/reset-password\"\n}"
+            },
             "url": {
               "raw": "{{base_url}}/auth/forget-password",
               "host": [
@@ -218,10 +359,6 @@
                 "auth",
                 "forget-password"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"buyer@test.com\",\n  \"redirectTo\": \"http://localhost:3000/reset-password\"\n}"
             }
           },
           "response": []
@@ -236,6 +373,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"PASTE_TOKEN_FROM_RESET_EMAIL\",\n  \"newPassword\": \"newpassword456\"\n}"
+            },
             "url": {
               "raw": "{{base_url}}/auth/reset-password",
               "host": [
@@ -245,10 +386,6 @@
                 "auth",
                 "reset-password"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"PASTE_TOKEN_FROM_RESET_EMAIL\",\n  \"newPassword\": \"newpassword456\"\n}"
             }
           },
           "response": []
@@ -344,6 +481,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Maison\",\n  \"firstName\": \"Oussama\",\n  \"lastName\": \"Djeziri\",\n  \"phone\": \"+213555000001\",\n  \"street\": \"12 Rue des Fleurs\",\n  \"city\": \"Alger\",\n  \"postalCode\": \"16000\",\n  \"country\": \"Algeria\"\n}"
+            },
             "url": {
               "raw": "{{base_url}}/addresses",
               "host": [
@@ -352,10 +493,6 @@
               "path": [
                 "addresses"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"label\": \"Maison\",\n  \"firstName\": \"Oussama\",\n  \"lastName\": \"Djeziri\",\n  \"phone\": \"+213555000001\",\n  \"street\": \"12 Rue des Fleurs\",\n  \"city\": \"Alger\",\n  \"postalCode\": \"16000\",\n  \"country\": \"Algeria\"\n}"
             }
           },
           "response": []
@@ -370,6 +507,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Bureau\",\n  \"street\": \"5 Avenue de l'Indépendance\",\n  \"city\": \"Oran\"\n}"
+            },
             "url": {
               "raw": "{{base_url}}/addresses/{{address_id}}",
               "host": [
@@ -379,10 +520,6 @@
                 "addresses",
                 "{{address_id}}"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"label\": \"Bureau\",\n  \"street\": \"5 Avenue de l'Indépendance\",\n  \"city\": \"Oran\"\n}"
             }
           },
           "response": []
@@ -454,6 +591,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ma Boutique Test\",\n  \"description\": \"Vente d'électronique et accessoires.\"\n}"
+            },
             "url": {
               "raw": "{{base_url}}/shops",
               "host": [
@@ -462,10 +603,6 @@
               "path": [
                 "shops"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Ma Boutique Test\",\n  \"description\": \"Vente d'électronique et accessoires.\"\n}"
             }
           },
           "response": []
@@ -513,6 +650,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Description mise à jour de la boutique.\"\n}"
+            },
             "url": {
               "raw": "{{base_url}}/shops/{{shop_id}}",
               "host": [
@@ -522,10 +663,6 @@
                 "shops",
                 "{{shop_id}}"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"description\": \"Description mise à jour de la boutique.\"\n}"
             }
           },
           "response": []
@@ -685,15 +822,6 @@
           "request": {
             "method": "POST",
             "header": [],
-            "url": {
-              "raw": "{{base_url}}/products",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "products"
-              ]
-            },
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -732,6 +860,15 @@
                   "type": "file",
                   "src": []
                 }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products"
               ]
             }
           },
@@ -811,6 +948,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 42000,\n  \"category\": \"Electronics\",\n  \"isActive\": false\n}"
+            },
             "url": {
               "raw": "{{base_url}}/products/{{product_id}}",
               "host": [
@@ -820,10 +961,6 @@
                 "products",
                 "{{product_id}}"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"price\": 42000,\n  \"category\": \"Electronics\",\n  \"isActive\": false\n}"
             }
           },
           "response": []
@@ -833,16 +970,6 @@
           "request": {
             "method": "PUT",
             "header": [],
-            "url": {
-              "raw": "{{base_url}}/products/{{product_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "products",
-                "{{product_id}}"
-              ]
-            },
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -856,6 +983,16 @@
                   "type": "file",
                   "src": []
                 }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "{{product_id}}"
               ]
             }
           },
@@ -871,6 +1008,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 15\n}"
+            },
             "url": {
               "raw": "{{base_url}}/products/{{product_id}}/stock",
               "host": [
@@ -881,10 +1022,6 @@
                 "{{product_id}}",
                 "stock"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"stock\": 15\n}"
             }
           },
           "response": []
@@ -951,6 +1088,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{product_id}}\",\n  \"quantity\": 1\n}"
+            },
             "url": {
               "raw": "{{base_url}}/cart/items",
               "host": [
@@ -960,10 +1101,6 @@
                 "cart",
                 "items"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"productId\": \"{{product_id}}\",\n  \"quantity\": 1\n}"
             }
           },
           "response": []
@@ -978,6 +1115,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3\n}"
+            },
             "url": {
               "raw": "{{base_url}}/cart/items/{{product_id}}",
               "host": [
@@ -988,10 +1129,6 @@
                 "items",
                 "{{product_id}}"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"quantity\": 3\n}"
             }
           },
           "response": []
@@ -1059,6 +1196,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    { \"product\": \"{{product_id}}\", \"quantity\": 1 }\n  ],\n  \"deliveryAddressId\": \"{{address_id}}\"\n}"
+            },
             "url": {
               "raw": "{{base_url}}/orders",
               "host": [
@@ -1067,10 +1208,6 @@
               "path": [
                 "orders"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"items\": [\n    { \"product\": \"{{product_id}}\", \"quantity\": 1 }\n  ],\n  \"deliveryAddressId\": \"{{address_id}}\"\n}"
             }
           },
           "response": []
@@ -1093,6 +1230,43 @@
           "response": []
         }
       ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "backend_origin",
+      "value": "http://localhost:5001",
+      "type": "string"
+    },
+    {
+      "key": "base_url",
+      "value": "{{backend_origin}}/api",
+      "type": "string"
+    },
+    {
+      "key": "product_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "product_image_public_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shop_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "address_id",
+      "value": "",
+      "type": "string"
     }
   ]
 }
