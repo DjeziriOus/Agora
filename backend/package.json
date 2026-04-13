@@ -6,8 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon --ext js,json,env index.js",
-    "seed": "node scripts/seed.js"
+    "dev": "nodemon --ext js,json,env server.js"
   },
   "keywords": [],
   "author": "",

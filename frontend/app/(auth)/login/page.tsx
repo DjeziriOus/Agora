@@ -14,9 +14,9 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const { login, isLoading, emailNotVerified, clearEmailNotVerified } =
     useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
 
   const handleGoogleLogin = async () => {

@@ -81,9 +81,9 @@ export default function ChooseRolePage() {
                 Agora
               </span>
             </div>
-            {user?.image && (
+            {user?.photo && (
               <img
-                src={user.image}
+                src={user.photo}
                 alt=""
                 className="w-16 h-16 rounded-full mx-auto mt-4 object-cover border-2 border-[var(--agora-line)]"
                 referrerPolicy="no-referrer"

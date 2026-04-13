@@ -168,21 +168,21 @@ const mapCartItem = (item: BackendCartItem): CartItem => {
 
   const variant: ProductVariant = variantData
     ? mapVariant(variantData as BackendVariant)
-    : product.variants[0] ?? {
+    : (product.variants[0] ?? {
         id: "",
         code: "default",
         name: "Standard",
         price: product.displayPrice,
         stock: 0,
         isActive: true,
-      };
+      });
 
   const variantId =
     typeof item.variantId === "string"
       ? item.variantId
-      : (variantData as BackendVariant)?._id ??
+      : ((variantData as BackendVariant)?._id ??
         (variantData as BackendVariant)?.id ??
-        variant.id;
+        variant.id);
 
   return {
     productId: product.id,
@@ -252,6 +252,9 @@ export async function apiFetch<T>(
     ...options,
     credentials: "include",
     headers: {
+      ...(options.body instanceof FormData
+        ? {}
+        : { "Content-Type": "application/json" }),
       "ngrok-skip-browser-warning": "true",
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(options.headers ?? {}),
@@ -324,6 +327,11 @@ export const productsApi = {
       method: "PUT",
       body: data instanceof FormData ? data : JSON.stringify(data),
     }),
+  updateStock: (id: string, stock: number) =>
+    apiFetch<unknown>(`/api/products/${id}/stock`, {
+      method: "PUT",
+      body: JSON.stringify({ stock }),
+    }),
   delete: (id: string) =>
     apiFetch<void>(`/api/products/${id}`, {
       method: "DELETE",
@@ -336,7 +344,7 @@ export const productsApi = {
 };
 
 // ── Shops ────────────────────────────────────────────────────────────────────
-export const shopsApi = {
+export const storesApi = {
   getById: (id: string) => apiFetch<unknown>(`/api/shops/${id}`),
   getProducts: (id: string, params?: Record<string, string | undefined>) => {
     const qs = params
@@ -356,15 +364,50 @@ export const shopsApi = {
   create: (data: unknown) =>
     apiFetch<unknown>("/api/shops", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: data as FormData,
     }),
   update: (data: unknown) =>
     apiFetch<unknown>("/api/shops/my", {
       method: "PUT",
-      body: JSON.stringify(data),
+      body: data as FormData,
     }),
 };
 
+export const shopsApi = storesApi;
+
+export const categoriesApi = {
+  getAll: () => apiFetch<unknown[]>("/api/categories"),
+};
+
+// export const cartApi = {
+//   get: () => apiFetch<unknown>("/api/cart"),
+//   add: (productId: string, quantity: number) =>
+//     apiFetch<unknown>("/api/cart/add", {
+//       method: "POST",
+//       body: JSON.stringify({ productId, quantity }),
+//     }),
+//   updateQuantity: (productId: string, quantity: number) =>
+//     apiFetch<unknown>("/api/cart/update", {
+//       method: "PUT",
+//       body: JSON.stringify({ productId, quantity }),
+//     }),
+//   remove: (productId: string) =>
+//     apiFetch<unknown>("/api/cart/remove", {
+//       method: "DELETE",
+//       body: JSON.stringify({ productId }),
+//     }),
+//   clear: () =>
+//     apiFetch<unknown>("/api/cart/clear", {
+//       method: "DELETE",
+//     }),
+// };
+
+export const vendorApi = {
+  getStats: () => apiFetch<unknown>("/api/vendor/stats"),
+};
+
+// export const authApi = {
+//   me: () => apiFetch<unknown>("/api/auth/me"),
 // ── Cart ─────────────────────────────────────────────────────────────────────
 export const cartApi = {
   get: async () => {

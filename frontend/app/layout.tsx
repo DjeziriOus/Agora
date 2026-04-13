@@ -4,7 +4,7 @@ import { Sora } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
-
+import { CartProvider } from "@/context/CartContext";
 import { QueryProvider } from "@/lib/queryClient";
 import "./globals.css";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
