@@ -43,7 +43,7 @@ export default function ProductDetailPage({
   const fallbackProduct = mockProducts.find((p) => p.id === id);
   const product = apiProduct ?? fallbackProduct;
   const store = product?.storeId
-    ? { id: product.storeId, name: product.storeName, logo: undefined }
+    ? { id: product.storeId, name: product.storeName, logo: product.storeLogo }
     : null;
   const reviews: Review[] = [];
   const relatedProducts: Product[] = product
