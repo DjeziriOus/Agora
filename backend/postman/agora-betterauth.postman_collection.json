@@ -358,8 +358,11 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
                   "const j = pm.response.json();",
-                  "if(j._id) pm.collectionVariables.set('shop_id', j._id);"
+                  "const shop = j.shop || j;",
+                  "pm.test('Shop id returned', () => pm.expect(shop.id || shop._id).to.be.ok);",
+                  "pm.collectionVariables.set('shop_id', shop.id || shop._id);"
                 ],
                 "type": "text/javascript"
               }
@@ -387,6 +390,21 @@
         },
         {
           "name": "Get Shop by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const shop = pm.response.json();",
+                  "pm.test('Has public catalogue count', () => {",
+                  "  pm.expect(shop).to.have.property('productCount');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -595,6 +613,42 @@
                   "src": []
                 }
               ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Shop Products (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const products = pm.response.json();",
+                  "pm.test('Response is an array', () => pm.expect(Array.isArray(products)).to.eql(true));",
+                  "if (products.length > 0) {",
+                  "  const first = products[0];",
+                  "  pm.test('Products include storefront fields', () => {",
+                  "    pm.expect(first.id || first._id).to.be.ok;",
+                  "    pm.expect(first).to.have.property('shop');",
+                  "    pm.expect(first).to.have.property('variants');",
+                  "    pm.expect(first).to.have.property('displayPrice');",
+                  "    pm.expect(first).to.have.property('totalStock');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/shops/{{shop_id}}/products",
+              "host": ["{{base_url}}"],
+              "path": ["shops", "{{shop_id}}", "products"]
             }
           },
           "response": []
