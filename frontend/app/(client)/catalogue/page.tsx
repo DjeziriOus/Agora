@@ -32,6 +32,7 @@ const sortOptions: { value: SortOption; label: string }[] = [
 function CatalogueContent() {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
+  const queryParam = searchParams.get("q") || "";
 
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
@@ -87,6 +88,15 @@ function CatalogueContent() {
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
+    if (queryParam.trim() !== "") {
+      const q = queryParam.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q)
+      );
+    }
+
     if (filters.minPrice > 0) {
       result = result.filter((p) => p.displayPrice >= filters.minPrice);
     }
@@ -118,7 +128,7 @@ function CatalogueContent() {
     }
 
     return result;
-  }, [products, filters, sortBy]);
+  }, [products, filters, sortBy, queryParam]);
 
   // Build categories and stores dynamically from real API data
   const categories = useMemo(() => {
