@@ -395,14 +395,12 @@ export default function VendorStockPage() {
                         <TableCell>-</TableCell>
                         <TableCell>{group.category}</TableCell>
                         <TableCell>
-                          {hasVariants ? null : (
-                            <Badge variant="outline" className={productStatus.className}>
-                              {productStatus.label}
-                            </Badge>
-                          )}
+                          <Badge variant="outline" className={productStatus.className}>
+                            {productStatus.label}
+                          </Badge>
                         </TableCell>
                         <TableCell className="font-medium">
-                          {hasVariants ? "" : group.stock}
+                          {group.stock}
                         </TableCell>
                         <TableCell>
                           {typeof minPrice === "number" && !isNaN(minPrice)

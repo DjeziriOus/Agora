@@ -105,9 +105,9 @@ export default function CartPage() {
 
                 {/* Items */}
                 <div className="divide-y divide-[var(--agora-line)]">
-                  {groupedItems[storeId].items.map((item) => (
+                  {groupedItems[storeId].items.map((item, idx) => (
                     <CartItemRow
-                      key={`${item.productId}-${item.variantId}`}
+                      key={`${item.productId?.id || item.productId}-${item.variantId || ''}-${idx}`}
                       item={item}
                       onUpdateQuantity={(qty) =>
                         updateQuantity(item.productId, qty, item.variantId)
