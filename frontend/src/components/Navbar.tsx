@@ -13,7 +13,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useCart } from "@/context/CartContext";
+import { useCart } from "@/hooks/useCart";
 
 function AgoraIcon() {
   return (

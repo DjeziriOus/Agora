@@ -3,9 +3,6 @@ import {
   productsApi,
   shopsApi,
   ordersApi,
-  // cartApi,
-  // vendorApi,
-  // authApi,
 } from "@/lib/api";
 import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
 import type {
@@ -16,6 +13,7 @@ import type {
   Product,
   Category,
   SellerProduct,
+  Order,
 } from "@/types";
 
 // Query Keys
@@ -43,7 +41,6 @@ export const queryKeys = {
     seller: ["orders", "seller"] as const,
     sellerDetail: (id: string) => ["orders", "seller", id] as const,
   },
-  cart: ["cart"] as const,
   vendor: {
     stats: ["vendor", "stats"] as const,
   },
@@ -56,7 +53,6 @@ export const queryKeys = {
 export function useCurrentUser() {
   return useQuery({
     queryKey: queryKeys.auth.me,
-    // queryFn: () => authApi.me(),
     queryFn: () => {},
     retry: false,
   });
@@ -99,7 +95,7 @@ export function useLowStockProducts() {
     queryFn: async () => {
       const result = await productsApi.getMine();
       return result.products.filter(
-        (product) => product.stock <= product.stockThreshold,
+        (product) => product.totalStock <= product.stockThreshold,
       );
     },
   });
@@ -151,21 +147,6 @@ export function useToggleProductActive() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.products.sellerDetail(id),
       });
-    },
-  });
-}
-
-export function useUpdateProductStock() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, stock }: { id: string; stock: number }) =>
-      productsApi.updateStock(id, stock),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.products.detail(id),
-      });
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
     },
   });
 }
@@ -274,8 +255,8 @@ export function useCreateOrder() {
   return useMutation({
     mutationFn: (data: OrderPayload) => ordersApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.client });
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.buyer });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }
@@ -294,70 +275,13 @@ export function useUpdateOrderStatus() {
   });
 }
 
-// CART HOOKS
-export function useCart() {
-  return useQuery({
-    queryKey: queryKeys.cart,
-    queryFn: () => cartApi.get(),
-  });
-}
-
-export function useAddToCart() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      productId,
-      quantity,
-    }: {
-      productId: string;
-      quantity: number;
-    }) => cartApi.add(productId, quantity),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
-    },
-  });
-}
-
-export function useUpdateCartQuantity() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      productId,
-      quantity,
-    }: {
-      productId: string;
-      quantity: number;
-    }) => cartApi.updateQuantity(productId, quantity),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
-    },
-  });
-}
-
-export function useRemoveFromCart() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (productId: string) => cartApi.remove(productId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
-    },
-  });
-}
-
-export function useClearCart() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => cartApi.clear(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
-    },
-  });
-}
-
 // VENDOR STATS HOOKS
 export function useVendorStats() {
   return useQuery({
     queryKey: queryKeys.vendor.stats,
-    queryFn: () => vendorApi.getStats(),
+    queryFn: async () => {
+      // TODO: implement real vendor stats API
+      return { revenue: 0, revenueChange: 0, ordersReceived: 0, activeProducts: 0, averageRating: 0 };
+    },
   });
 }

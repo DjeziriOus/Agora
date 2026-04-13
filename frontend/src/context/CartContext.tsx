@@ -8,9 +8,9 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import type { CartItem } from "@/types";
-import { cartApi, ApiError } from "@/lib/api";
-import { useAuth } from "./AuthContext";
+import type { CartItem, Product } from "@/types";
+import { cartApi } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 interface CartContextType {
@@ -24,125 +24,164 @@ interface CartContextType {
     items: CartItem[];
     subtotal: number;
   }[];
-  addToCart: (productId: string, quantity?: number) => Promise<void>;
-  updateQuantity: (productId: string, quantity: number) => Promise<void>;
-  removeFromCart: (productId: string) => Promise<void>;
+  addToCart: (
+    productOrId: string | Product,
+    quantity?: number,
+    variantId?: string | null,
+  ) => Promise<void>;
+  updateQuantity: (
+    productId: string,
+    quantity: number,
+    variantId?: string | null,
+  ) => Promise<void>;
+  removeFromCart: (
+    productId: string,
+    variantId?: string | null,
+  ) => Promise<void>;
   clearCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Une erreur est survenue";
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch cart from backend whenever auth state resolves.
-  // Clear local state on logout.
-  useEffect(() => {
-    if (isAuthLoading) return;
-
+  const loadServerCart = useCallback(async () => {
     if (!isAuthenticated) {
       setItems([]);
-      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
-    (async () => {
-      try {
-        const cartItems: CartItem[] = await cartApi.get() as CartItem[];
-        setItems(cartItems);
-      } catch {
-        setItems([]);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, [isAuthenticated, isAuthLoading]);
+    try {
+      const cart = await cartApi.get();
+      setItems(cart.items);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    void loadServerCart();
+  }, [isAuthLoading, loadServerCart]);
 
   const addToCart = useCallback(
-    async (productId: string, quantity = 1) => {
+    async (
+      productOrId: string | Product,
+      quantity = 1,
+      variantId?: string | null,
+    ) => {
       if (!isAuthenticated) {
-        toast.error("Connectez-vous pour ajouter au panier");
+        toast.error("Connectez-vous pour ajouter des produits au panier");
         return;
       }
+
+      const productId =
+        typeof productOrId === "string"
+          ? productOrId
+          : productOrId.id ||
+            ((productOrId as unknown as { _id?: string })._id ?? "");
+
+      if (!productId) {
+        toast.error("Produit introuvable");
+        return;
+      }
+
       try {
-        const updated: CartItem[] = await cartApi.add(productId, quantity) as CartItem[];
-        setItems(updated);
+        const cart = await cartApi.add(productId, quantity, variantId ?? null);
+        setItems(cart.items);
         toast.success("Produit ajouté au panier");
-      } catch (err) {
-        toast.error(
-          err instanceof ApiError ? err.message : "Erreur lors de l'ajout",
-        );
+      } catch (error) {
+        toast.error(getErrorMessage(error));
       }
     },
     [isAuthenticated],
   );
 
   const updateQuantity = useCallback(
-    async (productId: string, quantity: number) => {
-      if (quantity < 1) return;
+    async (productId: string, quantity: number, variantId?: string | null) => {
+      if (!isAuthenticated) {
+        return;
+      }
+
+      if (quantity < 1) {
+        return;
+      }
+
       try {
-        const updated: CartItem[] = await cartApi.updateQuantity(productId, quantity) as CartItem[];
-        setItems(updated);
-      } catch (err) {
-        toast.error(
-          err instanceof ApiError
-            ? err.message
-            : "Erreur lors de la mise à jour",
+        const cart = await cartApi.updateQuantity(
+          productId,
+          quantity,
+          variantId ?? null,
         );
+        setItems(cart.items);
+      } catch (error) {
+        toast.error(getErrorMessage(error));
       }
     },
-    [],
+    [isAuthenticated],
   );
 
-  const removeFromCart = useCallback(async (productId: string) => {
-    try {
-      const updated: CartItem[] = await cartApi.remove(productId) as CartItem[];
-      setItems(updated);
-      toast.success("Produit retiré du panier");
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError
-          ? err.message
-          : "Erreur lors de la suppression",
-      );
-    }
-  }, []);
+  const removeFromCart = useCallback(
+    async (productId: string, variantId?: string | null) => {
+      if (!isAuthenticated) {
+        return;
+      }
+
+      try {
+        const cart = await cartApi.remove(productId, variantId ?? null);
+        setItems(cart.items);
+        toast.success("Produit retire du panier");
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
+    },
+    [isAuthenticated],
+  );
 
   const clearCart = useCallback(async () => {
+    if (!isAuthenticated) {
+      setItems([]);
+      return;
+    }
+
     try {
       await cartApi.clear();
       setItems([]);
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError
-          ? err.message
-          : "Erreur lors du vidage du panier",
-      );
+    } catch (error) {
+      toast.error(getErrorMessage(error));
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const subtotal = items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (sum, item) => sum + (item.unitPrice ?? item.product.price) * item.quantity,
     0,
   );
 
   const storeGroups = items.reduce(
     (groups, item) => {
-      const existing = groups.find((g) => g.storeId === item.product.storeId);
-      if (existing) {
-        existing.items.push(item);
-        existing.subtotal += item.product.price * item.quantity;
+      const existingGroup = groups.find(
+        (g) => g.storeId === item.product.storeId,
+      );
+      if (existingGroup) {
+        existingGroup.items.push(item);
+        existingGroup.subtotal +=
+          (item.unitPrice ?? item.product.price) * item.quantity;
       } else {
         groups.push({
           storeId: item.product.storeId,
           storeName: item.product.storeName,
           items: [item],
-          subtotal: item.product.price * item.quantity,
+          subtotal: (item.unitPrice ?? item.product.price) * item.quantity,
         });
       }
       return groups;

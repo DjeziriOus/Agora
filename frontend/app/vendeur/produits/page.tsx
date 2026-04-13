@@ -75,7 +75,7 @@ function VendorProductsContent() {
   );
 
   if (filterLowStock) {
-    filteredProducts = filteredProducts.filter((p) => p.stock <= 5);
+    filteredProducts = filteredProducts.filter((p) => p.totalStock <= (p.stockThreshold ?? 5));
   }
 
   const handleToggleActive = async (
@@ -221,22 +221,25 @@ function VendorProductsContent() {
                     </TableCell>
                     <TableCell>
                       <span className="font-semibold">
-                        {product.price.toFixed(2)} €
+                        {product.hasMultiplePrices && (
+                          <span className="text-xs font-normal text-muted-foreground mr-1">À partir de</span>
+                        )}
+                        {product.displayPrice.toFixed(2)} €
                       </span>
                     </TableCell>
                     <TableCell>
                       <span
                         className={`font-medium ${
-                          product.stock <= 5
+                          product.totalStock <= (product.stockThreshold ?? 5)
                             ? "text-agora-warning"
-                            : product.stock <= 0
+                            : product.totalStock <= 0
                             ? "text-destructive"
                             : ""
                         }`}
                       >
-                        {product.stock}
+                        {product.totalStock}
                       </span>
-                      {product.stock <= 5 && product.stock > 0 && (
+                      {product.totalStock <= (product.stockThreshold ?? 5) && product.totalStock > 0 && (
                         <AlertTriangle className="inline-block ml-1 h-3 w-3 text-agora-warning" />
                       )}
                     </TableCell>

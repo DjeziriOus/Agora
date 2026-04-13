@@ -88,10 +88,10 @@ function CatalogueContent() {
     let result = [...products];
 
     if (filters.minPrice > 0) {
-      result = result.filter((p) => p.price >= filters.minPrice);
+      result = result.filter((p) => p.displayPrice >= filters.minPrice);
     }
     if (filters.maxPrice < 500) {
-      result = result.filter((p) => p.price <= filters.maxPrice);
+      result = result.filter((p) => p.displayPrice <= filters.maxPrice);
     }
     if (filters.categories.length > 0) {
       result = result.filter((p) => filters.categories.includes(p.category));
@@ -105,10 +105,10 @@ function CatalogueContent() {
 
     switch (sortBy) {
       case "price_asc":
-        result.sort((a, b) => a.price - b.price);
+        result.sort((a, b) => a.displayPrice - b.displayPrice);
         break;
       case "price_desc":
-        result.sort((a, b) => b.price - a.price);
+        result.sort((a, b) => b.displayPrice - a.displayPrice);
         break;
       case "rating":
         result.sort((a, b) => b.rating - a.rating);

@@ -1,31 +1,39 @@
 import express from "express";
 import {
-  getCart,
-  addItem,
-  updateItem,
-  removeItem,
-  clearCart,
+  addToCart,
+  clearMyCart,
+  getCartCheckoutSummary,
+  getMyCart,
+  removeFromCart,
+  toggleCartItemSelected,
+  updateCartItemQuantity,
 } from "../controllers/cartController.js";
 import { verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// All cart routes require authentication.
+// All cart endpoints require an authenticated user.
 router.use(verifyToken);
 
-// GET  /api/cart              — get current user's cart
-router.get("/", getCart);
+// GET /api/cart
+router.get("/", getMyCart);
 
-// POST /api/cart/items        — add item { productId, quantity? }
-router.post("/items", addItem);
+// POST /api/cart/add
+router.post("/add", addToCart);
 
-// PUT  /api/cart/items/:productId — update item quantity { quantity }
-router.put("/items/:productId", updateItem);
+// PUT /api/cart/update-quantity
+router.put("/update-quantity", updateCartItemQuantity);
 
-// DELETE /api/cart/items/:productId — remove one item
-router.delete("/items/:productId", removeItem);
+// DELETE /api/cart/remove
+router.delete("/remove", removeFromCart);
 
-// DELETE /api/cart            — clear entire cart
-router.delete("/", clearCart);
+// PATCH /api/cart/toggle-selected
+router.patch("/toggle-selected", toggleCartItemSelected);
+
+// GET /api/cart/checkout-summary
+router.get("/checkout-summary", getCartCheckoutSummary);
+
+// DELETE /api/cart/clear
+router.delete("/clear", clearMyCart);
 
 export default router;

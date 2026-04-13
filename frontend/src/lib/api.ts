@@ -1,5 +1,12 @@
 import { API_URL } from "../config";
-import type { Product, ProductImage, SellerProduct, CartItem } from "@/types";
+import type {
+  Cart,
+  CartItem,
+  Product,
+  ProductImage,
+  ProductVariant,
+  SellerProduct,
+} from "@/types";
 const BASE_URL = API_URL;
 
 type BackendProductImage =
@@ -17,22 +24,73 @@ type BackendProductShop =
       name?: string;
     };
 
+type BackendVariant = {
+  _id?: string;
+  id?: string;
+  code?: string;
+  name?: string;
+  sku?: string;
+  price?: number;
+  stock?: number;
+  attributes?: Record<string, string>;
+  isActive?: boolean;
+};
+
 type BackendProduct = {
   _id?: string;
   id?: string;
   name: string;
   description?: string;
   category?: string;
-  price: number;
-  stock?: number;
   stockThreshold?: number;
   rating?: number;
   reviewCount?: number;
   images?: BackendProductImage[];
+  variants?: BackendVariant[];
+  totalStock?: number;
+  displayPrice?: number;
+  hasMultiplePrices?: boolean;
   isActive?: boolean;
   createdAt?: string;
   shop?: BackendProductShop;
 };
+
+type BackendCartItem = {
+  productId: BackendProduct;
+  variantId?: BackendVariant | string | null;
+  selected?: boolean;
+  quantity: number;
+};
+
+type BackendCart = {
+  _id?: string;
+  userId?: string;
+  items?: BackendCartItem[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type CartMutationResponse = {
+  message?: string;
+  cart: BackendCart;
+};
+
+type CheckoutSummaryResponse = {
+  selectedItems: BackendCartItem[];
+  subtotal: number;
+  itemCount: number;
+};
+
+const mapVariant = (variant: BackendVariant): ProductVariant => ({
+  id: variant.id ?? variant._id ?? "",
+  code: variant.code ?? "",
+  name: variant.name ?? "",
+  sku: variant.sku ?? "",
+  price: Number(variant.price ?? 0),
+  stock: variant.stock ?? 0,
+  attributes: variant.attributes ?? {},
+  isActive: variant.isActive ?? true,
+});
 
 const mapProduct = (product: BackendProduct): Product => {
   const id = product.id ?? product._id;
@@ -49,13 +107,24 @@ const mapProduct = (product: BackendProduct): Product => {
   const storeName =
     typeof product.shop === "string" ? "" : (product.shop?.name ?? "");
 
+  const variants = (product.variants ?? []).map(mapVariant);
+
+  // Compute aggregates from variants if not provided by backend
+  const activeVariants = variants.filter((v) => v.isActive);
+  const fallbackTotalStock = activeVariants.reduce((s, v) => s + v.stock, 0);
+  const fallbackDisplayPrice =
+    activeVariants.length > 0
+      ? Math.min(...activeVariants.map((v) => v.price))
+      : 0;
+  const fallbackHasMultiplePrices =
+    activeVariants.length > 1 &&
+    new Set(activeVariants.map((v) => v.price)).size > 1;
+
   return {
     id,
     name: product.name,
     description: product.description ?? "",
-    price: product.price,
     category: product.category ?? "",
-    stock: product.stock ?? 0,
     stockThreshold: product.stockThreshold ?? 5,
     rating: product.rating ?? 0,
     reviewCount: product.reviewCount ?? 0,
@@ -64,6 +133,10 @@ const mapProduct = (product: BackendProduct): Product => {
     images: (product.images ?? []).map((image) =>
       typeof image === "string" ? image : (image.url ?? ""),
     ),
+    variants,
+    totalStock: product.totalStock ?? fallbackTotalStock,
+    displayPrice: product.displayPrice ?? fallbackDisplayPrice,
+    hasMultiplePrices: product.hasMultiplePrices ?? fallbackHasMultiplePrices,
     isActive: product.isActive ?? true,
     createdAt: product.createdAt ?? "",
   };
@@ -80,6 +153,83 @@ const mapSellerProduct = (product: BackendProduct): SellerProduct => {
   return {
     ...mappedProduct,
     images: (product.images ?? []).map(mapProductImage),
+  };
+};
+
+const mapCartItem = (item: BackendCartItem): CartItem => {
+  // The backend populates productId with the full product document.
+  const product = mapProduct(item.productId);
+
+  // The backend populates variantId with the full variant document.
+  const variantData =
+    typeof item.variantId === "object" && item.variantId !== null
+      ? item.variantId
+      : null;
+
+  const variant: ProductVariant = variantData
+    ? mapVariant(variantData as BackendVariant)
+    : product.variants[0] ?? {
+        id: "",
+        code: "default",
+        name: "Standard",
+        price: product.displayPrice,
+        stock: 0,
+        isActive: true,
+      };
+
+  const variantId =
+    typeof item.variantId === "string"
+      ? item.variantId
+      : (variantData as BackendVariant)?._id ??
+        (variantData as BackendVariant)?.id ??
+        variant.id;
+
+  return {
+    productId: product.id,
+    variantId: variantId ?? "",
+    product,
+    variant,
+    quantity: item.quantity,
+    unitPrice: variant.price,
+    selected: item.selected ?? true,
+  };
+};
+
+const mapCart = (cart: BackendCart): Cart => {
+  // Normalize the backend cart payload into the shape expected by the frontend.
+  const items = (cart.items ?? []).map(mapCartItem);
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity,
+    0,
+  );
+
+  const storeGroups = items.reduce(
+    (groups, item) => {
+      const existingGroup = groups.find(
+        (group) => group.storeId === item.product.storeId,
+      );
+
+      if (existingGroup) {
+        existingGroup.items.push(item);
+        existingGroup.subtotal += item.unitPrice * item.quantity;
+      } else {
+        groups.push({
+          storeId: item.product.storeId,
+          storeName: item.product.storeName,
+          items: [item],
+          subtotal: item.unitPrice * item.quantity,
+        });
+      }
+
+      return groups;
+    },
+    [] as Cart["storeGroups"],
+  );
+
+  return {
+    items,
+    subtotal,
+    storeGroups,
   };
 };
 
@@ -178,11 +328,6 @@ export const productsApi = {
     apiFetch<void>(`/api/products/${id}`, {
       method: "DELETE",
     }),
-  updateStock: (id: string, stock: number) =>
-    apiFetch<unknown>(`/api/products/${id}/stock`, {
-      method: "PATCH",
-      body: JSON.stringify({ stock }),
-    }),
   toggleActive: (id: string, isActive: boolean) =>
     apiFetch<unknown>(`/api/products/${id}`, {
       method: "PUT",
@@ -213,62 +358,91 @@ export const shopsApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  update: (id: string, data: unknown) =>
-    apiFetch<unknown>(`/api/shops/${id}`, {
+  update: (data: unknown) =>
+    apiFetch<unknown>("/api/shops/my", {
       method: "PUT",
       body: JSON.stringify(data),
     }),
 };
 
 // ── Cart ─────────────────────────────────────────────────────────────────────
-
-type BackendCartItem = {
-  productId: BackendProduct & { shop: BackendProductShop };
-  quantity: number;
-};
-
-type BackendCart = {
-  userId: string;
-  items: BackendCartItem[];
-};
-
-const mapCartItem = (item: BackendCartItem): CartItem => ({
-  productId: item.productId.id ?? item.productId._id ?? "",
-  quantity: item.quantity,
-  product: mapProduct(item.productId),
-});
-
 export const cartApi = {
-  get: async (): Promise<CartItem[]> => {
+  get: async () => {
+    // Fetch the authenticated user's server-side cart.
     const cart = await apiFetch<BackendCart>("/api/cart");
-    return cart.items.map(mapCartItem);
+    return mapCart(cart);
   },
-  add: async (productId: string, quantity: number): Promise<CartItem[]> => {
-    const cart = await apiFetch<BackendCart>("/api/cart/items", {
+  add: async (productId: string, quantity = 1, variantId?: string | null) => {
+    const response = await apiFetch<CartMutationResponse>("/api/cart/add", {
       method: "POST",
-      body: JSON.stringify({ productId, quantity }),
+      body: JSON.stringify({
+        productId,
+        quantity,
+        variantId: variantId ?? null,
+      }),
     });
-    return cart.items.map(mapCartItem);
+
+    return mapCart(response.cart);
   },
   updateQuantity: async (
     productId: string,
     quantity: number,
-  ): Promise<CartItem[]> => {
-    const cart = await apiFetch<BackendCart>(`/api/cart/items/${productId}`, {
-      method: "PUT",
-      body: JSON.stringify({ quantity }),
-    });
-    return cart.items.map(mapCartItem);
+    variantId: string,
+  ) => {
+    const response = await apiFetch<CartMutationResponse>(
+      "/api/cart/update-quantity",
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          productId,
+          quantity,
+          variantId,
+        }),
+      },
+    );
+
+    return mapCart(response.cart);
   },
-  remove: async (productId: string): Promise<CartItem[]> => {
-    const cart = await apiFetch<BackendCart>(`/api/cart/items/${productId}`, {
+  remove: async (productId: string, variantId: string) => {
+    const response = await apiFetch<CartMutationResponse>("/api/cart/remove", {
       method: "DELETE",
+      body: JSON.stringify({
+        productId,
+        variantId,
+      }),
     });
-    return cart.items.map(mapCartItem);
+
+    return mapCart(response.cart);
   },
-  clear: async (): Promise<void> => {
-    await apiFetch<BackendCart>("/api/cart", { method: "DELETE" });
+  toggleSelected: async (productId: string, variantId: string) => {
+    const response = await apiFetch<CartMutationResponse>(
+      "/api/cart/toggle-selected",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          productId,
+          variantId,
+        }),
+      },
+    );
+
+    return mapCart(response.cart);
   },
+  getCheckoutSummary: async () => {
+    const summary = await apiFetch<CheckoutSummaryResponse>(
+      "/api/cart/checkout-summary",
+    );
+
+    return {
+      selectedItems: summary.selectedItems.map(mapCartItem),
+      subtotal: summary.subtotal,
+      itemCount: summary.itemCount,
+    };
+  },
+  clear: () =>
+    apiFetch<{ message: string }>("/api/cart/clear", {
+      method: "DELETE",
+    }),
 };
 
 // ── Orders ───────────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Package,
+  Boxes,
   ShoppingCart,
   Store,
   Settings,
@@ -30,6 +31,11 @@ const vendorNavItems = [
     label: "Mes produits",
     href: "/vendeur/produits",
     icon: Package,
+  },
+  {
+    label: "Gestion du stock",
+    href: "/vendeur/stock",
+    icon: Boxes,
   },
   {
     label: "Commandes",
@@ -91,13 +97,7 @@ export function VendorSidebar() {
                 </span>
               </Link>
             )}
-            {collapsed && (
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center mx-auto">
-                <span className="text-primary-foreground font-heading font-bold text-lg">
-                  A
-                </span>
-              </div>
-            )}
+
             <Button
               variant="ghost"
               size="icon"

@@ -7,7 +7,6 @@ import {
 	getProductById,
 	getMyProductById,
 	getMyProducts,
-	updateProductStock,
 } from "../controllers/productController.js";
 import { verifyToken, isSeller } from "../middleware/auth.js";
 import { uploadProductImages } from "../middleware/upload.js";
@@ -34,8 +33,5 @@ router.put("/:id", verifyToken, isSeller, uploadProductImages, updateProduct);
 
 // Seller: soft-delete a product + cleanup Cloudinary images.
 router.delete("/:id", verifyToken, isSeller, deleteProduct);
-
-// Seller stock management endpoint.
-router.patch("/:id/stock", verifyToken, isSeller, updateProductStock);
 
 export default router;

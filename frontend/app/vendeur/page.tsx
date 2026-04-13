@@ -369,7 +369,7 @@ export default function VendorDashboardPage() {
                       {product.name}
                     </p>
                     <p className="text-xs text-agora-warning">
-                      Stock: {product.stock}
+                      Stock: {product.totalStock}
                     </p>
                   </div>
                 </Link>

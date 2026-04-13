@@ -3,30 +3,49 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, Store } from "lucide-react";
-import { useCart } from "@/context/CartContext";
-import type { CartItem } from "@/types";
+import {
+  Minus,
+  Plus,
+  Trash2,
+  ArrowRight,
+  ShoppingBag,
+  Store,
+} from "lucide-react";
+import { useCart } from "@/hooks/useCart";
+import type { CartItem as CartItemType } from "@/types";
 import { EmptyState } from "@/components/EmptyState";
 import { cn } from "@/lib/utils";
 
 export default function CartPage() {
-  const { items, subtotal, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { items, subtotal, updateQuantity, removeFromCart, clearCart, isLoading } =
+    useCart();
   const total = subtotal;
 
   // Group items by store
-  const groupedItems = items.reduce((acc, item) => {
-    const storeId = item.product.storeId;
-    if (!acc[storeId]) {
-      acc[storeId] = {
-        storeName: item.product.storeName,
-        items: [],
-      };
-    }
-    acc[storeId].items.push(item);
-    return acc;
-  }, {} as Record<string, { storeName: string; items: CartItem[] }>);
+  const groupedItems = items.reduce(
+    (acc, item) => {
+      const storeId = item.product.storeId;
+      if (!acc[storeId]) {
+        acc[storeId] = {
+          storeName: item.product.storeName,
+          items: [],
+        };
+      }
+      acc[storeId].items.push(item);
+      return acc;
+    },
+    {} as Record<string, { storeName: string; items: CartItemType[] }>,
+  );
 
   const storeIds = Object.keys(groupedItems);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center">
+        <span className="w-8 h-8 border-3 border-[var(--agora-line)] border-t-[var(--agora-primary)] rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -88,12 +107,14 @@ export default function CartPage() {
                 <div className="divide-y divide-[var(--agora-line)]">
                   {groupedItems[storeId].items.map((item) => (
                     <CartItemRow
-                      key={item.productId}
+                      key={`${item.productId}-${item.variantId}`}
                       item={item}
                       onUpdateQuantity={(qty) =>
-                        updateQuantity(item.productId, qty)
+                        updateQuantity(item.productId, qty, item.variantId)
                       }
-                      onRemove={() => removeFromCart(item.productId)}
+                      onRemove={() =>
+                        removeFromCart(item.productId, item.variantId)
+                      }
                     />
                   ))}
                 </div>
@@ -172,7 +193,7 @@ function CartItemRow({
   onUpdateQuantity,
   onRemove,
 }: {
-  item: CartItem;
+  item: CartItemType;
   onUpdateQuantity: (quantity: number) => void;
   onRemove: () => void;
 }) {
@@ -184,11 +205,15 @@ function CartItemRow({
     onRemove();
   };
 
+  // Show variant name unless it's the auto-generated default
+  const showVariant =
+    item.variant && item.variant.code !== "default" && item.variant.name !== "Standard";
+
   return (
     <div
       className={cn(
         "p-4 flex gap-4 transition-opacity",
-        isRemoving && "opacity-50"
+        isRemoving && "opacity-50",
       )}
     >
       {/* Product Image */}
@@ -197,7 +222,7 @@ function CartItemRow({
         className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-[var(--radius-md)] overflow-hidden shrink-0 bg-[var(--agora-accent)]"
       >
         <Image
-          src={item.product.images[0] || "/placeholder.png"}
+          src={item.product.images?.[0] ?? "/placeholder-product.png"}
           alt={item.product.name}
           fill
           className="object-cover"
@@ -213,8 +238,14 @@ function CartItemRow({
           {item.product.name}
         </Link>
         <p className="text-sm text-[var(--agora-mid)] mt-1">
-          {item.product.price.toFixed(2).replace(".", ",")} € / unité
+          {item.unitPrice.toFixed(2).replace(".", ",")}{" "}
+          € / unité
         </p>
+        {showVariant && (
+          <p className="text-xs text-[var(--agora-mid)] mt-1">
+            Option: {item.variant.name}
+          </p>
+        )}
 
         {/* Quantity Controls */}
         <div className="flex items-center gap-4 mt-3">
@@ -251,7 +282,10 @@ function CartItemRow({
       {/* Item Total */}
       <div className="text-right">
         <p className="font-semibold text-[var(--agora-ink)]">
-          {(item.product.price * item.quantity).toFixed(2).replace(".", ",")} €
+          {(item.unitPrice * item.quantity)
+            .toFixed(2)
+            .replace(".", ",")}{" "}
+          €
         </p>
       </div>
     </div>
