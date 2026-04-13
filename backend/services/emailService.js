@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 /**
  * Gmail OAuth2 transporter for noreply.agora.marketplace@gmail.com
@@ -12,22 +12,19 @@ import nodemailer from 'nodemailer';
  */
 const createTransporter = () =>
   nodemailer.createTransport({
-    service: 'gmail',
+    service: "gmail",
     auth: {
-      type:         'OAuth2',
-      user:         process.env.EMAIL_FROM,
-      clientId:     process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
+      user: process.env.EMAIL_FROM,
+      pass: process.env.EMAIL_APP_PASSWORD,
     },
   });
 
 export const sendVerificationEmail = async (email, url) => {
   const transporter = createTransporter();
   await transporter.sendMail({
-    from:    `"Agora Marketplace" <${process.env.EMAIL_FROM}>`,
-    to:      email,
-    subject: 'Vérifiez votre adresse e-mail — Agora',
+    from: `"Agora Marketplace" <${process.env.EMAIL_FROM}>`,
+    to: email,
+    subject: "Vérifiez votre adresse e-mail — Agora",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:auto">
         <h2>Bienvenue sur Agora 🎉</h2>
@@ -49,9 +46,9 @@ export const sendVerificationEmail = async (email, url) => {
 export const sendPasswordResetEmail = async (email, url) => {
   const transporter = createTransporter();
   await transporter.sendMail({
-    from:    `"Agora Marketplace" <${process.env.EMAIL_FROM}>`,
-    to:      email,
-    subject: 'Réinitialisation de votre mot de passe — Agora',
+    from: `"Agora Marketplace" <${process.env.EMAIL_FROM}>`,
+    to: email,
+    subject: "Réinitialisation de votre mot de passe — Agora",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:auto">
         <h2>Réinitialisation du mot de passe</h2>

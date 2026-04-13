@@ -12,3 +12,5 @@ frontend/src/config.ts
 .claude
 gantt tasks.txt
 /*.txt
+
+TODO.md

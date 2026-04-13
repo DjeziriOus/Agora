@@ -22,6 +22,8 @@ const db = client.db("multivendor");
 export const requireEmailVerification =
   process.env.REQUIRE_EMAIL_VERIFICATION === "true";
 
+console.log("IS EMAIL VERIFICATION REQUIRED?", requireEmailVerification);
+
 export const auth = betterAuth({
   database: mongodbAdapter(db, {
     // Keep plural collection names consistent with Mongoose defaults
@@ -88,6 +90,7 @@ export const auth = betterAuth({
 
   trustedOrigins: [
     process.env.FRONTEND_URL || "http://localhost:3000",
+    "https://agora-git-f1-auth-google-oauth-djeziri-oussamas-projects.vercel.app",
     process.env.BETTER_AUTH_URL || "http://localhost:5000",
     "http://localhost:5000",
     "http://localhost:3000",
@@ -105,6 +108,24 @@ export const auth = betterAuth({
           });
         }
       }
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          // When email verification is disabled, mark new accounts as verified immediately
+          if (!requireEmailVerification) {
+            return {
+              data: {
+                ...user,
+                emailVerified: true,
+              },
+            };
+          }
+          return { data: user };
+        },
+      },
     },
   },
 });
