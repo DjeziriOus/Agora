@@ -366,8 +366,8 @@ export const storesApi = {
       method: "POST",
       body: data as FormData,
     }),
-  update: (data: unknown) =>
-    apiFetch<unknown>("/api/shops/my", {
+  update: (id: string, data: unknown) =>
+    apiFetch<unknown>(`/api/shops/${id}`, {
       method: "PUT",
       body: data as FormData,
     }),
