@@ -6,7 +6,7 @@ import {
   addressesApi,
   cartApi,
   vendorApi,
-  authApi,
+  // authApi,
 } from "@/lib/api";
 import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
 import type {
@@ -54,13 +54,13 @@ export const queryKeys = {
 };
 
 // AUTH HOOKS
-export function useCurrentUser() {
-  return useQuery({
-    queryKey: queryKeys.auth.me,
-    queryFn: () => authApi.me(),
-    retry: false,
-  });
-}
+// export function useCurrentUser() {
+//   return useQuery({
+//     queryKey: queryKeys.auth.me,
+//     queryFn: () => authApi.me(),
+//     retry: false,
+//   });
+// }
 
 // PRODUCT HOOKS
 export function useProducts(params?: ProductQuery) {
@@ -347,7 +347,13 @@ export function useVendorStats() {
     queryKey: queryKeys.vendor.stats,
     queryFn: async () => {
       // TODO: implement real vendor stats API
-      return { revenue: 0, revenueChange: 0, ordersReceived: 0, activeProducts: 0, averageRating: 0 };
+      return {
+        revenue: 0,
+        revenueChange: 0,
+        ordersReceived: 0,
+        activeProducts: 0,
+        averageRating: 0,
+      };
     },
   });
 }

@@ -168,21 +168,21 @@ const mapCartItem = (item: BackendCartItem): CartItem => {
 
   const variant: ProductVariant = variantData
     ? mapVariant(variantData as BackendVariant)
-    : product.variants[0] ?? {
+    : (product.variants[0] ?? {
         id: "",
         code: "default",
         name: "Standard",
         price: product.displayPrice,
         stock: 0,
         isActive: true,
-      };
+      });
 
   const variantId =
     typeof item.variantId === "string"
       ? item.variantId
-      : (variantData as BackendVariant)?._id ??
+      : ((variantData as BackendVariant)?._id ??
         (variantData as BackendVariant)?.id ??
-        variant.id;
+        variant.id);
 
   return {
     productId: product.id,
@@ -379,35 +379,35 @@ export const categoriesApi = {
   getAll: () => apiFetch<unknown[]>("/api/categories"),
 };
 
-export const cartApi = {
-  get: () => apiFetch<unknown>("/api/cart"),
-  add: (productId: string, quantity: number) =>
-    apiFetch<unknown>("/api/cart/add", {
-      method: "POST",
-      body: JSON.stringify({ productId, quantity }),
-    }),
-  updateQuantity: (productId: string, quantity: number) =>
-    apiFetch<unknown>("/api/cart/update", {
-      method: "PUT",
-      body: JSON.stringify({ productId, quantity }),
-    }),
-  remove: (productId: string) =>
-    apiFetch<unknown>("/api/cart/remove", {
-      method: "DELETE",
-      body: JSON.stringify({ productId }),
-    }),
-  clear: () =>
-    apiFetch<unknown>("/api/cart/clear", {
-      method: "DELETE",
-    }),
-};
+// export const cartApi = {
+//   get: () => apiFetch<unknown>("/api/cart"),
+//   add: (productId: string, quantity: number) =>
+//     apiFetch<unknown>("/api/cart/add", {
+//       method: "POST",
+//       body: JSON.stringify({ productId, quantity }),
+//     }),
+//   updateQuantity: (productId: string, quantity: number) =>
+//     apiFetch<unknown>("/api/cart/update", {
+//       method: "PUT",
+//       body: JSON.stringify({ productId, quantity }),
+//     }),
+//   remove: (productId: string) =>
+//     apiFetch<unknown>("/api/cart/remove", {
+//       method: "DELETE",
+//       body: JSON.stringify({ productId }),
+//     }),
+//   clear: () =>
+//     apiFetch<unknown>("/api/cart/clear", {
+//       method: "DELETE",
+//     }),
+// };
 
 export const vendorApi = {
   getStats: () => apiFetch<unknown>("/api/vendor/stats"),
 };
 
-export const authApi = {
-  me: () => apiFetch<unknown>("/api/auth/me"),
+// export const authApi = {
+//   me: () => apiFetch<unknown>("/api/auth/me"),
 // ── Cart ─────────────────────────────────────────────────────────────────────
 export const cartApi = {
   get: async () => {
