@@ -1,11 +1,14 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Diamond, ArrowRight, ShoppingBag, Store, Shield } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { mockProducts, mockCategories } from "@/lib/mockData";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { useAuth } from "@/context/AuthContext";
+import { shopsApi } from "@/lib/api";
 
 const categoryIcons: Record<string, string> = {
   Papeterie: "📝",
@@ -19,9 +22,29 @@ const categoryIcons: Record<string, string> = {
 };
 
 export default function HomePage() {
+  const { user, isAuthenticated, isSeller } = useAuth();
+  const [hasShop, setHasShop] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && isSeller) {
+      shopsApi
+        .getMyStore()
+        .then((shop) => setHasShop(!!shop))
+        .catch(() => setHasShop(false));
+    }
+  }, [isAuthenticated, isSeller]);
+
   const featuredProducts = mockProducts.slice(0, 8);
   const featuredCategories = mockCategories.slice(0, 8);
 
+  // Determine the boutique CTA destination and label
+  // Buyers should NOT see it — they already have an account.
+  // Sellers with a shop don't need it — they use the navbar dashboard link.
+  const showBoutiqueButton = !isAuthenticated || (isSeller && !hasShop);
+  const boutiqueHref = !isAuthenticated ? "/register" : "/vendeur/boutique";
+  const boutiqueLabel = !isAuthenticated
+    ? "Ouvrir ma boutique"
+    : "Créer ma boutique";
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -88,12 +111,14 @@ export default function HomePage() {
                 Découvrir les produits
                 <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link
-                href="/register"
-                className="flex items-center gap-2 border border-white/30 hover:border-white/60 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-              >
-                Ouvrir ma boutique
-              </Link>
+              {showBoutiqueButton && (
+                <Link
+                  href={boutiqueHref}
+                  className="flex items-center gap-2 border border-white/30 hover:border-white/60 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                >
+                  {boutiqueLabel}
+                </Link>
+              )}
             </div>
           </div>
         </section>
@@ -198,25 +223,27 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* CTA vendeur */}
-        <section className="bg-[var(--agora-primary)] py-16 text-white text-center">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6">
-            <h2 className="text-3xl font-bold mb-4">
-              Vous êtes artisan ou créateur ?
-            </h2>
-            <p className="text-white/80 mb-8 leading-relaxed">
-              Rejoignez Agora et vendez vos créations à des milliers de clients.
-              Inscription gratuite, commissions réduites.
-            </p>
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-2 border border-white/60 hover:border-white text-white px-6 py-3 rounded-lg font-medium transition-colors"
-            >
-              Ouvrir ma boutique gratuitement
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </section>
+        {/* CTA vendeur — only show if user is not already a seller with a shop */}
+        {showBoutiqueButton && (
+          <section className="bg-[var(--agora-primary)] py-16 text-white text-center">
+            <div className="max-w-2xl mx-auto px-4 sm:px-6">
+              <h2 className="text-3xl font-bold mb-4">
+                Vous êtes artisan ou créateur ?
+              </h2>
+              <p className="text-white/80 mb-8 leading-relaxed">
+                Rejoignez Agora et vendez vos créations à des milliers de clients.
+                Inscription gratuite, commissions réduites.
+              </p>
+              <Link
+                href={boutiqueHref}
+                className="inline-flex items-center gap-2 border border-white/60 hover:border-white text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                {boutiqueLabel}
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </section>
+        )}
       </main>
 
       <Footer />

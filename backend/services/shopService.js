@@ -59,6 +59,15 @@ const createShop = async ({
     throw error;
   }
 
+  const existingName = await Shop.findOne({ name, isDeleted: false }).collation(
+    { locale: "en", strength: 2 },
+  );
+  if (existingName) {
+    const error = new Error("Shop name is already taken.");
+    error.statusCode = 409;
+    throw error;
+  }
+
   // Upload logo and banner if provided.
   const logo = await uploadShopImage(files.logo?.[0], "shopLogo");
   const banner = await uploadShopImage(files.banner?.[0], "shopBanner");
@@ -76,8 +85,17 @@ const createShop = async ({
   if (logo) shopData.logo = logo;
   if (banner) shopData.banner = banner;
 
-  const shop = await Shop.create(shopData);
-  return shop;
+  try {
+    const shop = await Shop.create(shopData);
+    return shop;
+  } catch (error) {
+    if (error?.code === 11000) {
+      const duplicate = new Error("Shop name is already taken.");
+      duplicate.statusCode = 409;
+      throw duplicate;
+    }
+    throw error;
+  }
 };
 
 /**
