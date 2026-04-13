@@ -2,12 +2,14 @@
 
 This repository contains the current codebase for **Agora**, a multi-vendor e-commerce project split into two main applications:
 
-- `frontend/`: Next.js application for the user-facing and seller-facing interfaces
+- `frontend/`: Next.js App Router application for the buyer-facing and seller-facing UI
 - `backend/`: Express + Better Auth + MongoDB backend
 
-The goal of this README is to document the **current repository structure** and explain the purpose of the main directories.
+This README is intended to document the **current maintained repository structure**. It focuses on the source code and main project files. Generated or dependency folders such as `node_modules/` and `frontend/.next/` are intentionally omitted.
 
-## Repository Tree
+It also calls out a few files that still exist in the repo but behave more like legacy/reference artifacts than core application structure.
+
+## Repository Layout
 
 ```text
 .
@@ -21,6 +23,7 @@ The goal of this README is to document the **current repository structure** and 
 │   │   └── db.js
 │   ├── controllers/
 │   │   ├── authController.js
+│   │   ├── cartController.js
 │   │   ├── productController.js
 │   │   └── shopController.js
 │   ├── data/
@@ -29,33 +32,42 @@ The goal of this README is to document the **current repository structure** and 
 │   │   ├── auth.js
 │   │   └── upload.js
 │   ├── models/
+│   │   ├── Cart.js
 │   │   ├── Order.js
 │   │   ├── Product.js
 │   │   ├── Shop.js
 │   │   ├── User.js
+│   │   ├── Variant.js
 │   │   ├── createStore.json
 │   │   └── getStore.json
 │   ├── postman/
-│   │   ├── agora-betterauth.postman_collection.json
+│   │   ├── Agora API — BetterAuth.postman_collection.json
 │   │   ├── collection copy.json
 │   │   └── collection.json
 │   ├── routes/
 │   │   ├── authRoutes.js
+│   │   ├── cartRoutes.js
 │   │   ├── orderRoutes.js
 │   │   ├── productRoutes.js
 │   │   └── shopRoutes.js
+│   ├── scripts/
+│   │   ├── migrate-to-variants.js
+│   │   └── seed.js
 │   ├── services/
 │   │   ├── authService.js
+│   │   ├── cartService.js
 │   │   ├── emailService.js
 │   │   ├── productService.js
-│   │   └── shopService.js
+│   │   ├── shopService.js
+│   │   └── variantService.js
 │   ├── test-email.mjs
-│   ├── gantt tasks.txt
 │   └── startup.log
 ├── frontend/
 │   ├── app/
 │   │   ├── (auth)/
+│   │   │   ├── choose-role/
 │   │   │   ├── login/
+│   │   │   ├── oauth-callback/
 │   │   │   ├── register/
 │   │   │   └── verify-email/
 │   │   ├── (client)/
@@ -63,14 +75,17 @@ The goal of this README is to document the **current repository structure** and 
 │   │   │   │   └── [id]/
 │   │   │   ├── catalogue/
 │   │   │   ├── checkout/
-│   │   │   ├── layout.tsx
 │   │   │   ├── compte/
 │   │   │   │   ├── adresses/
 │   │   │   │   ├── commandes/
 │   │   │   │   │   └── [id]/
-│   │   │   │   └── parametres/
+│   │   │   │   ├── parametres/
+│   │   │   │   ├── AccountLayoutClient.tsx
+│   │   │   │   ├── layout.tsx
+│   │   │   │   └── page.tsx
 │   │   │   ├── confirmation/
 │   │   │   │   └── [orderId]/
+│   │   │   ├── layout.tsx
 │   │   │   ├── panier/
 │   │   │   ├── produit/
 │   │   │   │   └── [id]/
@@ -80,12 +95,13 @@ The goal of this README is to document the **current repository structure** and 
 │   │   │   ├── commandes/
 │   │   │   │   └── [id]/
 │   │   │   ├── layout.tsx
-│   │   │   ├── parametres/
 │   │   │   ├── page.tsx
-│   │   │   └── produits/
-│   │   │       ├── [id]/
-│   │   │       └── nouveau/
-│   │   ├── VendorLayoutClient.tsx
+│   │   │   ├── parametres/
+│   │   │   ├── produits/
+│   │   │   │   ├── [id]/
+│   │   │   │   └── nouveau/
+│   │   │   ├── stock/
+│   │   │   └── VendorLayoutClient.tsx
 │   │   ├── global-error.tsx
 │   │   ├── globals.css
 │   │   ├── icon.jpg
@@ -95,8 +111,6 @@ The goal of this README is to document the **current repository structure** and 
 │   ├── hooks/
 │   │   ├── use-mobile.ts
 │   │   └── use-toast.ts
-│   ├── lib/
-│   │   └── utils copy.ts
 │   ├── public/
 │   │   └── logo.png
 │   ├── src/
@@ -115,7 +129,8 @@ The goal of this README is to document the **current repository structure** and 
 │   │   │   ├── AuthContext.tsx
 │   │   │   └── CartContext.tsx
 │   │   ├── hooks/
-│   │   │   └── useApi.ts
+│   │   │   ├── useApi.ts
+│   │   │   └── useCart.ts
 │   │   ├── lib/
 │   │   │   ├── api.ts
 │   │   │   ├── auth-client.ts
@@ -125,110 +140,194 @@ The goal of this README is to document the **current repository structure** and 
 │   │   │   └── utils.ts
 │   │   └── types/
 │   │       └── index.ts
-│   ├── styles/
-│   │   └── globals.css
 │   ├── components.json
 │   ├── findHooks.js
 │   ├── next.config.mjs
-│   ├── postcss.config.mjs
-│   ├── tsconfig.json
 │   ├── package.json
 │   ├── package-lock.json
-│   └── pnpm-lock.yaml
-├── .gitignore
-└── README.md
+│   ├── postcss.config.mjs
+│   └── tsconfig.json
+├── PR.md
+├── README.md
+└── TODO.md
 ```
 
-## Directory Notes
-
-- `backend/`
-  Backend application. It contains the Express server, Better Auth setup, middleware, models, routes, and shared services.
+## Backend Notes
 
 - `backend/server.js`
-  Main backend entry point. Loads environment variables, configures CORS, mounts Better Auth, and starts the server.
+  Main backend entry point. It loads environment variables, connects to MongoDB, mounts Better Auth, applies JSON parsing, and mounts the main API route groups.
 
 - `backend/auth.js`
-  Authentication configuration file. It connects Better Auth to MongoDB and defines authentication-related behavior such as email verification.
-
-- `backend/config/`
-  Backend configuration files such as the database connection.
-
-- `backend/controllers/`
-  Route handlers for backend requests.
-
-- `backend/data/`
-  Backend mock or seed data used during development.
-
-- `backend/middleware/`
-  Shared middleware for session validation, role checks, and verified-email checks.
-
-- `backend/models/`
-  Mongoose models used by the backend.
+  Better Auth configuration. This is the active authentication integration used by the running backend.
 
 - `backend/routes/`
-  Express route declarations.
+  Main Express route declarations currently used by the app:
+  - `shopRoutes.js`
+  - `productRoutes.js`
+  - `cartRoutes.js`
+  - `orderRoutes.js`
+
+- `backend/controllers/`
+  Request handlers for the mounted route groups. These coordinate validation, service calls, and HTTP responses.
 
 - `backend/services/`
-  Reusable backend services such as email sending helpers.
+  Business logic layer. This is where the main application behavior lives:
+  - `productService.js` for public/seller product flows
+  - `shopService.js` for shop storefront and seller shop flows
+  - `cartService.js` for cart management
+  - `variantService.js` for the separate variant model
+  - `emailService.js` for mail-related helpers
+
+- `backend/models/`
+  Mongoose models for the domain:
+  - `User.js`
+  - `Shop.js`
+  - `Product.js`
+  - `Variant.js`
+  - `Cart.js`
+  - `Order.js`
+
+- `backend/models/createStore.json` and `backend/models/getStore.json`
+  These are JSON payload examples, not executable models.
+
+- `backend/scripts/`
+  Maintenance and development scripts:
+  - `seed.js` for populating development data
+  - `migrate-to-variants.js` for the product variant migration
 
 - `backend/postman/`
-  Postman collections for backend route testing, including the Better Auth collection used by the team.
+  Backend API collections. The Better Auth collection is the most relevant current collection for team testing, while the other JSON files remain as alternate or older collections.
 
-- `frontend/`
-  Frontend application built with Next.js App Router.
+## Frontend Notes
 
 - `frontend/app/`
-  Route segments, layouts, and top-level pages.
+  Next.js App Router entrypoint and route tree.
 
 - `frontend/app/(auth)/`
-  Authentication-related pages such as login, register, and verify-email.
+  Authentication-related flows:
+  - login
+  - register
+  - verify email
+  - choose role
+  - OAuth callback
 
 - `frontend/app/(client)/`
-  Buyer/client-facing pages.
+  Buyer-facing application pages:
+  - catalogue
+  - search
+  - boutique storefront
+  - product detail
+  - cart
+  - checkout
+  - order confirmation
+  - account area (`compte`)
 
 - `frontend/app/vendeur/`
-  Seller-facing dashboard area.
-
-- `frontend/hooks/`
-  Root-level frontend hooks kept outside `src/`.
-
-- `frontend/lib/`
-  Root-level frontend utility files kept outside `src/`.
+  Seller-facing dashboard pages:
+  - dashboard home
+  - boutique management
+  - product management
+  - stock management
+  - seller orders
+  - seller settings
 
 - `frontend/app/layout.tsx`
-  Root application layout. It wraps the app with shared providers such as auth, cart, and React Query.
-
-- `frontend/app/global-error.tsx`
-  Global error boundary page.
-
-- `frontend/app/not-found.tsx`
-  Custom 404 page.
-
-- `frontend/src/`
-  Shared frontend code that is reused across routes.
+  Root frontend layout. It currently wraps the application with shared providers such as React Query and authentication context.
 
 - `frontend/src/components/`
-  Reusable application-level UI components.
+  Shared reusable UI components for the product, storefront, account, and seller dashboard flows.
 
 - `frontend/src/components/ui/`
-  Shared low-level UI primitives used across the app.
+  Lower-level reusable UI primitives and design-system style components.
 
 - `frontend/src/context/`
-  React context providers such as authentication and cart state.
+  Shared React context modules. The repo currently contains:
+  - `AuthContext.tsx`
+  - `CartContext.tsx`
 
 - `frontend/src/hooks/`
-  Shared React hooks.
+  Application-specific hooks:
+  - `useApi.ts` for React Query wrappers around backend endpoints
+  - `useCart.ts` for cart actions and cart-facing UI behavior
 
 - `frontend/src/lib/`
-  Frontend utility modules such as API helpers, auth client setup, mock data, React Query setup, and fixed product categories.
+  Shared frontend utilities and integration modules:
+  - `api.ts` for backend API wrappers and response mapping
+  - `auth-client.ts` for Better Auth client integration
+  - `productCategories.ts` for fixed category definitions
+  - `queryClient.tsx` for React Query setup
+  - `mockData.ts` for mock/demo data still used in some flows
+  - `utils.ts` for general utility helpers
 
-- `frontend/src/types/`
-  Shared TypeScript types for the domain model and API payloads.
+- `frontend/hooks/`
+  Root-level helper hooks used by some generated UI components. These are distinct from the app-specific hooks inside `frontend/src/hooks/`.
+
+## Authentication Routing Status
+
+The repository currently contains both:
+
+- Better Auth runtime integration through:
+  - `backend/auth.js`
+  - `backend/server.js` with `app.all("/api/auth/*splat", toNodeHandler(auth))`
+
+- Legacy custom auth route files:
+  - `backend/routes/authRoutes.js`
+  - `backend/controllers/authController.js`
+  - `backend/services/authService.js`
+
+The running backend currently uses the **Better Auth catch-all route**. The legacy custom auth files still exist in the repository, but they are not the active auth path mounted by `server.js`.
+
+## Variants and Product Shape
+
+Products are no longer just a flat `price + stock` model.
+
+- `backend/models/Variant.js` stores per-product variants
+- `backend/services/variantService.js` contains variant helpers and aggregate calculations
+- `backend/services/productService.js` and `backend/services/shopService.js` enrich product responses with storefront-friendly fields such as:
+  - `variants`
+  - `totalStock`
+  - `displayPrice`
+  - `hasMultiplePrices`
+
+This is important when reading both the public storefront pages and the seller product management flows.
+
+## Useful Commands
+
+### Backend
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Legacy and Reference Files Still Present
+
+A few files in the repository are useful as references or leftovers from earlier iterations, but they are not the main maintained structure:
+
+- `backend/postman/collection.json`
+- `backend/postman/collection copy.json`
+- some duplicate UI files such as `frontend/src/components/ui/* copy.tsx`
+- `frontend/lib/utils copy.ts`
+- `frontend/styles/globals.css`
+- temporary or environment-specific files such as `backend/startup.log`
+
+These files are still part of the repo today, but the primary architecture is centered around the directories documented above.
 
 ## Current Architectural Split
 
-- **Frontend**: Next.js, React, Tailwind-based UI, shared state through React Context and React Query
-- **Backend**: Express, Better Auth, MongoDB/Mongoose, email service helpers
-- **Communication**: The frontend talks to the backend through API wrappers and Better Auth client calls
+- **Frontend**: Next.js App Router, React, Tailwind-based UI, React Query, shared state/context modules
+- **Backend**: Express, Better Auth, MongoDB/Mongoose, Cloudinary upload support, email helpers
+- **Communication**: frontend API access is centralized in `frontend/src/lib/api.ts`
+- **Authentication**: Better Auth client/server integration is split between `frontend/src/lib/auth-client.ts` and `backend/auth.js`
+- **Data Model**: products, shops, carts, orders, and product variants are separated across dedicated models and service layers
 
-This README reflects the repository structure as it exists now in the current codebase.
+This README reflects the current code organization as it exists in the repository now.
