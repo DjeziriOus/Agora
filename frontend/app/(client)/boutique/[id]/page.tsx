@@ -46,27 +46,29 @@ export default function StorePage({
   }
 
   const memberSince = new Date(store.createdAt).getFullYear();
+  const bannerUrl = store.banner?.url?.trim() || "";
+  const logoUrl = store.logo?.url?.trim() || "";
 
   return (
     <div className="min-h-screen bg-[var(--agora-bg)]">
       <div className="relative h-48 sm:h-64 md:h-80 bg-gradient-to-r from-[var(--agora-primary)] to-[#7986CB]">
-        {store.banner && (
+        {bannerUrl ? (
           <Image
-            src={store.banner.url}
+            src={bannerUrl}
             alt={`${store.name} banner`}
             fill
             className="object-cover"
             priority
           />
-        )}
+        ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-end gap-4 sm:gap-6">
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[var(--agora-surface)] border-4 border-white shadow-lg overflow-hidden shrink-0">
-                {store.logo ? (
+                {logoUrl ? (
                   <Image
-                    src={store.logo.url}
+                    src={logoUrl}
                     alt={store.name}
                     fill
                     className="object-cover"

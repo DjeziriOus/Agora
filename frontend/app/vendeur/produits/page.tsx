@@ -75,12 +75,18 @@ function VendorProductsContent() {
   );
 
   if (filterLowStock) {
-    filteredProducts = filteredProducts.filter((p) => p.stock <= 5);
+    filteredProducts = filteredProducts.filter((p) => p.totalStock <= (p.stockThreshold ?? 5));
   }
 
-  const handleToggleActive = async (productId: string) => {
+  const handleToggleActive = async (
+    productId: string,
+    currentIsActive: boolean,
+  ) => {
     try {
-      await toggleActive.mutateAsync(productId);
+      await toggleActive.mutateAsync({
+        id: productId,
+        isActive: !currentIsActive,
+      });
       toast.success("Statut du produit mis à jour");
     } catch {
       toast.error("Erreur lors de la mise à jour");
@@ -215,22 +221,25 @@ function VendorProductsContent() {
                     </TableCell>
                     <TableCell>
                       <span className="font-semibold">
-                        {product.price.toFixed(2)} €
+                        {product.hasMultiplePrices && (
+                          <span className="text-xs font-normal text-muted-foreground mr-1">À partir de</span>
+                        )}
+                        {product.displayPrice.toFixed(2)} €
                       </span>
                     </TableCell>
                     <TableCell>
                       <span
                         className={`font-medium ${
-                          product.stock <= 5
+                          product.totalStock <= (product.stockThreshold ?? 5)
                             ? "text-agora-warning"
-                            : product.stock <= 0
+                            : product.totalStock <= 0
                             ? "text-destructive"
                             : ""
                         }`}
                       >
-                        {product.stock}
+                        {product.totalStock}
                       </span>
-                      {product.stock <= 5 && product.stock > 0 && (
+                      {product.totalStock <= (product.stockThreshold ?? 5) && product.totalStock > 0 && (
                         <AlertTriangle className="inline-block ml-1 h-3 w-3 text-agora-warning" />
                       )}
                     </TableCell>
@@ -253,12 +262,14 @@ function VendorProductsContent() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/produit/${product.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              Voir la page
-                            </Link>
-                          </DropdownMenuItem>
+                          {product.isActive && (
+                            <DropdownMenuItem asChild>
+                              <Link href={`/produit/${product.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Voir la page
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem asChild>
                             <Link href={`/vendeur/produits/${product.id}`}>
                               <Edit className="mr-2 h-4 w-4" />
@@ -266,7 +277,9 @@ function VendorProductsContent() {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleToggleActive(product.id)}
+                            onClick={() =>
+                              handleToggleActive(product.id, product.isActive)
+                            }
                           >
                             {product.isActive ? (
                               <>

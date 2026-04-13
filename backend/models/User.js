@@ -19,13 +19,13 @@ const userSchema = new mongoose.Schema(
     firstName: { type: String, default: "" },
     lastName: { type: String, default: "" },
     name: { type: String, default: "" }, // kept for BetterAuth compat
-    photo: { type: String, default: "" },
+    image: { type: String, default: "" },
     age: { type: Number, default: null },
     gender: { type: String, default: "" },
     role: {
       type: String,
-      enum: ["buyer", "seller", "admin"],
-      default: "buyer",
+      enum: ["unassigned", "buyer", "seller", "admin"],
+      default: "unassigned",
     },
   },
   {

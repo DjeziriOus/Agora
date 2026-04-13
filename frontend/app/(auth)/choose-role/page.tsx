@@ -11,9 +11,7 @@ import { cn } from "@/lib/utils";
 export default function ChooseRolePage() {
   const router = useRouter();
   const { user, isLoading, refreshSession } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<"buyer" | "seller">(
-    "buyer",
-  );
+  const [selectedRole, setSelectedRole] = useState<"buyer" | "seller">("buyer");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -16,20 +16,11 @@ const productSchema = new mongoose.Schema(
             trim: true,
             maxlength: [1000, "Product description must be at most 1000 characters long"],
         },
-        price: {
-            type: Number,
-            required: [true, "Product price is required"],
-            min: [0, "Product price must be a positive number"],
-        },
-        stock: {
-            type: Number,
-            required: [true, "Product stock is required"],
-            default: 0,
-            min: [0, "Product stock cannot be negative"],
-            validate: {
-                validator: Number.isInteger,
-                message: "Product stock must be an integer",
-            },
+        category: {
+            type: String,
+            required: [true, "Product category is required"],
+            trim: true,
+            maxlength: [100, "Product category must be at most 100 characters long"],
         },
         stockThreshold: {
             type: Number,
@@ -66,9 +57,16 @@ const productSchema = new mongoose.Schema(
     },
 );
 
-productSchema.index({ shop: 1, isDeleted: 1, stock: 1 });
+productSchema.index({ shop: 1, isDeleted: 1 });
+
+//Map the MongoDB _id to id for frontend access
+productSchema.set("toJSON", {
+  virtuals: true,
+  transform: (_, ret) => {
+    ret.id = ret._id.toString();
+    return ret;
+  },
+});
+
 
 export default mongoose.model("Product", productSchema);
-
-
-
