@@ -17,7 +17,7 @@ import orderRoutes from "./routes/orderRoutes.js";
 // import addressRoutes from './routes/addressRoutes.js';
 
 const app = express();
-
+app.set("trust proxy", 1);
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // credentials: true is required for BetterAuth session cookies
 app.use(

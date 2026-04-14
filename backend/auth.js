@@ -26,6 +26,7 @@ console.log("IS EMAIL VERIFICATION REQUIRED?", requireEmailVerification);
 
 export const auth = betterAuth({
   database: mongodbAdapter(db, {
+    baseURL: process.env.BETTER_AUTH_URL,
     // Keep plural collection names consistent with Mongoose defaults
     collectionNames: {
       user: "users",
