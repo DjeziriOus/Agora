@@ -10,7 +10,7 @@ export const verifyToken = async (req, res, next) => {
     const session = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
     });
-    console.log("req:", req);
+    console.log("req.headers:", req.headers);
     console.log("session :", session);
 
     if (!session || !session.user) {
