@@ -36,6 +36,13 @@ export const auth = betterAuth({
     },
   }),
 
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: "none",
+      secure: true,
+    },
+  },
+
   // ── Email + Password ──────────────────────────────────
   // Set REQUIRE_EMAIL_VERIFICATION=true in .env once SMTP is configured.
   emailAndPassword: {
