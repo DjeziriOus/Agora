@@ -2,13 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   productsApi,
   shopsApi,
-  // categoriesApi,
   ordersApi,
   addressesApi,
   cartApi,
   vendorApi,
-  authApi,
+  // authApi,
 } from "@/lib/api";
+import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
 import type {
   ProductQuery,
   ProductPayload,
@@ -16,6 +16,8 @@ import type {
   StorePayload,
   Product,
   Category,
+  SellerProduct,
+  Order,
 } from "@/types";
 
 // Query Keys
@@ -24,6 +26,7 @@ export const queryKeys = {
     all: ["products"] as const,
     list: (params?: ProductQuery) => ["products", "list", params] as const,
     detail: (id: string) => ["products", "detail", id] as const,
+    sellerDetail: (id: string) => ["products", "seller", "detail", id] as const,
     seller: ["products", "seller"] as const,
     lowStock: ["products", "lowStock"] as const,
   },
@@ -42,7 +45,6 @@ export const queryKeys = {
     seller: ["orders", "seller"] as const,
     sellerDetail: (id: string) => ["orders", "seller", id] as const,
   },
-  cart: ["cart"] as const,
   vendor: {
     stats: ["vendor", "stats"] as const,
   },
@@ -52,13 +54,13 @@ export const queryKeys = {
 };
 
 // AUTH HOOKS
-export function useCurrentUser() {
-  return useQuery({
-    queryKey: queryKeys.auth.me,
-    queryFn: () => authApi.me(),
-    retry: false,
-  });
-}
+// export function useCurrentUser() {
+//   return useQuery({
+//     queryKey: queryKeys.auth.me,
+//     queryFn: () => authApi.me(),
+//     retry: false,
+//   });
+// }
 
 // PRODUCT HOOKS
 export function useProducts(params?: ProductQuery) {
@@ -76,6 +78,14 @@ export function useProduct(id: string) {
   });
 }
 
+export function useSellerProduct(id: string) {
+  return useQuery<SellerProduct>({
+    queryKey: queryKeys.products.sellerDetail(id),
+    queryFn: () => productsApi.getMineById(id),
+    enabled: !!id,
+  });
+}
+
 export function useSellerProducts() {
   return useQuery({
     queryKey: queryKeys.products.seller,
@@ -84,21 +94,12 @@ export function useSellerProducts() {
 }
 
 export function useLowStockProducts() {
-  return useQuery({
+  return useQuery<Product[]>({
     queryKey: queryKeys.products.lowStock,
     queryFn: async () => {
       const result = await productsApi.getMine();
-      const products = Array.isArray(result)
-        ? result
-        : ((result as { products?: unknown[] })?.products ?? []);
-
-      return products.filter(
-        (product) =>
-          typeof product === "object" &&
-          product !== null &&
-          "stock" in product &&
-          "stockThreshold" in product &&
-          (product as any).stock <= (product as any).stockThreshold,
+      return result.products.filter(
+        (product) => product.totalStock <= product.stockThreshold,
       );
     },
   });
@@ -107,9 +108,10 @@ export function useLowStockProducts() {
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: ProductPayload) => productsApi.create(data),
+    mutationFn: (data: FormData) => productsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
     },
   });
 }
@@ -117,12 +119,20 @@ export function useCreateProduct() {
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<ProductPayload> }) =>
-      productsApi.update(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: FormData | Partial<ProductPayload>;
+    }) => productsApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
       queryClient.invalidateQueries({
         queryKey: queryKeys.products.detail(id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.products.sellerDetail(id),
       });
     },
   });
@@ -131,25 +141,17 @@ export function useUpdateProduct() {
 export function useToggleProductActive() {
   const queryClient = useQueryClient();
   return useMutation({
-    // mutationFn: (id: string) => productsApi.toggleActive(id),
-    // mutationFn: (id: string) => {},
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
-    },
-  });
-}
-
-export function useUpdateProductStock() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, stock }: { id: string; stock: number }) =>
-      productsApi.updateStock(id, stock),
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      productsApi.toggleActive(id, isActive),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
       queryClient.invalidateQueries({
         queryKey: queryKeys.products.detail(id),
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.products.sellerDetail(id),
+      });
     },
   });
 }
@@ -213,7 +215,13 @@ export function useUpdateStore() {
 export function useCategories() {
   return useQuery({
     queryKey: queryKeys.categories.all,
-    queryFn: () => categoriesApi.getAll(),
+    queryFn: async () =>
+      PRODUCT_CATEGORIES.map((name, index) => ({
+        id: `category-${index + 1}`,
+        name,
+        productCount: 0,
+      })),
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }
 
@@ -253,8 +261,8 @@ export function useCreateOrder() {
   return useMutation({
     mutationFn: (data: OrderPayload) => ordersApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.client });
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.buyer });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }
@@ -337,6 +345,15 @@ export function useClearCart() {
 export function useVendorStats() {
   return useQuery({
     queryKey: queryKeys.vendor.stats,
-    queryFn: () => vendorApi.getStats(),
+    queryFn: async () => {
+      // TODO: implement real vendor stats API
+      return {
+        revenue: 0,
+        revenueChange: 0,
+        ordersReceived: 0,
+        activeProducts: 0,
+        averageRating: 0,
+      };
+    },
   });
 }

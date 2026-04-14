@@ -9,11 +9,13 @@ import {
   type ReactNode,
 } from "react";
 import type { CartItem, Product } from "@/types";
-import { mockProducts } from "@/lib/mockData";
+import { cartApi } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 interface CartContextType {
   items: CartItem[];
+  isLoading: boolean;
   itemCount: number;
   subtotal: number;
   storeGroups: {
@@ -22,152 +24,164 @@ interface CartContextType {
     items: CartItem[];
     subtotal: number;
   }[];
-  addToCart: (productId: string, quantity?: number) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeFromCart: (productId: string) => void;
-  clearCart: () => void;
+  addToCart: (
+    productOrId: string | Product,
+    quantity?: number,
+    variantId?: string | null,
+  ) => Promise<void>;
+  updateQuantity: (
+    productId: string,
+    quantity: number,
+    variantId?: string | null,
+  ) => Promise<void>;
+  removeFromCart: (
+    productId: string,
+    variantId?: string | null,
+  ) => Promise<void>;
+  clearCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = "agora_cart";
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Une erreur est survenue";
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
 
-  // Load cart from localStorage on mount
-  useEffect(() => {
+  const loadServerCart = useCallback(async () => {
+    if (!isAuthenticated) {
+      setItems([]);
+      return;
+    }
+
     try {
-      const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-      if (savedCart) {
-        const parsedItems = JSON.parse(savedCart) as CartItem[];
-        // Re-hydrate product data from mock data
-        const hydratedItems = parsedItems
-          .map((item) => {
-            const product = mockProducts.find((p) => p.id === item.productId);
-            if (product) {
-              return { ...item, product };
-            }
-            return null;
-          })
-          .filter(Boolean) as CartItem[];
-        setItems(hydratedItems);
-      }
-    } catch {
-      localStorage.removeItem(CART_STORAGE_KEY);
+      const cart = await cartApi.get();
+      setItems(cart.items);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
     }
-  }, []);
+  }, [isAuthenticated]);
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
-    if (items.length > 0) {
-      localStorage.setItem(
-        CART_STORAGE_KEY,
-        JSON.stringify(
-          items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          }))
-        )
-      );
-    } else {
-      localStorage.removeItem(CART_STORAGE_KEY);
-    }
-  }, [items]);
-
-  const addToCart = useCallback((productId: string, quantity = 1) => {
-    const product = mockProducts.find((p) => p.id === productId);
-    if (!product) {
-      toast.error("Produit introuvable");
+    if (isAuthLoading) {
       return;
     }
 
-    if (product.stock === 0) {
-      toast.error("Ce produit est en rupture de stock");
-      return;
-    }
+    void loadServerCart();
+  }, [isAuthLoading, loadServerCart]);
 
-    setItems((currentItems) => {
-      const existingItem = currentItems.find(
-        (item) => item.productId === productId
-      );
-
-      if (existingItem) {
-        const newQuantity = existingItem.quantity + quantity;
-        if (newQuantity > product.stock) {
-          toast.error(`Stock insuffisant (${product.stock} disponibles)`);
-          return currentItems;
-        }
-        toast.success("Quantité mise à jour dans le panier");
-        return currentItems.map((item) =>
-          item.productId === productId
-            ? { ...item, quantity: newQuantity }
-            : item
-        );
+  const addToCart = useCallback(
+    async (
+      productOrId: string | Product,
+      quantity = 1,
+      variantId?: string | null,
+    ) => {
+      if (!isAuthenticated) {
+        toast.error("Connectez-vous pour ajouter des produits au panier");
+        return;
       }
 
-      if (quantity > product.stock) {
-        toast.error(`Stock insuffisant (${product.stock} disponibles)`);
-        return currentItems;
+      const productId =
+        typeof productOrId === "string"
+          ? productOrId
+          : productOrId.id ||
+            ((productOrId as unknown as { _id?: string })._id ?? "");
+
+      if (!productId) {
+        toast.error("Produit introuvable");
+        return;
       }
 
-      toast.success("Produit ajouté au panier");
-      return [...currentItems, { productId, product, quantity }];
-    });
-  }, []);
-
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
-    if (quantity < 1) {
-      return;
-    }
-
-    const product = mockProducts.find((p) => p.id === productId);
-    if (product && quantity > product.stock) {
-      toast.error(`Stock insuffisant (${product.stock} disponibles)`);
-      return;
-    }
-
-    setItems((currentItems) =>
-      currentItems.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item
-      )
-    );
-  }, []);
-
-  const removeFromCart = useCallback((productId: string) => {
-    setItems((currentItems) =>
-      currentItems.filter((item) => item.productId !== productId)
-    );
-    toast.success("Produit retiré du panier");
-  }, []);
-
-  const clearCart = useCallback(() => {
-    setItems([]);
-    localStorage.removeItem(CART_STORAGE_KEY);
-  }, []);
-
-  // Calculate derived values
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
+      try {
+        const cart = await cartApi.add(productId, quantity, variantId ?? null);
+        setItems(cart.items);
+        toast.success("Produit ajouté au panier");
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
+    },
+    [isAuthenticated],
   );
 
-  // Group items by store
+  const updateQuantity = useCallback(
+    async (productId: string, quantity: number, variantId?: string | null) => {
+      if (!isAuthenticated) {
+        return;
+      }
+
+      if (quantity < 1) {
+        return;
+      }
+
+      try {
+        const cart = await cartApi.updateQuantity(
+          productId,
+          quantity,
+          variantId ?? null,
+        );
+        setItems(cart.items);
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
+    },
+    [isAuthenticated],
+  );
+
+  const removeFromCart = useCallback(
+    async (productId: string, variantId?: string | null) => {
+      if (!isAuthenticated) {
+        return;
+      }
+
+      try {
+        const cart = await cartApi.remove(productId, variantId ?? null);
+        setItems(cart.items);
+        toast.success("Produit retire du panier");
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
+    },
+    [isAuthenticated],
+  );
+
+  const clearCart = useCallback(async () => {
+    if (!isAuthenticated) {
+      setItems([]);
+      return;
+    }
+
+    try {
+      await cartApi.clear();
+      setItems([]);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  }, [isAuthenticated]);
+
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const subtotal = items.reduce(
+    (sum, item) => sum + (item.unitPrice ?? item.product.price) * item.quantity,
+    0,
+  );
+
   const storeGroups = items.reduce(
     (groups, item) => {
       const existingGroup = groups.find(
-        (g) => g.storeId === item.product.storeId
+        (g) => g.storeId === item.product.storeId,
       );
       if (existingGroup) {
         existingGroup.items.push(item);
-        existingGroup.subtotal += item.product.price * item.quantity;
+        existingGroup.subtotal +=
+          (item.unitPrice ?? item.product.price) * item.quantity;
       } else {
         groups.push({
           storeId: item.product.storeId,
           storeName: item.product.storeName,
           items: [item],
-          subtotal: item.product.price * item.quantity,
+          subtotal: (item.unitPrice ?? item.product.price) * item.quantity,
         });
       }
       return groups;
@@ -177,13 +191,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       storeName: string;
       items: CartItem[];
       subtotal: number;
-    }[]
+    }[],
   );
 
   return (
     <CartContext.Provider
       value={{
         items,
+        isLoading,
         itemCount,
         subtotal,
         storeGroups,

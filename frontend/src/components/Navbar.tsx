@@ -11,9 +11,17 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useCart } from "@/context/CartContext";
+import { useCart } from "@/hooks/useCart";
+import { useProducts } from "@/hooks/useApi";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 function AgoraIcon() {
   return (
@@ -34,6 +42,11 @@ export function Navbar() {
   const { user, isAuthenticated, isSeller, isLoading, logout } = useAuth();
   const { itemCount } = useCart();
   const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const queryParam = searchParams.get("q") || "";
+
+  const { data, isLoading: isSearchLoading } = useProducts({ q: search });
+  const results = data?.products || [];
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -51,10 +64,10 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (search.trim()) {
-      router.push(`/recherche?q=${encodeURIComponent(search.trim())}`);
+  const handleSearch = (searchQuery: string) => {
+    if (searchQuery.trim()) {
+      router.push(`/catalogue?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearch("");
     }
   };
 
@@ -94,18 +107,73 @@ export function Navbar() {
           </nav>
 
           {/* Search bar */}
-          <form onSubmit={handleSearch} className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--agora-mid)]" />
-              <input
-                type="text"
+          <div className="flex-1 relative">
+            <Command
+              shouldFilter={false}
+              className="w-full border border-[var(--agora-line)] rounded-lg bg-[var(--agora-bg)] focus-within:border-[var(--agora-primary)] focus-within:bg-white transition-colors overflow-visible [&_[data-slot=command-input-wrapper]]:border-0"
+            >
+              <CommandInput
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onValueChange={setSearch}
                 placeholder="Rechercher des produits..."
-                className="w-full pl-9 pr-4 py-2 text-sm border border-[var(--agora-line)] rounded-lg bg-[var(--agora-bg)] focus:outline-none focus:border-[var(--agora-primary)] focus:bg-white transition-colors"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearch(search);
+                  }
+                }}
               />
-            </div>
-          </form>
+              {search.trim().length > 0 && (
+                <CommandList className="absolute top-full left-0 w-full mt-2 bg-white border border-[var(--agora-line)] shadow-[var(--shadow-md)] rounded-xl z-50 max-h-80 overflow-y-auto">
+                  {isSearchLoading ? (
+                    <CommandEmpty>Recherche en cours...</CommandEmpty>
+                  ) : results.length === 0 ? (
+                    <CommandEmpty>
+                      Aucun résultat pour « {search} ».
+                    </CommandEmpty>
+                  ) : (
+                    <>
+                      {results.slice(0, 5).map((product) => (
+                        <CommandItem
+                          key={product.id}
+                          onSelect={() => {
+                            router.push(`/produit/${product.id}`);
+                            setSearch("");
+                          }}
+                          className="flex items-center gap-3 p-3 cursor-pointer"
+                        >
+                          {product.images?.[0] && (
+                            <img
+                              src={product.images[0]}
+                              alt={product.name}
+                              className="w-10 h-10 rounded-md object-cover"
+                            />
+                          )}
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-[var(--agora-ink)]">
+                              {product.name}
+                            </span>
+                            <span className="text-xs text-[var(--agora-mid)]">
+                              {product.category} •{" "}
+                              {product.displayPrice
+                                .toFixed(2)
+                                .replace(".", ",")}{" "}
+                              €
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                      <CommandItem
+                        onSelect={() => handleSearch(search)}
+                        className="text-sm font-medium text-[var(--agora-primary)] justify-center py-3 border-t border-[var(--agora-line)] cursor-pointer"
+                      >
+                        Voir tous les résultats
+                      </CommandItem>
+                    </>
+                  )}
+                </CommandList>
+              )}
+            </Command>
+          </div>
 
           {/* Right : panier + auth */}
           <div className="flex items-center gap-1 shrink-0">
@@ -131,9 +199,9 @@ export function Navbar() {
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-lg hover:bg-[var(--agora-accent)] transition-colors"
                   >
-                    {user?.photo ? (
+                    {user?.image ? (
                       <img
-                        src={user.photo}
+                        src={user.image}
                         alt={`${user.firstName} ${user.lastName}`}
                         className="w-8 h-8 rounded-full object-cover"
                         referrerPolicy="no-referrer"

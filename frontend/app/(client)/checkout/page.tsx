@@ -13,7 +13,7 @@ import {
   Lock,
   Truck,
 } from "lucide-react";
-import { useCart } from "@/context/CartContext";
+import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +69,10 @@ export default function CheckoutPage() {
   const currentStepIndex = steps.findIndex((s) => s.key === currentStep);
 
   const total = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    return items.reduce(
+      (sum, item) => sum + item.unitPrice * item.quantity,
+      0,
+    );
   }, [items]);
 
   const isShippingValid = useMemo(() => {
@@ -593,7 +596,7 @@ export default function CheckoutPage() {
                         </p>
                       </div>
                       <p className="text-sm font-medium text-[var(--agora-ink)]">
-                        {(item.product.price * item.quantity)
+                        {(item.unitPrice * item.quantity)
                           .toFixed(2)
                           .replace(".", ",")} €
                       </p>

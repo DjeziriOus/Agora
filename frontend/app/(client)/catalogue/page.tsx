@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { SlidersHorizontal, Grid3X3, List, X, ChevronDown, ChevronUp } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { SkeletonProductGrid } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
 import { StarRating } from "@/components/StarRating";
-import { mockProducts, mockCategories, mockStores, filterProducts } from "@/lib/mockData";
+import { productsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import type { Product } from "@/types";
 
 type SortOption = "relevance" | "price_asc" | "price_desc" | "rating";
 type ViewMode = "grid" | "list";
@@ -31,7 +32,11 @@ const sortOptions: { value: SortOption; label: string }[] = [
 function CatalogueContent() {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
-  
+  const queryParam = searchParams.get("q") || "";
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<SortOption>("relevance");
@@ -41,7 +46,7 @@ function CatalogueContent() {
     store: true,
     rating: true,
   });
-  
+
   const [filters, setFilters] = useState<FilterState>({
     minPrice: 0,
     maxPrice: 500,
@@ -49,6 +54,19 @@ function CatalogueContent() {
     stores: [],
     minRating: 0,
   });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await productsApi.getAll();
+        setProducts(res.products);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    })();
+  }, []);
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
@@ -67,43 +85,78 @@ function CatalogueContent() {
     });
   };
 
-  // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let products = filterProducts({
-      minPrice: filters.minPrice > 0 ? filters.minPrice : undefined,
-      maxPrice: filters.maxPrice < 500 ? filters.maxPrice : undefined,
-      category: filters.categories.length === 1 ? filters.categories[0] : undefined,
-      minRating: filters.minRating > 0 ? filters.minRating : undefined,
-    });
+    let result = [...products];
 
-    // Additional category filter for multiple selections
-    if (filters.categories.length > 1) {
-      products = products.filter((p) => filters.categories.includes(p.category));
+    if (queryParam.trim() !== "") {
+      const q = queryParam.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q)
+      );
     }
 
-    // Store filter
+    if (filters.minPrice > 0) {
+      result = result.filter((p) => p.displayPrice >= filters.minPrice);
+    }
+    if (filters.maxPrice < 500) {
+      result = result.filter((p) => p.displayPrice <= filters.maxPrice);
+    }
+    if (filters.categories.length > 0) {
+      result = result.filter((p) => filters.categories.includes(p.category));
+    }
     if (filters.stores.length > 0) {
-      products = products.filter((p) => filters.stores.includes(p.storeId));
+      result = result.filter((p) => filters.stores.includes(p.storeId));
+    }
+    if (filters.minRating > 0) {
+      result = result.filter((p) => p.rating >= filters.minRating);
     }
 
-    // Sort
     switch (sortBy) {
       case "price_asc":
-        products.sort((a, b) => a.price - b.price);
+        result.sort((a, b) => a.displayPrice - b.displayPrice);
         break;
       case "price_desc":
-        products.sort((a, b) => b.price - a.price);
+        result.sort((a, b) => b.displayPrice - a.displayPrice);
         break;
       case "rating":
-        products.sort((a, b) => b.rating - a.rating);
+        result.sort((a, b) => b.rating - a.rating);
         break;
       default:
-        // relevance - keep original order
         break;
     }
 
-    return products;
-  }, [filters, sortBy]);
+    return result;
+  }, [products, filters, sortBy, queryParam]);
+
+  // Build categories and stores dynamically from real API data
+  const categories = useMemo(() => {
+    const map = new Map<string, number>();
+    products.forEach((p) => map.set(p.category, (map.get(p.category) ?? 0) + 1));
+    return Array.from(map.entries()).map(([name, count], i) => ({
+      id: `${i}`,
+      name,
+      productCount: count,
+    }));
+  }, [products]);
+
+  const stores = useMemo(() => {
+    const map = new Map<string, { name: string; count: number }>();
+    products.forEach((p) => {
+      const existing = map.get(p.storeId);
+      if (existing) {
+        existing.count++;
+      } else {
+        map.set(p.storeId, { name: p.storeName || "Boutique", count: 1 });
+      }
+    });
+    return Array.from(map.entries()).map(([id, v]) => ({
+      id,
+      name: v.name,
+      productCount: v.count,
+    }));
+  }, [products]);
 
   const hasActiveFilters =
     filters.minPrice > 0 ||
@@ -111,6 +164,10 @@ function CatalogueContent() {
     filters.categories.length > 0 ||
     filters.stores.length > 0 ||
     filters.minRating > 0;
+
+  if (isLoadingProducts) {
+    return <SkeletonProductGrid />;
+  }
 
   return (
     <div className="min-h-screen bg-[var(--agora-bg)]">
@@ -135,6 +192,8 @@ function CatalogueContent() {
               toggleSection={toggleSection}
               resetFilters={resetFilters}
               hasActiveFilters={hasActiveFilters}
+              categories={categories}
+              stores={stores}
             />
           </aside>
 
@@ -260,6 +319,8 @@ function CatalogueContent() {
                 toggleSection={toggleSection}
                 resetFilters={resetFilters}
                 hasActiveFilters={hasActiveFilters}
+                categories={categories}
+                stores={stores}
               />
             </div>
             <div className="p-4 border-t border-[var(--agora-line)]">
@@ -293,6 +354,8 @@ function FilterPanel({
   toggleSection,
   resetFilters,
   hasActiveFilters,
+  categories,
+  stores,
 }: {
   filters: FilterState;
   setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
@@ -300,6 +363,8 @@ function FilterPanel({
   toggleSection: (section: string) => void;
   resetFilters: () => void;
   hasActiveFilters: boolean;
+  categories: { id: string; name: string; productCount: number }[];
+  stores: { id: string; name: string; productCount: number }[];
 }) {
   return (
     <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] p-4 sticky top-24">
@@ -372,7 +437,7 @@ function FilterPanel({
         onToggle={() => toggleSection("category")}
       >
         <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-          {mockCategories.map((category) => (
+          {categories.map((category) => (
             <label
               key={category.id}
               className="flex items-center gap-3 py-1 cursor-pointer group"
@@ -413,7 +478,7 @@ function FilterPanel({
         onToggle={() => toggleSection("store")}
       >
         <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-          {mockStores.map((store) => (
+          {stores.map((store) => (
             <label
               key={store.id}
               className="flex items-center gap-3 py-1 cursor-pointer group"

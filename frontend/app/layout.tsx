@@ -70,7 +70,6 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <QueryProvider>
           <AuthProvider>
-            <CartProvider>
               {children}
               <Toaster
                 position="top-right"
@@ -83,7 +82,6 @@ export default function RootLayout({
                 }}
               />
               <ReactQueryDevtools initialIsOpen={false} />
-            </CartProvider>
           </AuthProvider>
         </QueryProvider>
         <Analytics />

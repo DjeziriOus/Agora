@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Package,
+  Boxes,
   ShoppingCart,
   Store,
   Settings,
@@ -30,6 +31,11 @@ const vendorNavItems = [
     label: "Mes produits",
     href: "/vendeur/produits",
     icon: Package,
+  },
+  {
+    label: "Gestion du stock",
+    href: "/vendeur/stock",
+    icon: Boxes,
   },
   {
     label: "Commandes",
@@ -73,7 +79,7 @@ export function VendorSidebar() {
         className={cn(
           "fixed inset-y-0 left-0 z-40 bg-background border-r transition-all duration-300",
           collapsed ? "-translate-x-full lg:translate-x-0 lg:w-20" : "w-64",
-          "lg:translate-x-0"
+          "lg:translate-x-0",
         )}
       >
         <div className="flex flex-col h-full">
@@ -91,13 +97,7 @@ export function VendorSidebar() {
                 </span>
               </Link>
             )}
-            {collapsed && (
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center mx-auto">
-                <span className="text-primary-foreground font-heading font-bold text-lg">
-                  A
-                </span>
-              </div>
-            )}
+
             <Button
               variant="ghost"
               size="icon"
@@ -107,7 +107,7 @@ export function VendorSidebar() {
               <ChevronLeft
                 className={cn(
                   "h-4 w-4 transition-transform",
-                  collapsed && "rotate-180"
+                  collapsed && "rotate-180",
                 )}
               />
             </Button>
@@ -130,7 +130,7 @@ export function VendorSidebar() {
                     isActive
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    collapsed && "justify-center px-2"
+                    collapsed && "justify-center px-2",
                   )}
                   title={collapsed ? item.label : undefined}
                 >
@@ -153,12 +153,21 @@ export function VendorSidebar() {
           <div className="p-4 border-t">
             {!collapsed ? (
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="font-semibold text-primary">
-                    {user?.firstName?.charAt(0)}
-                    {user?.lastName?.charAt(0)}
-                  </span>
-                </div>
+                {user?.image ? (
+                  <img
+                    src={user?.image}
+                    alt={`${user?.firstName} ${user?.lastName}`}
+                    className="w-10 h-10 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full  bg-primary/10 flex items-center justify-center">
+                    <span className="font-semibold text-primary">
+                      {user?.firstName?.charAt(0)}
+                      {user?.lastName?.charAt(0)}
+                    </span>
+                  </div>
+                )}
                 <div className="min-w-0">
                   <p className="font-medium text-sm truncate">
                     {user?.firstName} {user?.lastName}
@@ -173,7 +182,7 @@ export function VendorSidebar() {
               variant="ghost"
               className={cn(
                 "w-full justify-start text-muted-foreground hover:text-foreground",
-                collapsed && "justify-center px-2"
+                collapsed && "justify-center px-2",
               )}
               onClick={logout}
             >

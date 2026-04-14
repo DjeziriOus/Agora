@@ -59,7 +59,7 @@ function mapUser(sessionUser: Record<string, unknown>): User {
       (sessionUser.role as "buyer" | "seller" | "unassigned") ??
       "unassigned",
     emailVerified: Boolean(sessionUser.emailVerified),
-    photo: (sessionUser.photo as string | undefined) ?? undefined,
+    image: (sessionUser.image as string | undefined) ?? undefined,
   };
 }
 
