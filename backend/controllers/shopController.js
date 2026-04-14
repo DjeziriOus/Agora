@@ -6,6 +6,7 @@ import shopService from "../services/shopService.js";
  */
 export const createShop = async (req, res) => {
   try {
+    console.log(req.body);
     const {
       name,
       description,
@@ -32,6 +33,7 @@ export const createShop = async (req, res) => {
       shop,
     });
   } catch (error) {
+    console.error("createShop error:", error);
     return res.status(error.statusCode || 500).json({
       message: error.message || "Internal server error.",
     });
@@ -56,12 +58,12 @@ export const updateShop = async (req, res) => {
       shop,
     });
   } catch (error) {
+    console.error("updateShop error:", error);
     return res.status(error.statusCode || 500).json({
       message: error.message || "Internal server error.",
     });
   }
 };
-
 /**
  * GET /api/shops/:id
  */
@@ -82,7 +84,7 @@ export const getMyShop = async (req, res) => {
     const shop = await shopService.getMyShop(req.user.id);
     res.status(200).json(shop);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 

@@ -64,6 +64,15 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      mapProfileToUser: async (profile) => {
+        console.log(profile);
+        return {
+          // Map Google's response to your custom fields
+          firstName: profile.given_name || "",
+          lastName: profile.family_name || "",
+          photo: profile.picture || "",
+        };
+      },
     },
   },
 
@@ -75,7 +84,7 @@ export const auth = betterAuth({
       age: { type: "number", input: true, defaultValue: null },
       gender: { type: "string", input: true, defaultValue: "" },
       photo: { type: "string", input: true, defaultValue: "" },
-      role: { type: "string", input: true, defaultValue: "buyer" },
+      role: { type: "string", input: true, defaultValue: "unassigned" },
     },
   },
 
