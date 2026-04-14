@@ -1,5 +1,5 @@
-import { auth } from '../auth.js';
-import { fromNodeHeaders } from 'better-auth/node';
+import { auth } from "../auth.js";
+import { fromNodeHeaders } from "better-auth/node";
 
 /**
  * verifyToken — validates the BetterAuth session from request headers or cookies.
@@ -10,15 +10,17 @@ export const verifyToken = async (req, res, next) => {
     const session = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
     });
+    console.log("req:", req);
+    console.log("session :", session);
 
     if (!session || !session.user) {
-      return res.status(401).json({ message: 'Unauthorized. Please log in.' });
+      return res.status(401).json({ message: "Unauthorized. Please log in." });
     }
 
     req.user = session.user; // { id, email, name, firstName, lastName, role, emailVerified, … }
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Unauthorized. Invalid session.' });
+    return res.status(401).json({ message: "Unauthorized. Invalid session." });
   }
 };
 
@@ -41,8 +43,10 @@ export const requireVerifiedEmail = (req, res, next) => {
  * Must be used AFTER verifyToken.
  */
 export const isSeller = (req, res, next) => {
-  if (req.user.role !== 'seller') {
-    return res.status(403).json({ message: 'Accès refusé. Rôle vendeur requis.' });
+  if (req.user.role !== "seller") {
+    return res
+      .status(403)
+      .json({ message: "Accès refusé. Rôle vendeur requis." });
   }
   next();
 };
@@ -52,8 +56,10 @@ export const isSeller = (req, res, next) => {
  * Must be used AFTER verifyToken.
  */
 export const isBuyer = (req, res, next) => {
-  if (req.user.role !== 'buyer') {
-    return res.status(403).json({ message: 'Accès refusé. Rôle acheteur requis.' });
+  if (req.user.role !== "buyer") {
+    return res
+      .status(403)
+      .json({ message: "Accès refusé. Rôle acheteur requis." });
   }
   next();
 };
@@ -63,8 +69,10 @@ export const isBuyer = (req, res, next) => {
  * Must be used AFTER verifyToken.
  */
 export const isAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Accès refusé. Rôle administrateur requis.' });
+  if (req.user.role !== "admin") {
+    return res
+      .status(403)
+      .json({ message: "Accès refusé. Rôle administrateur requis." });
   }
   next();
 };
