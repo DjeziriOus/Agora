@@ -22,10 +22,10 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const router = useRouter();
   const { addToCart, isAdding } = useCart();
   const productId =
-    product.id ||
-    ((product as unknown as { _id?: string })._id ?? "");
+    product.id || ((product as unknown as { _id?: string })._id ?? "");
   const mainImage =
-    typeof product.images?.[0] === "string" && product.images[0].trim().length > 0
+    typeof product.images?.[0] === "string" &&
+    product.images[0].trim().length > 0
       ? product.images[0]
       : "/placeholder-product.png";
 
@@ -63,7 +63,11 @@ export function ProductCard({ product, className }: ProductCardProps) {
       tabIndex={0}
       onClick={handleNavigate}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+        if (e.ctrlKey || e.metaKey) {
+          // Ouvre dans un nouvel onglet
+          e.preventDefault();
+          window.open(`/produit/${productId}`, "_blank");
+        } else if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           handleNavigate();
         }
