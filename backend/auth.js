@@ -16,7 +16,7 @@ import {
 // at module evaluation time (before connectDB() runs).
 const client = new MongoClient(process.env.MONGO_URI);
 await client.connect();
-const db = client.db("multivendor");
+const db = client.db();
 
 // Derive the email verification policy once so every auth entry point uses the same flag.
 export const requireEmailVerification =

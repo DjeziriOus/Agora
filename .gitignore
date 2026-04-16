@@ -19,3 +19,5 @@ DONE.md
 
 .continue
 /*.txt
+backend/scripts/move-test-to-multivendor.js
+gmail_api_rollback_guide.md
