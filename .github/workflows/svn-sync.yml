@@ -1,0 +1,188 @@
+name: Sync Git → SVN
+
+on:
+  push:
+    branches:
+      - prod
+      - dev
+      - 'f1-*'
+      - 'f2-*'
+      - 'f3-*'
+      - 'page-*'
+
+jobs:
+  sync-to-svn:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ─── 1. Checkout ───────────────────────────────────────────────
+      - name: Checkout Git repo
+        uses: actions/checkout@v4
+
+      # ─── 2. Author gate ────────────────────────────────────────────
+      # Only sync commits authored by Oussama.
+      # If someone ELSE merges a PR to prod, it does NOT sync —
+      # preventing false credit in SVN.
+      - name: Check commit author
+        id: check-author
+        run: |
+          AUTHOR_EMAIL=$(git log -1 --format='%ae')
+          echo "author=$AUTHOR_EMAIL" >> $GITHUB_OUTPUT
+
+          if [ "$AUTHOR_EMAIL" != "100945558+DjeziriOus@users.noreply.github.com" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "::notice::Commit by $AUTHOR_EMAIL (not Oussama). Skipping SVN sync."
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✅ Commit by Oussama — proceeding with SVN sync."
+          fi
+
+      # ─── 3. Install SVN ────────────────────────────────────────────
+      - name: Install SVN
+        if: steps.check-author.outputs.skip != 'true'
+        run: sudo apt-get update -qq && sudo apt-get install -yqq subversion
+
+      # ─── 4. Route branch → SVN path ────────────────────────────────
+      - name: Determine SVN target
+        if: steps.check-author.outputs.skip != 'true'
+        id: target
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SVN_BASE_URL: ${{ secrets.SVN_BASE_URL }}
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          SAFE_NAME="${BRANCH//\//-}"
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "safe_name=$SAFE_NAME" >> $GITHUB_OUTPUT
+
+          # ── Route: prod → trunk ──
+          if [ "$BRANCH" = "prod" ]; then
+            echo "svn_path=trunk" >> $GITHUB_OUTPUT
+            echo "action=sync" >> $GITHUB_OUTPUT
+            echo "📦 Route: prod → trunk/"
+
+          # ── Route: dev → branche/dev ──
+          elif [ "$BRANCH" = "dev" ]; then
+            echo "svn_path=branche/dev" >> $GITHUB_OUTPUT
+            echo "action=sync" >> $GITHUB_OUTPUT
+            echo "📦 Route: dev → branche/dev/"
+
+          else
+            # ── Check if it's one of Oussama's known branches ──
+            # ⚡ UPDATE THIS LIST when you create new branches!
+            MY_BRANCHES=(
+              "f1-auth-google-oauth"
+              "f1-email-verification"
+              "f1-linking-login"
+              "f2-navbar-linking"
+              "f2-searching-products"
+              "f2-shop-creation"
+              "f2-variants-and-carts"
+              "f3-page-vendeur"
+              "f3-produit-backend"
+              "f3-shop-backend"
+              "f3-upload-images-frontend"
+            )
+
+            IS_MINE=false
+            for B in "${MY_BRANCHES[@]}"; do
+              if [ "$SAFE_NAME" = "$B" ]; then
+                IS_MINE=true
+                break
+              fi
+            done
+
+            if [ "$IS_MINE" = "true" ]; then
+              echo "svn_path=branche/oussama/$SAFE_NAME" >> $GITHUB_OUTPUT
+              echo "action=sync" >> $GITHUB_OUTPUT
+              echo "📦 Route: $BRANCH → branche/oussama/$SAFE_NAME"
+            else
+              # ── Not Oussama's branch — check if it exists in SVN ──
+              FOUND=false
+              for MEMBER in elena rui wenxiao oussama; do
+                CHECK_URL="$SVN_BASE_URL/branche/$MEMBER/$SAFE_NAME"
+                if svn info --username "$SVN_USERNAME" --password "$SVN_PASSWORD" \
+                  --no-auth-cache --non-interactive "$CHECK_URL" &>/dev/null; then
+                  echo "svn_path=branche/$MEMBER/$SAFE_NAME" >> $GITHUB_OUTPUT
+                  echo "action=sync" >> $GITHUB_OUTPUT
+                  echo "📦 Route: $BRANCH → branche/$MEMBER/$SAFE_NAME (existing)"
+                  FOUND=true
+                  break
+                fi
+              done
+
+              if [ "$FOUND" = "false" ]; then
+                echo "action=abort" >> $GITHUB_OUTPUT
+                echo "❌ Branch '$BRANCH' ($SAFE_NAME) not found in any SVN folder."
+                echo "❌ If this is YOUR new branch, add it to MY_BRANCHES in svn-sync.yml"
+              fi
+            fi
+          fi
+
+      # ─── 5. Abort if branch not in SVN ─────────────────────────────
+      - name: Abort — branch not found in SVN
+        if: steps.check-author.outputs.skip != 'true' && steps.target.outputs.action == 'abort'
+        run: |
+          echo "::error::SVN sync ABORTED: Branch '${{ steps.target.outputs.branch }}' does not exist in any team member's SVN folder."
+          echo "::error::If this is your new branch, add it to MY_BRANCHES in .github/workflows/svn-sync.yml"
+          exit 1
+
+      # ─── 6. Perform sync ───────────────────────────────────────────
+      - name: Sync to SVN
+        if: steps.check-author.outputs.skip != 'true' && steps.target.outputs.action == 'sync'
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SVN_BASE_URL: ${{ secrets.SVN_BASE_URL }}
+        run: |
+          set -euo pipefail
+
+          SVN_PATH="${{ steps.target.outputs.svn_path }}"
+          SVN_URL="$SVN_BASE_URL/$SVN_PATH"
+          BRANCH="${{ steps.target.outputs.branch }}"
+
+          # ── Commit message: Option A (traceable) ──
+          GIT_MSG=$(git log -1 --format='%s')
+          GIT_SHA=$(git log -1 --format='%h')
+          SVN_MSG="[git-sync] $GIT_MSG (SHA: $GIT_SHA)"
+
+          # ── Ensure SVN path exists (no-op if it already does) ──
+          svn mkdir --parents --username "$SVN_USERNAME" --password "$SVN_PASSWORD" \
+            --no-auth-cache --non-interactive "$SVN_URL" \
+            -m "[git-sync] Create path for $BRANCH" 2>/dev/null || true
+
+          # ── Work in temp directory ──
+          SVN_WORK=$(mktemp -d)
+          trap 'rm -rf "$SVN_WORK"' EXIT
+
+          # ── Checkout SVN working copy ──
+          svn checkout --username "$SVN_USERNAME" --password "$SVN_PASSWORD" \
+            --no-auth-cache --non-interactive "$SVN_URL" "$SVN_WORK/wc"
+
+          # ── Mirror git → SVN (exclude VCS/CI dirs) ──
+          rsync -a --delete \
+            --exclude='.svn' \
+            --exclude='.git' \
+            --exclude='.github' \
+            "$GITHUB_WORKSPACE/" "$SVN_WORK/wc/"
+
+          cd "$SVN_WORK/wc"
+
+          # ── Stage additions ──
+          svn add --force . 2>/dev/null || true
+
+          # ── Stage deletions ──
+          svn status | grep '^!' | while IFS= read -r line; do
+            svn delete --force "${line:8}" 2>/dev/null || true
+          done || true
+
+          # ── Commit if there are changes ──
+          if svn status | grep -qE '^[MADR]'; then
+            svn commit --username "$SVN_USERNAME" --password "$SVN_PASSWORD" \
+              --no-auth-cache --non-interactive -m "$SVN_MSG"
+            echo "✅ SVN sync complete: $BRANCH → $SVN_PATH"
+            echo "📝 Message: $SVN_MSG"
+          else
+            echo "ℹ️ No changes to commit: $BRANCH → $SVN_PATH"
+          fi
