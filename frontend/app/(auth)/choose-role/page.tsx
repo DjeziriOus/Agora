@@ -39,7 +39,7 @@ export default function ChooseRolePage() {
         .catch(() => false);
       router.replace(hasStore ? "/vendeur" : "/vendeur/boutique");
     } else {
-      router.replace("/catalogue");
+      router.replace("/");
     }
   };
 
