@@ -21,6 +21,7 @@ const db = client.db();
 // Derive the email verification policy once so every auth entry point uses the same flag.
 export const requireEmailVerification =
   process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+const isProduction = process.env.NODE_ENV === "production";
 
 console.log("IS EMAIL VERIFICATION REQUIRED?", requireEmailVerification);
 
@@ -36,12 +37,16 @@ export const auth = betterAuth({
     },
   }),
 
-  advanced: {
-    defaultCookieAttributes: {
-      sameSite: "none",
-      secure: true,
-    },
-  },
+  ...(isProduction
+    ? {
+        advanced: {
+          defaultCookieAttributes: {
+            sameSite: "none",
+            secure: true,
+          },
+        },
+      }
+    : {}),
 
   // ── Email + Password ──────────────────────────────────
   // Set REQUIRE_EMAIL_VERIFICATION=true in .env once SMTP is configured.
