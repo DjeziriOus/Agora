@@ -494,7 +494,7 @@ export default function NewProductPage() {
             </div>
 
             {/* Right Column – Sidebar */}
-            <div className="space-y-6">
+            <div className="space-y-6 lg:sticky lg:top-8 lg:self-start">
               {/* Category & Status */}
               <Card>
                 <CardHeader>
