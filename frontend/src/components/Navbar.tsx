@@ -74,6 +74,7 @@ export function Navbar() {
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
     : "";
+  const authReady = !isLoading;
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-[var(--agora-line)]">
@@ -89,13 +90,15 @@ export function Navbar() {
 
           {/* Nav */}
           <nav className="hidden sm:flex items-center gap-4 shrink-0">
-            <Link
-              href="/catalogue"
-              className="text-sm font-medium text-[var(--agora-ink)] hover:text-[var(--agora-primary)] transition-colors"
-            >
-              Catalogue
-            </Link>
-            {isAuthenticated && isSeller && (
+            {authReady && !isSeller && (
+              <Link
+                href="/catalogue"
+                className="text-sm font-medium text-[var(--agora-ink)] hover:text-[var(--agora-primary)] transition-colors"
+              >
+                Catalogue
+              </Link>
+            )}
+            {authReady && isAuthenticated && isSeller && (
               <Link
                 href="/vendeur"
                 className="flex items-center gap-1.5 text-sm font-medium text-[var(--agora-gold)] hover:text-[var(--agora-primary)] transition-colors"
