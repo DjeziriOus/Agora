@@ -22,17 +22,37 @@ const categoryIcons: Record<string, string> = {
 };
 
 export default function HomePage() {
-  const { user, isAuthenticated, isSeller } = useAuth();
-  const [hasShop, setHasShop] = useState(false);
+  const { isAuthenticated, isSeller, isLoading: isAuthLoading } = useAuth();
+  const [hasShop, setHasShop] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated && isSeller) {
-      shopsApi
-        .getMyStore()
-        .then((shop) => setHasShop(!!shop))
-        .catch(() => setHasShop(false));
+    if (isAuthLoading) return;
+
+    if (!isAuthenticated || !isSeller) {
+      setHasShop(null);
+      return;
     }
-  }, [isAuthenticated, isSeller]);
+
+    let isCancelled = false;
+    setHasShop(null);
+
+    shopsApi
+      .getMyStore()
+      .then((shop) => {
+        if (!isCancelled) {
+          setHasShop(!!shop);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setHasShop(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isAuthenticated, isAuthLoading, isSeller]);
 
   const featuredProducts = mockProducts.slice(0, 8);
   const featuredCategories = mockCategories.slice(0, 8);
@@ -40,7 +60,12 @@ export default function HomePage() {
   // Determine the boutique CTA destination and label
   // Buyers should NOT see it — they already have an account.
   // Sellers with a shop don't need it — they use the navbar dashboard link.
-  const showBoutiqueButton = !isAuthenticated || (isSeller && !hasShop);
+  const authReady = !isAuthLoading;
+  const isCheckingShop = authReady && isAuthenticated && isSeller && hasShop === null;
+  const showBoutiqueButton =
+    authReady &&
+    !isCheckingShop &&
+    (!isAuthenticated || (isSeller && hasShop === false));
   const boutiqueHref = !isAuthenticated ? "/register" : "/vendeur/boutique";
   const boutiqueLabel = !isAuthenticated
     ? "Ouvrir ma boutique"

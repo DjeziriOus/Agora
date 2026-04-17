@@ -62,7 +62,7 @@ function LoginContent() {
           .catch(() => false);
         router.push(hasStore ? "/vendeur" : "/vendeur/boutique");
       } else {
-        router.push("/catalogue");
+        router.push("/");
       }
     } catch (err) {
       setError(

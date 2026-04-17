@@ -36,7 +36,7 @@ function OAuthCallbackContent() {
       router.replace(hasStore ? "/vendeur" : "/vendeur/boutique");
     } else {
       setStatus("Redirection...");
-      router.replace("/catalogue");
+      router.replace("/");
     }
   };
 

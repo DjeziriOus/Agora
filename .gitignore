@@ -14,7 +14,7 @@ gantt tasks.txt
 /*.txt
 
 TODO.md
-change-log.md
+CHANGELOG.md
 DONE.md
 
 .continue
