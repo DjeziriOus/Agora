@@ -535,7 +535,7 @@ export const ordersApi = {
       body: JSON.stringify({ status }),
     }),
   create: (data: unknown) =>
-    apiFetch<unknown>("/api/orders", {
+    apiFetch<{ id: string }>("/api/orders", {
       method: "POST",
       body: JSON.stringify(data),
     }),

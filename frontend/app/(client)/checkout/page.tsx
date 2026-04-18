@@ -13,8 +13,10 @@ import {
   Lock,
   Truck,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/context/AuthContext";
+import { useCreateOrder } from "@/hooks/useApi";
 import { shopsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +48,7 @@ export default function CheckoutPage() {
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("shipping");
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const createOrder = useCreateOrder();
 
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     firstName: "",
@@ -159,14 +162,34 @@ export default function CheckoutPage() {
     if (currentStep === "shipping" && isShippingValid) {
       setCurrentStep("payment");
     } else if (currentStep === "payment" && isPaymentValid) {
-      // Process payment
       setIsProcessing(true);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const newOrderId = `AGO-${Date.now().toString(36).toUpperCase()}`;
-      setOrderId(newOrderId);
-      clearCart();
-      setIsProcessing(false);
-      setCurrentStep("confirmation");
+      try {
+        const result = await createOrder.mutateAsync({
+          items: items.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
+          deliveryAddress: {
+            firstName: shippingInfo.firstName,
+            lastName: shippingInfo.lastName,
+            addressLine1: shippingInfo.address,
+            city: shippingInfo.city,
+            postalCode: shippingInfo.postalCode,
+            country: "France",
+          },
+          paymentMethod: "card",
+        });
+        setOrderId(result.id);
+        await clearCart();
+        setCurrentStep("confirmation");
+      } catch (err) {
+        console.error("Erreur création commande:", err);
+        const msg = err instanceof Error ? err.message : "Erreur inconnue";
+        toast.error(`Erreur : ${msg}`);
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
