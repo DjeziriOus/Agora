@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { toNodeHandler } from "better-auth/node";
 
+
 // Load .env first — before importing auth (which needs env vars)
 dotenv.config();
 
@@ -14,7 +15,7 @@ import shopRoutes from "./routes/shopRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
-// import addressRoutes from './routes/addressRoutes.js';
+import clientAddressRoutes from "./routes/clientAddressRoutes.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -59,7 +60,7 @@ app.use("/api/shops", shopRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
-// app.use("/api/addresses", addressRoutes);
+app.use("/api/addresses", clientAddressRoutes);
 
 // Health-check
 app.get("/", (_req, res) => {
