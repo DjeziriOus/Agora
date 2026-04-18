@@ -1,8 +1,9 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { shopsApi } from "@/lib/api";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User, Package, MapPin, Settings, ChevronRight } from "lucide-react";
@@ -23,14 +24,43 @@ export default function AccountLayoutClient({
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isCheckingSellerRedirect, setIsCheckingSellerRedirect] =
+    useState(false);
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login?redirect=/compte");
-    }
-  }, [user, isLoading, router]);
+    if (isLoading) return;
 
-  if (isLoading) {
+    if (!user) {
+      router.push("/login?redirect=/compte");
+      return;
+    }
+
+    if (user.role === "seller") {
+      let isCancelled = false;
+      setIsCheckingSellerRedirect(true);
+
+      shopsApi
+        .getMyStore()
+        .then((shop) => {
+          if (isCancelled) return;
+
+          router.replace(shop ? "/vendeur" : "/vendeur/boutique");
+        })
+        .catch(() => {
+          if (isCancelled) return;
+
+          router.replace("/vendeur/boutique");
+        });
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    setIsCheckingSellerRedirect(false);
+  }, [isLoading, router, user]);
+
+  if (isLoading || isCheckingSellerRedirect) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -38,7 +68,7 @@ export default function AccountLayoutClient({
     );
   }
 
-  if (!user) return null;
+  if (!user || user.role === "seller") return null;
 
   return (
     <main className="min-h-screen bg-muted/30">
