@@ -19,6 +19,7 @@ import { AgoraBadge } from "@/components/AgoraBadge";
 import { ProductCard } from "@/components/ProductCard";
 import { useCart } from "@/hooks/useCart";
 import { useProduct } from "@/hooks/useApi";
+import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/api";
 import { mockProducts } from "@/lib/mockData";
 import {
@@ -39,6 +40,7 @@ export default function ProductDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { isSeller } = useAuth();
   const { addToCart, isAdding } = useCart();
   const { data: apiProduct, isLoading, error } = useProduct(id);
   const fallbackProduct = mockProducts.find((p) => p.id === id);
@@ -141,6 +143,8 @@ export default function ProductDetailPage({
   const displayStock = selectedVariant?.stock ?? product.totalStock;
 
   const handleAddToCart = async () => {
+    if (isSeller) return;
+
     // Block the add-to-cart action when the selected product option is out of stock.
     if (displayStock === 0) return;
 
@@ -292,61 +296,70 @@ export default function ProductDetailPage({
               </div>
             )}
 
-            {/* Quantity Selector */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-[var(--agora-ink)] mb-2">
-                Quantité
-              </label>
-              <div className="inline-flex items-center border border-[var(--agora-line)] rounded-[var(--radius-md)]">
-                <button
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  disabled={quantity <= 1}
-                  className="p-3 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Minus className="w-4 h-4" />
-                </button>
-                <span className="w-12 text-center font-medium text-[var(--agora-ink)]">
-                  {quantity}
-                </span>
-                <button
-                  onClick={() =>
-                    setQuantity((q) => Math.min(displayStock, q + 1))
-                  }
-                  disabled={quantity >= displayStock}
-                  className="p-3 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+            {!isSeller ? (
+              <>
+                {/* Quantity Selector */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-[var(--agora-ink)] mb-2">
+                    Quantité
+                  </label>
+                  <div className="inline-flex items-center border border-[var(--agora-line)] rounded-[var(--radius-md)]">
+                    <button
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      disabled={quantity <= 1}
+                      className="p-3 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-12 text-center font-medium text-[var(--agora-ink)]">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setQuantity((q) => Math.min(displayStock, q + 1))
+                      }
+                      disabled={quantity >= displayStock}
+                      className="p-3 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
 
-            {/* Add to Cart Button */}
-            <button
-              onClick={handleAddToCart}
-              disabled={isOutOfStock || isAdding}
-              className={cn(
-                "w-full py-4 px-6 rounded-[var(--radius-md)] font-medium text-lg transition-all flex items-center justify-center gap-2",
-                isOutOfStock
-                  ? "bg-[var(--agora-line)] text-[var(--agora-mid)] cursor-not-allowed"
-                  : justAdded
-                  ? "bg-[var(--agora-green)] text-white"
-                  : "bg-[var(--agora-primary)] text-white hover:bg-[var(--agora-primary-hover)] active:scale-[0.98]"
-              )}
-            >
-              {justAdded ? (
-                <>
-                  <Check className="w-5 h-5 animate-checkmark" />
-                  Ajouté au panier
-                </>
-              ) : isAdding ? (
-                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <ShoppingCart className="w-5 h-5" />
-                  Ajouter au panier
-                </>
-              )}
-            </button>
+                {/* Add to Cart Button */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock || isAdding}
+                  className={cn(
+                    "w-full py-4 px-6 rounded-[var(--radius-md)] font-medium text-lg transition-all flex items-center justify-center gap-2",
+                    isOutOfStock
+                      ? "bg-[var(--agora-line)] text-[var(--agora-mid)] cursor-not-allowed"
+                      : justAdded
+                        ? "bg-[var(--agora-green)] text-white"
+                        : "bg-[var(--agora-primary)] text-white hover:bg-[var(--agora-primary-hover)] active:scale-[0.98]"
+                  )}
+                >
+                  {justAdded ? (
+                    <>
+                      <Check className="w-5 h-5 animate-checkmark" />
+                      Ajouté au panier
+                    </>
+                  ) : isAdding ? (
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-5 h-5" />
+                      Ajouter au panier
+                    </>
+                  )}
+                </button>
+              </>
+            ) : (
+              <div className="rounded-[var(--radius-md)] border border-[var(--agora-line)] bg-[var(--agora-accent)] px-4 py-4 text-sm leading-relaxed text-[var(--agora-mid)]">
+                Les comptes vendeurs ne peuvent pas passer commande. Veuillez
+                utiliser un compte particulier pour acheter ce produit.
+              </div>
+            )}
 
             {/* Store Card */}
             {store && (
