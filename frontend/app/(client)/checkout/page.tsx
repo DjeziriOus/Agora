@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/context/AuthContext";
+import { shopsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type CheckoutStep = "shipping" | "payment" | "confirmation";
@@ -38,7 +39,9 @@ interface PaymentInfo {
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, clearCart } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const [isCheckingSellerRedirect, setIsCheckingSellerRedirect] =
+    useState(false);
 
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("shipping");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -94,6 +97,44 @@ export default function CheckoutPage() {
       paymentInfo.nameOnCard.trim() !== ""
     );
   }, [paymentInfo]);
+
+  useEffect(() => {
+    if (isAuthLoading) return;
+
+    if (user?.role === "seller") {
+      let isCancelled = false;
+      setIsCheckingSellerRedirect(true);
+
+      shopsApi
+        .getMyStore()
+        .then((shop) => {
+          if (isCancelled) return;
+
+          router.replace(shop ? "/vendeur" : "/vendeur/boutique");
+        })
+        .catch(() => {
+          if (isCancelled) return;
+
+          router.replace("/vendeur/boutique");
+        });
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    setIsCheckingSellerRedirect(false);
+  }, [isAuthLoading, router, user]);
+
+  if (isAuthLoading || isCheckingSellerRedirect) {
+    return (
+      <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center">
+        <span className="w-8 h-8 border-3 border-[var(--agora-line)] border-t-[var(--agora-primary)] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (user?.role === "seller") return null;
 
   // Redirect to cart if empty (except on confirmation)
   if (items.length === 0 && currentStep !== "confirmation") {

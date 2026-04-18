@@ -181,18 +181,20 @@ export function Navbar() {
           {/* Right : panier + auth */}
           <div className="flex items-center gap-1 shrink-0">
             {/* Panier */}
-            <Link
-              href="/panier"
-              className="relative p-2 rounded-lg hover:bg-[var(--agora-accent)] transition-colors"
-              aria-label="Panier"
-            >
-              <ShoppingCart className="w-5 h-5 text-[var(--agora-ink)]" />
-              {itemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-[var(--agora-primary)] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
-                  {itemCount}
-                </span>
-              )}
-            </Link>
+            {authReady && !isSeller && (
+              <Link
+                href="/panier"
+                className="relative p-2 rounded-lg hover:bg-[var(--agora-accent)] transition-colors"
+                aria-label="Panier"
+              >
+                <ShoppingCart className="w-5 h-5 text-[var(--agora-ink)]" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-[var(--agora-primary)] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
+                    {itemCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {/* Auth */}
             {!isLoading &&
@@ -241,14 +243,16 @@ export function Navbar() {
                           Tableau de bord
                         </Link>
                       )}
-                      <Link
-                        href="/compte/commandes"
-                        onClick={() => setDropdownOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
-                      >
-                        <Package className="w-4 h-4 text-[var(--agora-mid)]" />
-                        Mes commandes
-                      </Link>
+                      {!isSeller && (
+                        <Link
+                          href="/compte/commandes"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
+                        >
+                          <Package className="w-4 h-4 text-[var(--agora-mid)]" />
+                          Mes commandes
+                        </Link>
+                      )}
                       <button
                         onClick={() => {
                           setDropdownOpen(false);
