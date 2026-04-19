@@ -23,3 +23,7 @@ DONE.md
 gmail_api_rollback_guide.md
 backend/scripts/move-test-to-multivendor.js
 implementation_plan2.md
+tmp_sync
+.
+
+*.ps1
