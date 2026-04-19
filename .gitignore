@@ -27,3 +27,4 @@ tmp_sync
 .
 
 *.ps1
+sync-trunk.sh
