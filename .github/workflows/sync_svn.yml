@@ -3,11 +3,12 @@ name: Sync to SVN
 on:
   push:
     branches:
-      - '**'
+      - "**"
 
 jobs:
   sync-to-svn:
     runs-on: ubuntu-latest
+    environment: svn_sync
 
     steps:
       # ─── 1. Checkout ───────────────────────────────────────────────

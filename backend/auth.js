@@ -25,11 +25,11 @@ export const requireEmailVerification =
 console.log("IS EMAIL VERIFICATION REQUIRED?", requireEmailVerification);
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
   database: mongodbAdapter(db, {
-    baseURL: process.env.BETTER_AUTH_URL,
-    // Keep plural collection names consistent with Mongoose defaults
+    // Collection names must match Mongoose schema collection options
     collectionNames: {
-      user: "users",
+      user: "user",
       session: "sessions",
       account: "accounts",
       verification: "verifications",
@@ -76,9 +76,10 @@ export const auth = betterAuth({
         console.log(profile);
         return {
           // Map Google's response to your custom fields
+          // Note: Better Auth's built-in 'image' field is automatically
+          // populated from profile.picture, so we don't set it here.
           firstName: profile.given_name || "",
           lastName: profile.family_name || "",
-          photo: profile.picture || "",
         };
       },
     },
@@ -91,7 +92,6 @@ export const auth = betterAuth({
       lastName: { type: "string", input: true, defaultValue: "" },
       age: { type: "number", input: true, defaultValue: null },
       gender: { type: "string", input: true, defaultValue: "" },
-      photo: { type: "string", input: true, defaultValue: "" },
       role: { type: "string", input: true, defaultValue: "unassigned" },
     },
   },
@@ -121,16 +121,15 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
-          // When email verification is disabled, mark new accounts as verified immediately
-          if (!requireEmailVerification) {
-            return {
-              data: {
-                ...user,
-                emailVerified: true,
-              },
-            };
-          }
-          return { data: user };
+          // Always set emailVerified explicitly:
+          // - When verification is required → false (user must confirm via email)
+          // - When verification is disabled → true  (auto-verified for dev convenience)
+          return {
+            data: {
+              ...user,
+              emailVerified: !requireEmailVerification,
+            },
+          };
         },
       },
     },
