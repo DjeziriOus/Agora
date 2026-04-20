@@ -46,14 +46,13 @@ const orderSchema = new mongoose.Schema(
       country: { type: String, default: 'France' },
       phone: String,
     },
-<<<<<<< HEAD
+
     addressId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'ClientAddress',
     },
-=======
+    
     subOrders: [subOrderSchema],
->>>>>>> origin/dev
   },
   { timestamps: true }
 );
