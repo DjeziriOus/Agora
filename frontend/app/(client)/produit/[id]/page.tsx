@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -17,11 +17,15 @@ import {
 import { StarRating } from "@/components/StarRating";
 import { AgoraBadge } from "@/components/AgoraBadge";
 import { ProductCard } from "@/components/ProductCard";
+import { SkeletonProductGrid } from "@/components/SkeletonCard";
 import { useCart } from "@/hooks/useCart";
-import { useProduct } from "@/hooks/useApi";
+import { useProduct, useProducts } from "@/hooks/useApi";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/api";
-import { mockProducts } from "@/lib/mockData";
+import {
+  getRelatedProducts,
+  PUBLIC_PRODUCTS_LIMIT,
+} from "@/lib/productBrowse";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { Product, Review } from "@/types";
+import type { Review } from "@/types";
 import { cn } from "@/lib/utils";
 
 export default function ProductDetailPage({
@@ -42,20 +46,22 @@ export default function ProductDetailPage({
   const { id } = use(params);
   const { isSeller } = useAuth();
   const { addToCart, isAdding } = useCart();
-  const { data: apiProduct, isLoading, error } = useProduct(id);
-  const fallbackProduct = mockProducts.find((p) => p.id === id);
-  const product = apiProduct ?? fallbackProduct;
+  const { data: product, isLoading, error } = useProduct(id);
+  const {
+    data: productsResponse,
+    isLoading: isRelatedProductsLoading,
+  } = useProducts({ limit: String(PUBLIC_PRODUCTS_LIMIT) });
   const errorStatus = error instanceof ApiError ? error.status : null;
   const isNotFoundError = errorStatus === 404;
+  const allProducts = productsResponse?.products ?? [];
   const store = product?.storeId
     ? { id: product.storeId, name: product.storeName, logo: product.storeLogo }
     : null;
   const reviews: Review[] = [];
-  const relatedProducts: Product[] = product
-    ? mockProducts
-        .filter((p) => p.id !== product.id && p.category === product.category)
-        .slice(0, 4)
-    : [];
+  const relatedProducts = useMemo(
+    () => (product ? getRelatedProducts(allProducts, product) : []),
+    [allProducts, product],
+  );
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -69,13 +75,24 @@ export default function ProductDetailPage({
 
   // Auto-select the first active variant when product loads
   useEffect(() => {
-    if (product?.variants?.length) {
-      const firstActive = product.variants.find((v) => v.isActive);
-      if (firstActive && !selectedVariantCode) {
-        setSelectedVariantCode(firstActive.code);
-      }
+    if (!product?.variants?.length) {
+      setSelectedVariantCode(null);
+      return;
+    }
+
+    const hasMatchingActiveVariant = product.variants.some(
+      (variant) => variant.isActive && variant.code === selectedVariantCode,
+    );
+
+    if (!hasMatchingActiveVariant) {
+      const firstActive = product.variants.find((variant) => variant.isActive);
+      setSelectedVariantCode(firstActive?.code ?? null);
     }
   }, [product, selectedVariantCode]);
+
+  useEffect(() => {
+    setSelectedImage(0);
+  }, [product?.id]);
 
   // Show a loading state while the detail request is still resolving.
   if (isLoading && !product) {
@@ -135,6 +152,8 @@ export default function ProductDetailPage({
   const activeVariants = (product.variants ?? []).filter(
     (variant) => variant.isActive,
   );
+  const productImages =
+    product.images.length > 0 ? product.images : ["/placeholder-product.png"];
   const hasMultipleVariants = activeVariants.length > 1;
   const selectedVariant = activeVariants.find(
     (variant) => variant.code === selectedVariantCode,
@@ -194,7 +213,7 @@ export default function ProductDetailPage({
             {/* Main Image */}
             <div className="relative aspect-square bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-xl)] overflow-hidden mb-4">
               <Image
-                src={product.images[selectedImage]}
+                src={productImages[selectedImage] ?? productImages[0]}
                 alt={product.name}
                 fill
                 className="object-cover"
@@ -225,7 +244,7 @@ export default function ProductDetailPage({
 
             {/* Thumbnails */}
             <div className="flex gap-3 overflow-x-auto pb-2">
-              {product.images.map((image, index) => (
+              {productImages.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
@@ -537,7 +556,17 @@ export default function ProductDetailPage({
         </section>
 
         {/* Related Products */}
-        {relatedProducts.length > 0 && (
+        {isRelatedProductsLoading ? (
+          <section className="mt-16">
+            <h2 className="font-display text-2xl font-bold text-[var(--agora-ink)] mb-6">
+              Produits similaires
+            </h2>
+            <SkeletonProductGrid
+              count={4}
+              className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+            />
+          </section>
+        ) : relatedProducts.length > 0 && (
           <section className="mt-16">
             <h2 className="font-display text-2xl font-bold text-[var(--agora-ink)] mb-6">
               Produits similaires

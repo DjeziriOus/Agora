@@ -1,14 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Diamond, ArrowRight, ShoppingBag, Store, Shield } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
-import { mockProducts, mockCategories } from "@/lib/mockData";
+import { SkeletonProductGrid } from "@/components/SkeletonCard";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
 import { shopsApi } from "@/lib/api";
+import { useProducts } from "@/hooks/useApi";
+import {
+  buildCategoriesFromProducts,
+  PUBLIC_PRODUCTS_LIMIT,
+} from "@/lib/productBrowse";
 
 const categoryIcons: Record<string, string> = {
   Papeterie: "📝",
@@ -24,6 +29,11 @@ const categoryIcons: Record<string, string> = {
 export default function HomePage() {
   const { isAuthenticated, isSeller, isLoading: isAuthLoading } = useAuth();
   const [hasShop, setHasShop] = useState<boolean | null>(null);
+  const {
+    data: productsResponse,
+    isLoading: isProductsLoading,
+    isError: isProductsError,
+  } = useProducts({ limit: String(PUBLIC_PRODUCTS_LIMIT) });
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -54,8 +64,12 @@ export default function HomePage() {
     };
   }, [isAuthenticated, isAuthLoading, isSeller]);
 
-  const featuredProducts = mockProducts.slice(0, 8);
-  const featuredCategories = mockCategories.slice(0, 8);
+  const allProducts = productsResponse?.products ?? [];
+  const featuredProducts = allProducts.slice(0, 8);
+  const featuredCategories = useMemo(
+    () => buildCategoriesFromProducts(allProducts, 8),
+    [allProducts],
+  );
 
   // Determine the boutique CTA destination and label
   // Buyers should NOT see it — they already have an account.
@@ -154,25 +168,42 @@ export default function HomePage() {
             <h2 className="text-2xl font-bold text-[var(--agora-ink)] text-center mb-10">
               Parcourir par catégorie
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-              {featuredCategories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/catalogue?categorie=${encodeURIComponent(cat.name)}`}
-                  className="flex flex-col items-center gap-2 p-4 border border-[var(--agora-line)] rounded-xl hover:border-[var(--agora-primary)] hover:shadow-[var(--shadow-sm)] transition-all group"
-                >
-                  <span className="text-3xl">
-                    {categoryIcons[cat.name] ?? "🛍️"}
-                  </span>
-                  <span className="text-xs font-medium text-[var(--agora-ink)] group-hover:text-[var(--agora-primary)] transition-colors text-center">
-                    {cat.name}
-                  </span>
-                  <span className="text-xs text-[var(--agora-mid)]">
-                    {cat.productCount} produits
-                  </span>
-                </Link>
-              ))}
-            </div>
+            {featuredCategories.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+                {featuredCategories.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={`/catalogue?category=${encodeURIComponent(cat.name)}`}
+                    className="flex flex-col items-center gap-2 p-4 border border-[var(--agora-line)] rounded-xl hover:border-[var(--agora-primary)] hover:shadow-[var(--shadow-sm)] transition-all group"
+                  >
+                    <span className="text-3xl">
+                      {categoryIcons[cat.name] ?? "🛍️"}
+                    </span>
+                    <span className="text-xs font-medium text-[var(--agora-ink)] group-hover:text-[var(--agora-primary)] transition-colors text-center">
+                      {cat.name}
+                    </span>
+                    <span className="text-xs text-[var(--agora-mid)]">
+                      {cat.productCount} produits
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : isProductsLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-[118px] rounded-xl border border-[var(--agora-line)] bg-[var(--agora-bg)] animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-[var(--agora-mid)]">
+                {isProductsError
+                  ? "Impossible de charger les categories pour le moment."
+                  : "Aucune categorie disponible pour le moment."}
+              </p>
+            )}
           </div>
         </section>
 
@@ -191,11 +222,24 @@ export default function HomePage() {
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {featuredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            {featuredProducts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {featuredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            ) : isProductsLoading ? (
+              <SkeletonProductGrid
+                count={8}
+                className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+              />
+            ) : (
+              <p className="text-center text-[var(--agora-mid)] py-6">
+                {isProductsError
+                  ? "Impossible de charger les produits en vedette."
+                  : "Aucun produit disponible pour le moment."}
+              </p>
+            )}
           </div>
         </section>
 
