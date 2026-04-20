@@ -17,20 +17,21 @@ interface Address {
   isDefault: boolean;
 }
 
-// Mock addresses - in production these would come from the API
-const mockAddresses: Address[] = [
-  {
-    _id: "1",
-    label: "Domicile",
-    type: "home",
-    street: "123 Rue de la Paix",
-    postalCode: "75001",
-    city: "Paris",
-    country: "France",
-    isDefault: true,
-  },
-];
+<<<<<<< HEAD
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { MapPin, Plus, Edit, Trash, Home, Building } from "lucide-react";
+import { toast } from "sonner";
 
+=======
+>>>>>>> origin/dev
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
