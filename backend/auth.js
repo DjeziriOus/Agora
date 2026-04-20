@@ -91,6 +91,11 @@ export const auth = betterAuth({
 
   // ── Extended profile fields on the user document ──────
   user: {
+    changeEmail: {
+      enabled: true,
+      // Keep email-change verification aligned with the global auth policy.
+      updateEmailWithoutVerification: !requireEmailVerification,
+    },
     additionalFields: {
       firstName: { type: "string", input: true, defaultValue: "" },
       lastName: { type: "string", input: true, defaultValue: "" },
@@ -120,24 +125,6 @@ export const auth = betterAuth({
           });
         }
       }
-    },
-  },
-  databaseHooks: {
-    user: {
-      create: {
-        before: async (user) => {
-          // When email verification is disabled, mark new accounts as verified immediately
-          if (!requireEmailVerification) {
-            return {
-              data: {
-                ...user,
-                emailVerified: true,
-              },
-            };
-          }
-          return { data: user };
-        },
-      },
     },
   },
 });

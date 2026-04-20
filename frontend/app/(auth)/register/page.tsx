@@ -85,9 +85,9 @@ export default function RegisterPage() {
         password,
         role,
       });
-      // const shouldVerifyEmail = await ensureAuthConfig();
+      const shouldVerifyEmail = await ensureAuthConfig();
 
-      if (!emailVerified) {
+      if (shouldVerifyEmail && !emailVerified) {
         setPendingVerificationEmail(email);
         router.push("/verify-email");
         return;
