@@ -40,6 +40,10 @@ const orderSchema = new mongoose.Schema(
       postalCode: String,
       country: String,
     },
+    addressId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ClientAddress',
+    },
   },
   {
     timestamps: true,
