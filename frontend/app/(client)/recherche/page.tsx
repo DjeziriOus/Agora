@@ -5,15 +5,26 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { EmptyState } from "@/components/EmptyState";
-import { mockProducts, mockCategories } from "@/lib/mockData";
+import { SkeletonProductGrid } from "@/components/SkeletonCard";
 import Link from "next/link";
+import { useProducts } from "@/hooks/useApi";
+import {
+  buildCategoriesFromProducts,
+  filterProductsBySearchQuery,
+  PUBLIC_PRODUCTS_LIMIT,
+} from "@/lib/productBrowse";
 
 function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get("q") || "";
-  
+  const {
+    data: productsResponse,
+    isLoading,
+    isError,
+  } = useProducts({ limit: String(PUBLIC_PRODUCTS_LIMIT) });
   const [searchInput, setSearchInput] = useState(query);
+  const allProducts = productsResponse?.products ?? [];
 
   // Update search input when URL changes
   useEffect(() => {
@@ -37,17 +48,13 @@ function SearchPageContent() {
 
   // Filter products based on search query
   const results = useMemo(() => {
-    if (!query.trim()) return [];
-    
-    const lowerQuery = query.toLowerCase();
-    return mockProducts.filter(
-      (product) =>
-        product.name.toLowerCase().includes(lowerQuery) ||
-        product.description.toLowerCase().includes(lowerQuery) ||
-        product.category.toLowerCase().includes(lowerQuery) ||
-        product.storeName.toLowerCase().includes(lowerQuery)
-    );
-  }, [query]);
+    return filterProductsBySearchQuery(allProducts, query);
+  }, [allProducts, query]);
+  const categories = useMemo(
+    () => buildCategoriesFromProducts(allProducts),
+    [allProducts],
+  );
+  const popularCategories = categories.slice(0, 6);
 
   const handleClearSearch = () => {
     setSearchInput("");
@@ -86,15 +93,31 @@ function SearchPageContent() {
         </div>
 
         {/* Results */}
-        {query.trim() ? (
+        {isError ? (
+          <EmptyState
+            type="search"
+            title="Recherche indisponible"
+            description="Impossible de charger les produits pour le moment."
+          />
+        ) : query.trim() ? (
           <>
             {/* Results Count */}
-            <p className="text-[var(--agora-mid)] mb-6">
-              {results.length} résultat{results.length !== 1 ? "s" : ""} pour «{" "}
-              <span className="font-medium text-[var(--agora-ink)]">{query}</span> »
-            </p>
+            {!isLoading && (
+              <p className="text-[var(--agora-mid)] mb-6">
+                {results.length} résultat{results.length !== 1 ? "s" : ""} pour «{" "}
+                <span className="font-medium text-[var(--agora-ink)]">
+                  {query}
+                </span>{" "}
+                »
+              </p>
+            )}
 
-            {results.length > 0 ? (
+            {isLoading ? (
+              <SkeletonProductGrid
+                count={8}
+                className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              />
+            ) : results.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {results.map((product) => (
                   <ProductCard key={product.id} product={product} />
@@ -109,13 +132,13 @@ function SearchPageContent() {
             )}
 
             {/* Suggested Categories when no results */}
-            {results.length === 0 && (
+            {!isLoading && results.length === 0 && categories.length > 0 && (
               <div className="mt-8">
                 <h3 className="font-display font-semibold text-lg text-[var(--agora-ink)] mb-4">
                   Catégories suggérées
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {mockCategories.map((category) => (
+                  {categories.map((category) => (
                     <Link
                       key={category.id}
                       href={`/catalogue?category=${encodeURIComponent(category.name)}`}
@@ -142,17 +165,32 @@ function SearchPageContent() {
               <h3 className="font-display font-semibold text-lg text-[var(--agora-ink)] mb-4 text-center">
                 Catégories populaires
               </h3>
-              <div className="flex flex-wrap justify-center gap-2">
-                {mockCategories.slice(0, 6).map((category) => (
-                  <Link
-                    key={category.id}
-                    href={`/catalogue?category=${encodeURIComponent(category.name)}`}
-                    className="px-4 py-2 bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-full text-sm text-[var(--agora-mid)] hover:text-[var(--agora-primary)] hover:border-[var(--agora-primary)] transition-colors"
-                  >
-                    {category.name}
-                  </Link>
-                ))}
-              </div>
+              {isLoading ? (
+                <div className="flex flex-wrap justify-center gap-2">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="h-10 w-28 rounded-full bg-[var(--agora-accent)] animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : popularCategories.length > 0 ? (
+                <div className="flex flex-wrap justify-center gap-2">
+                  {popularCategories.map((category) => (
+                    <Link
+                      key={category.id}
+                      href={`/catalogue?category=${encodeURIComponent(category.name)}`}
+                      className="px-4 py-2 bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-full text-sm text-[var(--agora-mid)] hover:text-[var(--agora-primary)] hover:border-[var(--agora-primary)] transition-colors"
+                    >
+                      {category.name}
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-[var(--agora-mid)]">
+                  Aucune categorie disponible pour le moment.
+                </p>
+              )}
             </div>
           </div>
         )}

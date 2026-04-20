@@ -15,20 +15,6 @@ interface Address {
   isDefault: boolean;
 }
 
-// Mock addresses - in production these would come from the API
-const mockAddresses: Address[] = [
-  {
-    id: "1",
-    label: "Domicile",
-    type: "home",
-    street: "123 Rue de la Paix",
-    postalCode: "75001",
-    city: "Paris",
-    country: "France",
-    isDefault: true,
-  },
-];
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -43,7 +29,7 @@ import { toast } from "sonner";
 
 
 function AddressesContent() {
-  const [addresses, setAddresses] = useState<Address[]>(mockAddresses);
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
 
