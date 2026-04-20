@@ -101,7 +101,7 @@ export function Navbar() {
             {authReady && isAuthenticated && isSeller && (
               <Link
                 href="/vendeur"
-                className="flex items-center gap-1.5 text-sm font-medium text-[var(--agora-gold)] hover:text-[var(--agora-primary)] transition-colors"
+                className="flex items-center gap-1.5 text-sm font-medium text-[var(--agora-primary)] hover:text-[var(--agora-gold)] transition-colors"
               >
                 <LayoutDashboard className="w-4 h-4" />
                 Tableau de bord
