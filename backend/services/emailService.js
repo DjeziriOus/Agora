@@ -1,30 +1,67 @@
-import nodemailer from "nodemailer";
+import { google } from "googleapis";
 
 /**
- * Gmail OAuth2 transporter for noreply.agora.marketplace@gmail.com
+ * Gmail HTTP API transport for noreply.agora.marketplace@gmail.com
+ *
+ * Uses the Gmail REST API (HTTPS, port 443) instead of SMTP (port 465/587),
+ * so it works on hosting providers that block outbound SMTP traffic.
  *
  * Required .env vars:
  *   EMAIL_FROM            — noreply.agora.marketplace@gmail.com
  *   GOOGLE_CLIENT_ID      — from Google Cloud Console
  *   GOOGLE_CLIENT_SECRET  — from Google Cloud Console
  *   GOOGLE_REFRESH_TOKEN  — generated via OAuth Playground with https://mail.google.com/ scope
+ *                           while signed in as noreply.agora.marketplace@gmail.com
  */
-const createTransporter = () =>
-  nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      type: "OAuth2",
-      user: process.env.EMAIL_FROM,
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
-    },
+
+const oAuth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+);
+oAuth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+
+const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+/**
+ * Build a RFC 2822 formatted email and base64url-encode it for the Gmail API.
+ */
+function buildRawEmail({ from, to, subject, html }) {
+  const messageParts = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    ``,
+    html,
+  ];
+  const rawMessage = messageParts.join("\r\n");
+  // Gmail API expects base64url encoding
+  return Buffer.from(rawMessage)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+/**
+ * Send an email via the Gmail REST API (no SMTP needed).
+ */
+async function sendMail({ to, subject, html }) {
+  const raw = buildRawEmail({
+    from: `"Agora Marketplace" <${process.env.EMAIL_FROM}>`,
+    to,
+    subject,
+    html,
   });
+  await gmail.users.messages.send({
+    userId: "me",
+    requestBody: { raw },
+  });
+}
 
 export const sendVerificationEmail = async (email, url) => {
-  const transporter = createTransporter();
-  await transporter.sendMail({
-    from: `"Agora Marketplace" <${process.env.EMAIL_FROM}>`,
+  await sendMail({
     to: email,
     subject: "Vérifiez votre adresse e-mail — Agora",
     html: `
@@ -46,9 +83,7 @@ export const sendVerificationEmail = async (email, url) => {
 };
 
 export const sendPasswordResetEmail = async (email, url) => {
-  const transporter = createTransporter();
-  await transporter.sendMail({
-    from: `"Agora Marketplace" <${process.env.EMAIL_FROM}>`,
+  await sendMail({
     to: email,
     subject: "Réinitialisation de votre mot de passe — Agora",
     html: `
