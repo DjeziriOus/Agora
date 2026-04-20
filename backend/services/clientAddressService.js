@@ -18,16 +18,20 @@ const clientAddressService = {
   },
   // Create a new address
   async createAddress(data) {
+    // Helper to normalize string: lower case, remove spaces and dashes
+    function normalize(str) {
+      return (str || "").toLowerCase().replace(/[-\s]/g, "");
+    }
     // Uniqueness check: For the same user, if recipient, phone, address, city, province, postal code, and country are all the same, treat as duplicate
     const exists = await ClientAddress.findOne({
       user: data.user,
-      recipientName: data.recipientName,
-      phone: data.phone,
-      addressLine: data.addressLine,
-      city: data.city,
-      province: data.province,
-      postalCode: data.postalCode,
-      country: data.country,
+      recipientName: normalize(data.recipientName),
+      phone: normalize(data.phone),
+      addressLine: normalize(data.addressLine),
+      city: normalize(data.city),
+      province: normalize(data.province),
+      postalCode: normalize(data.postalCode),
+      country: normalize(data.country),
     });
     if (exists) {
       const error = new Error('Address already exists and cannot be added again');
