@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const ClientAddressSchema = new mongoose.Schema({
   
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Reference to the user
+  user: { type: String, required: true }, // Reference to the user
   recipientName: { type: String, required: true }, // Recipient's name
   phone: { type: String, required: true },         // Phone number
   email: { type: String },                        

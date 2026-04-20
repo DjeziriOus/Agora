@@ -94,7 +94,7 @@ function AddressesContent() {
         if (!res.ok) {
           const errorData = await res.json();
           if (res.status === 409) {
-            throw new Error(errorData.error || "地址已经存在");
+            throw new Error(errorData.error || "address already exists");
           }
           throw new Error(errorData.error || "Error updating address");
         }
@@ -110,7 +110,7 @@ function AddressesContent() {
         if (!res.ok) {
           const errorData = await res.json();
           if (res.status === 409) {
-            throw new Error(errorData.error || "地址已经存在");
+            throw new Error(errorData.error || "address already exists");
           }
           throw new Error(errorData.error || "Error adding address");
         }
@@ -202,7 +202,7 @@ function AddressesContent() {
               Ajouter une adresse
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent aria-describedby="address-dialog-desc">
             <DialogHeader>
               <DialogTitle>
                 {editingAddress ? "Modifier l'adresse" : "Nouvelle adresse"}
