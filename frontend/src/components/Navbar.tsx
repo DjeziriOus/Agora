@@ -202,8 +202,12 @@ export function Navbar() {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-lg hover:bg-[var(--agora-accent)] transition-colors"
+                    className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-lg hover:bg-[var(--agora-accent)] transition-colors relative"
                   >
+                    {/* Red notification dot for unverified email */}
+                    {user && !user.emailVerified && (
+                      <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white z-10" />
+                    )}
                     {user?.image ? (
                       <img
                         src={user.image}
@@ -233,6 +237,21 @@ export function Navbar() {
                           {user?.email}
                         </p>
                       </div>
+                      {!isSeller && (
+                        <Link
+                          href="/compte"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
+                        >
+                          <User className="w-4 h-4 text-[var(--agora-mid)]" />
+                          Mon compte
+                          {user && !user.emailVerified && (
+                            <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                              1
+                            </span>
+                          )}
+                        </Link>
+                      )}
                       {isSeller && (
                         <Link
                           href="/vendeur"

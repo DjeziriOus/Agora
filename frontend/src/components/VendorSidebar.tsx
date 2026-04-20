@@ -48,7 +48,7 @@ const vendorNavItems = [
     icon: Store,
   },
   {
-    label: "Paramètres",
+    label: "Paramètres du Compte",
     href: "/vendeur/parametres",
     icon: Settings,
   },

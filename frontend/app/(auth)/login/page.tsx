@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, X, Diamond } from "lucide-react";
@@ -14,8 +14,7 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login, isLoading, emailNotVerified, clearEmailNotVerified } =
-    useAuth();
+  const { login, isLoading } = useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
 
@@ -36,13 +35,6 @@ function LoginContent() {
       setGoogleLoading(false);
     }
   };
-
-  // Consume the one-time unverified-email flag and redirect the user to the verification screen.
-  useEffect(() => {
-    if (!emailNotVerified) return;
-    clearEmailNotVerified();
-    router.push("/verify-email");
-  }, [emailNotVerified, clearEmailNotVerified, router]);
 
   // Submit the credentials and surface any backend auth errors in the page banner.
   const handleSubmit = async (e: React.FormEvent) => {

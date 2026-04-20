@@ -206,13 +206,28 @@ export default function CartPage() {
               </div>
 
               {/* Checkout Button */}
-              <Link
-                href="/checkout"
-                className="w-full py-4 px-6 bg-[var(--agora-primary)] text-white rounded-[var(--radius-md)] font-medium text-center flex items-center justify-center gap-2 hover:bg-[var(--agora-primary-hover)] transition-colors"
-              >
-                Passer la commande
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              {user && !user.emailVerified ? (
+                <div>
+                  <button
+                    disabled
+                    className="w-full py-4 px-6 bg-[var(--agora-line)] text-[var(--agora-text-disabled)] rounded-[var(--radius-md)] font-medium text-center flex items-center justify-center gap-2 cursor-not-allowed"
+                  >
+                    Passer la commande
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <p className="mt-2 text-xs text-amber-600 text-center">
+                    ⚠ Vérifiez votre email pour passer commande.
+                  </p>
+                </div>
+              ) : (
+                <Link
+                  href="/checkout"
+                  className="w-full py-4 px-6 bg-[var(--agora-primary)] text-white rounded-[var(--radius-md)] font-medium text-center flex items-center justify-center gap-2 hover:bg-[var(--agora-primary-hover)] transition-colors"
+                >
+                  Passer la commande
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              )}
 
               {/* Continue Shopping */}
               <Link

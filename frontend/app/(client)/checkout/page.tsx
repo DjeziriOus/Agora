@@ -66,19 +66,17 @@ export default function CheckoutPage() {
     nameOnCard: "",
   });
 
-  const steps: { key: CheckoutStep; label: string; icon: React.ElementType }[] = [
-    { key: "shipping", label: "Livraison", icon: MapPin },
-    { key: "payment", label: "Paiement", icon: CreditCard },
-    { key: "confirmation", label: "Confirmation", icon: Check },
-  ];
+  const steps: { key: CheckoutStep; label: string; icon: React.ElementType }[] =
+    [
+      { key: "shipping", label: "Livraison", icon: MapPin },
+      { key: "payment", label: "Paiement", icon: CreditCard },
+      { key: "confirmation", label: "Confirmation", icon: Check },
+    ];
 
   const currentStepIndex = steps.findIndex((s) => s.key === currentStep);
 
   const total = useMemo(() => {
-    return items.reduce(
-      (sum, item) => sum + item.unitPrice * item.quantity,
-      0,
-    );
+    return items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
   }, [items]);
 
   const isShippingValid = useMemo(() => {
@@ -138,6 +136,51 @@ export default function CheckoutPage() {
   }
 
   if (user?.role === "seller") return null;
+
+  // ── Block unverified users from checkout ──────────────────────────────────
+  if (user && !user.emailVerified) {
+    return (
+      <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-xl)] p-8 text-center shadow-[var(--shadow-md)]">
+          <div className="w-16 h-16 mx-auto rounded-full bg-amber-50 flex items-center justify-center mb-5">
+            <Lock className="w-8 h-8 text-amber-500" />
+          </div>
+          <h2 className="font-display font-bold text-xl text-[var(--agora-ink)] mb-2">
+            Vérifiez votre email
+          </h2>
+          <p className="text-[var(--agora-mid)] text-sm mb-6">
+            Vous devez vérifier votre adresse email avant de pouvoir passer des
+            commandes. Vérifiez votre boîte de réception.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={async () => {
+                if (!user.email) return;
+                try {
+                  const { sendVerificationEmail } =
+                    await import("@/lib/auth-client").then((m) => m.authClient);
+                  await sendVerificationEmail({
+                    email: user.email,
+                    callbackURL: "/checkout",
+                  });
+                } catch {}
+              }}
+              className="w-full py-3 px-4 bg-[var(--agora-primary)] text-white rounded-[var(--radius-md)] font-medium hover:bg-[var(--agora-primary-hover)] transition-colors"
+            >
+              Renvoyer l&apos;email de vérification
+            </button>
+            <Link
+              href="/panier"
+              className="inline-flex items-center justify-center gap-1 text-sm text-[var(--agora-mid)] hover:text-[var(--agora-primary)]"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Retour au panier
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Redirect to cart if empty (except on confirmation)
   if (items.length === 0 && currentStep !== "confirmation") {
@@ -259,8 +302,8 @@ export default function CheckoutPage() {
                       isComplete
                         ? "bg-[var(--agora-green)] text-white"
                         : isActive
-                        ? "bg-[var(--agora-primary)] text-white"
-                        : "bg-[var(--agora-surface)] border-2 border-[var(--agora-line)] text-[var(--agora-mid)]"
+                          ? "bg-[var(--agora-primary)] text-white"
+                          : "bg-[var(--agora-surface)] border-2 border-[var(--agora-line)] text-[var(--agora-mid)]",
                     )}
                   >
                     {isComplete ? (
@@ -275,8 +318,8 @@ export default function CheckoutPage() {
                       isActive
                         ? "text-[var(--agora-primary)]"
                         : isComplete
-                        ? "text-[var(--agora-green)]"
-                        : "text-[var(--agora-mid)]"
+                          ? "text-[var(--agora-green)]"
+                          : "text-[var(--agora-mid)]",
                     )}
                   >
                     {step.label}
@@ -602,9 +645,9 @@ export default function CheckoutPage() {
                   className={cn(
                     "inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius-md)] font-medium transition-colors",
                     (currentStep === "shipping" && !isShippingValid) ||
-                    (currentStep === "payment" && !isPaymentValid)
+                      (currentStep === "payment" && !isPaymentValid)
                       ? "bg-[var(--agora-line)] text-[var(--agora-text-disabled)] cursor-not-allowed"
-                      : "bg-[var(--agora-primary)] text-white hover:bg-[var(--agora-primary-hover)]"
+                      : "bg-[var(--agora-primary)] text-white hover:bg-[var(--agora-primary-hover)]",
                   )}
                 >
                   {isProcessing ? (
@@ -662,7 +705,8 @@ export default function CheckoutPage() {
                       <p className="text-sm font-medium text-[var(--agora-ink)]">
                         {(item.unitPrice * item.quantity)
                           .toFixed(2)
-                          .replace(".", ",")} €
+                          .replace(".", ",")}{" "}
+                        €
                       </p>
                     </div>
                   ))}

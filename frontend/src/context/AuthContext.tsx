@@ -15,24 +15,14 @@ import type { User } from "@/types";
 const PENDING_VERIFICATION_EMAIL_STORAGE_KEY =
   "agora_pending_verification_email";
 
-type AuthConfigResponse = {
-  requireEmailVerification: boolean;
-};
-
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isSeller: boolean;
   isLoading: boolean;
-  isAuthConfigLoading: boolean;
-  requireEmailVerification: boolean;
-  /** true when the server rejected login specifically because email is unverified */
-  emailNotVerified: boolean;
-  pendingVerificationEmail: string | null;
-  clearEmailNotVerified: () => void;
-  ensureAuthConfig: () => Promise<boolean>;
   setPendingVerificationEmail: (email: string) => void;
   clearPendingVerificationEmail: () => void;
+  pendingVerificationEmail: string | null;
   refreshSession: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (data: {
@@ -56,8 +46,7 @@ function mapUser(sessionUser: Record<string, unknown>): User {
     firstName: (sessionUser.firstName as string) ?? "",
     lastName: (sessionUser.lastName as string) ?? "",
     role:
-      (sessionUser.role as "buyer" | "seller" | "unassigned") ??
-      "unassigned",
+      (sessionUser.role as "buyer" | "seller" | "unassigned") ?? "unassigned",
     emailVerified: Boolean(sessionUser.emailVerified),
     image: (sessionUser.image as string | undefined) ?? undefined,
   };
@@ -66,10 +55,6 @@ function mapUser(sessionUser: Record<string, unknown>): User {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthConfigLoading, setIsAuthConfigLoading] = useState(true);
-  const [requireEmailVerification, setRequireEmailVerification] =
-    useState(true);
-  const [emailNotVerified, setEmailNotVerified] = useState(false);
   const [pendingVerificationEmailState, setPendingVerificationEmailState] =
     useState<string | null>(null);
   const router = useRouter();
@@ -176,45 +161,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.replace("/choose-role");
   }, [isLoading, pathname, router, user]);
 
-  // Sign in the user and raise a one-shot redirect flag if the backend says the email is still unverified.
-  const login = useCallback(
-    async (email: string, password: string) => {
-      setIsLoading(true);
-      setEmailNotVerified(false);
-      clearPendingVerificationEmail();
+  // Sign in the user. With requireEmailVerification removed from Better Auth,
+  // unverified users can now log in — verification is enforced at checkout instead.
+  const login = useCallback(async (email: string, password: string) => {
+    setIsLoading(true);
 
-      const { data, error } = await authClient.signIn.email({
-        email,
-        password,
-      });
+    const { data, error } = await authClient.signIn.email({
+      email,
+      password,
+    });
 
-      setIsLoading(false);
+    setIsLoading(false);
 
-      if (error) {
-        // Better Auth returns this code when email is not verified
-        if (
-          error.code === "EMAIL_NOT_VERIFIED" ||
-          error.status === 403 ||
-          (error.message ?? "").toLowerCase().includes("verif")
-        ) {
-          setPendingVerificationEmail(email);
-          setEmailNotVerified(true);
-          return;
-        }
-        throw new Error(error.message ?? "Une erreur est survenue");
-      }
+    if (error) {
+      throw new Error(error.message ?? "Une erreur est survenue");
+    }
 
-      // On success, remap the Better Auth user payload to our own User model,
-      // then redirect to the appropriate page based on the user's role.
-      if (data?.user) {
-        const mapped = mapUser(data.user as Record<string, unknown>);
-        setUser(mapped);
-        return mapped;
-      }
-      return null;
-    },
-    [clearPendingVerificationEmail, router, setPendingVerificationEmail],
-  );
+    // On success, remap the Better Auth user payload to our own User model,
+    // then redirect to the appropriate page based on the user's role.
+    if (data?.user) {
+      const mapped = mapUser(data.user as Record<string, unknown>);
+      setUser(mapped);
+      return mapped;
+    }
+    return null;
+  }, []);
 
   // Create the account and let the caller decide whether to continue to login or email verification.
   const register = useCallback(
@@ -283,10 +254,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   }, [clearPendingVerificationEmail, router]);
 
-  // Reset the one-shot redirect flag after the login page has consumed it.
-  const clearEmailNotVerified = useCallback(() => {
-    setEmailNotVerified(false);
-  }, []);
+  // Reset is no longer needed but kept for API compat.
+  const clearEmailNotVerified = useCallback(() => {}, []);
 
   // Ask Better Auth to send a fresh verification email for the pending address.
   const resendVerification = useCallback(async (email: string) => {
@@ -304,12 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isSeller: user?.role === "seller",
         isLoading,
-        isAuthConfigLoading,
-        requireEmailVerification,
-        emailNotVerified,
         pendingVerificationEmail: pendingVerificationEmailState,
-        clearEmailNotVerified,
-        // ensureAuthConfig,
         setPendingVerificationEmail,
         clearPendingVerificationEmail,
         refreshSession,

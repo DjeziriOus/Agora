@@ -8,6 +8,7 @@ import { CartProvider } from "@/context/CartContext";
 import { QueryProvider } from "@/lib/queryClient";
 import "./globals.css";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { VerificationBanner } from "@/components/VerificationBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -70,18 +71,19 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <QueryProvider>
           <AuthProvider>
-              {children}
-              <Toaster
-                position="top-right"
-                richColors
-                closeButton
-                toastOptions={{
-                  style: {
-                    fontFamily: "var(--font-dm-sans), sans-serif",
-                  },
-                }}
-              />
-              <ReactQueryDevtools initialIsOpen={false} />
+            <VerificationBanner />
+            {children}
+            <Toaster
+              position="top-right"
+              richColors
+              closeButton
+              toastOptions={{
+                style: {
+                  fontFamily: "var(--font-dm-sans), sans-serif",
+                },
+              }}
+            />
+            <ReactQueryDevtools initialIsOpen={false} />
           </AuthProvider>
         </QueryProvider>
         <Analytics />

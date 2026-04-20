@@ -46,7 +46,6 @@ export default function RegisterPage() {
   const {
     register,
     isLoading,
-    ensureAuthConfig,
     setPendingVerificationEmail,
     clearPendingVerificationEmail,
   } = useAuth();

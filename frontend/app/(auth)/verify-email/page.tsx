@@ -20,8 +20,6 @@ function VerifyEmailContent() {
   const [cooldownRemaining, setCooldownRemaining] = useState(60);
   const {
     resendVerification,
-    requireEmailVerification,
-    isAuthConfigLoading,
     pendingVerificationEmail,
     clearPendingVerificationEmail,
     isLoading,
@@ -33,16 +31,6 @@ function VerifyEmailContent() {
     if (isLoading) return;
     if (!pendingVerificationEmail) router.replace("/login");
   }, [isLoading, pendingVerificationEmail, router]);
-  // Drop stale pending-email state when the backend no longer requires email verification.
-  useEffect(() => {
-    if (!isAuthConfigLoading && !requireEmailVerification) {
-      clearPendingVerificationEmail();
-    }
-  }, [
-    clearPendingVerificationEmail,
-    isAuthConfigLoading,
-    requireEmailVerification,
-  ]);
 
   // Restore any persisted resend cooldown for the current pending verification email.
   useEffect(() => {
@@ -102,13 +90,6 @@ function VerifyEmailContent() {
   const handleResendVerification = async () => {
     setError(null);
     setMessage(null);
-
-    if (!requireEmailVerification) {
-      setError(
-        "La vérification par e-mail est désactivée pour le moment. Vous pouvez retourner à la connexion.",
-      );
-      return;
-    }
 
     if (!verificationEmail) {
       setError(
@@ -191,35 +172,23 @@ function VerifyEmailContent() {
             </div>
 
             {/* Resend the verification email */}
-            {requireEmailVerification ? (
-              <p className="mt-6 text-center text-sm text-[var(--agora-mid)]">
-                Pas encore reçu le e-mail ?{" "}
-                <button
-                  type="button"
-                  onClick={handleResendVerification}
-                  disabled={
-                    isResending || cooldownRemaining > 0 || !verificationEmail
-                  }
-                  className="text-[var(--agora-primary)] font-medium hover:underline disabled:opacity-60 disabled:no-underline"
-                >
-                  {isResending
-                    ? "Renvoi en cours..."
-                    : cooldownRemaining > 0
-                      ? `Renvoyer dans ${cooldownRemaining}s`
-                      : "Renvoyer l'e-mail de vérification"}
-                </button>
-              </p>
-            ) : (
-              <p className="mt-6 text-center text-sm text-[var(--agora-mid)]">
-                La vérification par e-mail est désactivée.{" "}
-                <Link
-                  href="/login"
-                  className="text-[var(--agora-primary)] font-medium hover:underline"
-                >
-                  Retourner à la connexion
-                </Link>
-              </p>
-            )}
+            <p className="mt-6 text-center text-sm text-[var(--agora-mid)]">
+              Pas encore reçu le e-mail ?{" "}
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={
+                  isResending || cooldownRemaining > 0 || !verificationEmail
+                }
+                className="text-[var(--agora-primary)] font-medium hover:underline disabled:opacity-60 disabled:no-underline"
+              >
+                {isResending
+                  ? "Renvoi en cours..."
+                  : cooldownRemaining > 0
+                    ? `Renvoyer dans ${cooldownRemaining}s`
+                    : "Renvoyer l'e-mail de vérification"}
+              </button>
+            </p>
           </form>
         </div>
       </div>

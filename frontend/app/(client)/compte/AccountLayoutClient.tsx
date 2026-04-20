@@ -89,6 +89,8 @@ export default function AccountLayoutClient({
                     ? pathname === link.href
                     : pathname.startsWith(link.href);
                   const Icon = link.icon;
+                  const showBadge =
+                    link.href === "/compte" && user && !user.emailVerified;
                   return (
                     <Link
                       key={link.href}
@@ -102,7 +104,14 @@ export default function AccountLayoutClient({
                     >
                       <Icon className="h-4 w-4" />
                       {link.label}
-                      {isActive && <ChevronRight className="h-4 w-4 ml-auto" />}
+                      {showBadge && (
+                        <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                          1
+                        </span>
+                      )}
+                      {isActive && !showBadge && (
+                        <ChevronRight className="h-4 w-4 ml-auto" />
+                      )}
                     </Link>
                   );
                 })}
