@@ -22,23 +22,30 @@ const clientAddressService = {
     function normalize(str) {
       return (str || "").toLowerCase().replace(/[-\s]/g, "");
     }
-    // Uniqueness check: For the same user, if recipient, phone, address, city, province, postal code, and country are all the same, treat as duplicate
+    // Prepare normalized fields
+    const normalized = {
+      recipientNameNormalized: normalize(data.recipientName),
+      phoneNormalized: normalize(data.phone),
+      addressLineNormalized: normalize(data.addressLine),
+      cityNormalized: normalize(data.city),
+      provinceNormalized: normalize(data.province),
+      postalCodeNormalized: normalize(data.postalCode),
+      countryNormalized: normalize(data.country),
+    };
+    // Uniqueness check: For the same user, if all normalized fields are the same, treat as duplicate
     const exists = await ClientAddress.findOne({
       user: data.user,
-      recipientName: normalize(data.recipientName),
-      phone: normalize(data.phone),
-      addressLine: normalize(data.addressLine),
-      city: normalize(data.city),
-      province: normalize(data.province),
-      postalCode: normalize(data.postalCode),
-      country: normalize(data.country),
+      ...normalized
     });
     if (exists) {
       const error = new Error('Address already exists and cannot be added again');
       error.status = 409;
       throw error;
     }
-    const address = new ClientAddress(data);
+    const address = new ClientAddress({
+      ...data,
+      ...normalized
+    });
     return await address.save();
   },
 
@@ -54,9 +61,34 @@ const clientAddressService = {
 
   // Update an address
   async updateAddress(id, userId, updateData) {
+    // Helper to normalize string: lower case, remove spaces and dashes
+    function normalize(str) {
+      return (str || "").toLowerCase().replace(/[-\s]/g, "");
+    }
+    // Prepare normalized fields
+    const normalized = {
+      recipientNameNormalized: normalize(updateData.recipientName),
+      phoneNormalized: normalize(updateData.phone),
+      addressLineNormalized: normalize(updateData.addressLine),
+      cityNormalized: normalize(updateData.city),
+      provinceNormalized: normalize(updateData.province),
+      postalCodeNormalized: normalize(updateData.postalCode),
+      countryNormalized: normalize(updateData.country),
+    };
+    
+    const exists = await ClientAddress.findOne({
+      user: userId,
+      ...normalized,
+      _id: { $ne: id }
+    });
+    if (exists) {
+      const error = new Error('Address already exists and cannot be updated to duplicate');
+      error.status = 409;
+      throw error;
+    }
     return await ClientAddress.findOneAndUpdate(
       { _id: id, user: userId },
-      updateData,
+      { ...updateData, ...normalized },
       { new: true }
     );
   },

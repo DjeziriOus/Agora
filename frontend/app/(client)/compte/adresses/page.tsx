@@ -110,7 +110,7 @@ function AddressesContent() {
         if (!res.ok) {
           const errorData = await res.json();
           if (res.status === 409) {
-            throw new Error(errorData.error || "address already exists");
+            throw new Error(errorData.error || "Address already exists");
           }
           throw new Error(errorData.error || "Error adding address");
         }
@@ -202,7 +202,7 @@ function AddressesContent() {
               Ajouter une adresse
             </Button>
           </DialogTrigger>
-          <DialogContent aria-describedby="address-dialog-desc">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>
                 {editingAddress ? "Modifier l'adresse" : "Nouvelle adresse"}
@@ -346,72 +346,88 @@ function AddressesContent() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {addresses.map((address) => {
-            const Icon = getAddressIcon(address.addressLabel);
-            return (
-              <Card
-                key={address._id}
-                className={address.isDefault ? "border-primary" : ""}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Icon className="h-4 w-4" />
-                      {address.addressLabel}
-                    </CardTitle>
-                    {address.isDefault && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                        Par défaut
-                      </span>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {address.addressLine}
-                    <br />
-                    {address.postalCode} {address.city}
-                    <br />
-                    {address.country}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setEditingAddress(address);
-                        setIsDialogOpen(true);
-                      }}
-                    >
-                      <Edit className="h-3 w-3 mr-1" />
-                      Modifier
-                    </Button>
-                    {!address.isDefault && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSetDefault(address._id)}
-                        >
+        addresses.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-semibold mb-2">Aucune adresse enregistrée</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Ajoutez votre première adresse de livraison pour commencer.
+              </p>
+              <Button onClick={() => setIsDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter une adresse
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {addresses.map((address) => {
+              const Icon = getAddressIcon(address.addressLabel);
+              return (
+                <Card
+                  key={address._id}
+                  className={address.isDefault ? "border-primary" : ""}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        {address.addressLabel}
+                      </CardTitle>
+                      {address.isDefault && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                           Par défaut
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(address._id)}
-                        >
-                          <Trash className="h-3 w-3" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                        </span>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {address.addressLine}
+                      <br />
+                      {address.postalCode} {address.city}
+                      <br />
+                      {address.country}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingAddress(address);
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Modifier
+                      </Button>
+                      {!address.isDefault && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSetDefault(address._id)}
+                          >
+                            Par défaut
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(address._id)}
+                          >
+                            <Trash className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )
       )}
     </div>
   );
