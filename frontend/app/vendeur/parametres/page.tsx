@@ -1,6 +1,7 @@
 "use client";
 
 import { AccountProfileSettingsCard } from "@/components/AccountProfileSettingsCard";
+import { AccountPasswordSettingsCard } from "@/components/AccountPasswordSettingsCard";
 import { useAuth } from "@/context/AuthContext";
 import {
   Card,
@@ -10,11 +11,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Bell, Shield, LogOut } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 export default function VendorSettingsPage() {
@@ -93,35 +92,7 @@ export default function VendorSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Security */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Sécurité
-          </CardTitle>
-          <CardDescription>
-            Gérez la sécurité de votre compte
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="currentPassword">Mot de passe actuel</Label>
-            <Input id="currentPassword" type="password" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">Nouveau mot de passe</Label>
-              <Input id="newPassword" type="password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-              <Input id="confirmPassword" type="password" />
-            </div>
-          </div>
-          <Button>Changer le mot de passe</Button>
-        </CardContent>
-      </Card>
+      <AccountPasswordSettingsCard />
 
       {/* Danger Zone */}
       <Card className="border-destructive/50">
