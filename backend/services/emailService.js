@@ -8,14 +8,16 @@ import nodemailer from "nodemailer";
  *   GOOGLE_CLIENT_ID      — from Google Cloud Console
  *   GOOGLE_CLIENT_SECRET  — from Google Cloud Console
  *   GOOGLE_REFRESH_TOKEN  — generated via OAuth Playground with https://mail.google.com/ scope
- *                           while signed in as noreply.agora.marketplace@gmail.com
  */
 const createTransporter = () =>
   nodemailer.createTransport({
     service: "gmail",
     auth: {
+      type: "OAuth2",
       user: process.env.EMAIL_FROM,
-      pass: process.env.EMAIL_APP_PASSWORD,
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
     },
   });
 
