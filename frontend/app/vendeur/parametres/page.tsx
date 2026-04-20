@@ -1,21 +1,24 @@
 "use client";
 
+import { AccountProfileSettingsCard } from "@/components/AccountProfileSettingsCard";
 import { useAuth } from "@/context/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Settings, User, Bell, Shield, LogOut } from "lucide-react";
+import { Bell, Shield, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 export default function VendorSettingsPage() {
-  const { user, logout } = useAuth();
-
-  const handleSaveProfile = () => {
-    toast.success("Profil mis à jour");
-  };
+  const { logout } = useAuth();
 
   const handleSaveNotifications = () => {
     toast.success("Préférences de notification mises à jour");
@@ -33,35 +36,7 @@ export default function VendorSettingsPage() {
         </p>
       </div>
 
-      {/* Profile Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Informations personnelles
-          </CardTitle>
-          <CardDescription>
-            Mettez à jour vos informations de profil
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">Prénom</Label>
-              <Input id="firstName" defaultValue={user?.firstName} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Nom</Label>
-              <Input id="lastName" defaultValue={user?.lastName} />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" defaultValue={user?.email} />
-          </div>
-          <Button onClick={handleSaveProfile}>Enregistrer</Button>
-        </CardContent>
-      </Card>
+      <AccountProfileSettingsCard />
 
       {/* Notifications */}
       <Card>
