@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -81,11 +82,11 @@ function AddressesContent() {
         if (!res.ok) {
           const errorData = await res.json();
           if (res.status === 409) {
-            throw new Error(errorData.error || "address already exists");
+            throw new Error(errorData.error || "Adresse déjà existante");
           }
-          throw new Error(errorData.error || "Error updating address");
+          throw new Error(errorData.error || "Erreur lors de la modification de l'adresse");
         }
-        toast.success("Address updated");
+        toast.success("Adresse modifiée");
       } else {
         // Create
         const res = await fetch("http://localhost:5001/api/addresses", {
@@ -97,11 +98,11 @@ function AddressesContent() {
         if (!res.ok) {
           const errorData = await res.json();
           if (res.status === 409) {
-            throw new Error(errorData.error || "Address already exists");
+            throw new Error(errorData.error || "Adresse déjà existante");
           }
-          throw new Error(errorData.error || "Error adding address");
+          throw new Error(errorData.error || "Erreur lors de l'ajout de l'adresse");
         }
-        toast.success("Address added");
+        toast.success("Adresse ajoutée");
       }
       // Refresh list
       const refreshed = await fetch("http://localhost:5001/api/addresses", {
@@ -126,8 +127,8 @@ function AddressesContent() {
         method: "DELETE",
         credentials: "include"
       });
-      if (!res.ok) throw new Error("Error deleting address");
-      toast.success("Address deleted");
+      if (!res.ok) throw new Error("Erreur lors de la suppression de l'adresse");
+      toast.success("Adresse supprimée");
       setAddresses(addresses.filter((a) => a._id !== id));
     } catch (err: any) {
       setError(err.message);
@@ -145,8 +146,8 @@ function AddressesContent() {
         method: "POST",
         credentials: "include"
       });
-      if (!res.ok) throw new Error("Error setting default address");
-      toast.success("Default address updated");
+      if (!res.ok) throw new Error("Erreur lors de la définition de l'adresse par défaut");
+      toast.success("Adresse par défaut modifiée");
       // Refresh list
       const refreshed = await fetch("http://localhost:5001/api/addresses", {
         credentials: "include"
@@ -421,9 +422,27 @@ function AddressesContent() {
 }
 
 export default function AddressesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from');
+
   return (
-    <Suspense fallback={<div>Chargement...</div>}>
-      <AddressesContent />
-    </Suspense>
+    <>
+      {/* If navigated from checkout, show return button */}
+      {from === 'checkout' && (
+        <div style={{ margin: '16px 0' }}>
+          {/* Affiche un bouton pour retourner au paiement */}
+          <button
+            className="px-4 py-2 bg-[var(--agora-primary)] text-white rounded"
+            onClick={() => router.push('/checkout')}
+          >
+            Retour au paiement
+          </button>
+        </div>
+      )}
+      <Suspense fallback={<div>Chargement...</div>}>
+        <AddressesContent />
+      </Suspense>
+    </>
   );
 }

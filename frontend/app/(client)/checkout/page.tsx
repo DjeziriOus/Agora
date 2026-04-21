@@ -350,11 +350,11 @@ export default function CheckoutPage() {
             {currentStep === "shipping" && (
               <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] p-6">
                 <h2 className="font-display font-semibold text-xl text-[var(--agora-ink)] mb-6">
-                  Select a shipping address
+                    Sélectionnez une adresse de livraison
                 </h2>
                 <div className="space-y-2">
                   {addresses.length === 0 && (
-                    <div className="text-[var(--agora-mid)]">No address found. <a href="/compte/adresses" className="text-[var(--agora-primary)] underline">Add an address</a></div>
+                      <div className="text-[var(--agora-mid)]">Aucune adresse trouvée. <a href="/compte/adresses" className="text-[var(--agora-primary)] underline">Ajouter une adresse</a></div>
                   )}
                   {addresses.map(addr => (
                     <div
@@ -383,7 +383,8 @@ export default function CheckoutPage() {
                   ))}
                 </div>
                 <div className="mt-4">
-                  <a href="/compte/adresses" className="text-[var(--agora-primary)] underline">Manage my addresses</a>
+                  {/* When user clicks, go to addresses page with ?from=checkout for return logic */}
+                    <a href="/compte/adresses?from=checkout" className="text-[var(--agora-primary)] underline">Gérer mes adresses</a>
                 </div>
                 {/* Shipping Method UI */}
                 <div className="mt-6 pt-6 border-t border-[var(--agora-line)]">
@@ -396,14 +397,14 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-[var(--agora-ink)]">
-                        Livraison standard
+                          Livraison standard
                       </p>
                       <p className="text-sm text-[var(--agora-mid)]">
-                        3-5 jours ouvrés
+                          3-5 jours ouvrés
                       </p>
                     </div>
                     <span className="font-medium text-[var(--agora-green)]">
-                      Gratuite
+                        Gratuite
                     </span>
                   </div>
                 </div>
@@ -415,18 +416,18 @@ export default function CheckoutPage() {
               <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="font-display font-semibold text-xl text-[var(--agora-ink)]">
-                    Paiement sécurisé
+                      Paiement sécurisé
                   </h2>
                   <div className="flex items-center gap-1 text-[var(--agora-green)] text-sm">
                     <Lock className="w-4 h-4" />
-                    <span>SSL 256-bit</span>
+                      <span>SSL 256 bits</span>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Numéro de carte
+                        Numéro de carte
                     </label>
                     <input
                       type="text"
@@ -445,7 +446,7 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                        Date d&apos;expiration
+                          Date d'expiration
                       </label>
                       <input
                         type="text"
@@ -463,7 +464,7 @@ export default function CheckoutPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                        CVC
+                          CVC
                       </label>
                       <input
                         type="text"
@@ -482,7 +483,7 @@ export default function CheckoutPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Nom sur la carte
+                        Nom sur la carte
                     </label>
                     <input
                       type="text"
