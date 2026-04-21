@@ -49,6 +49,7 @@ export default function RegisterPage() {
     ensureAuthConfig,
     setPendingVerificationEmail,
     clearPendingVerificationEmail,
+    refreshSession,
   } = useAuth();
   const router = useRouter();
 
@@ -94,7 +95,8 @@ export default function RegisterPage() {
       }
 
       clearPendingVerificationEmail();
-      router.push("/login");
+      await refreshSession();
+      router.push(role === "seller" ? "/vendeur/boutique" : "/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
     }
