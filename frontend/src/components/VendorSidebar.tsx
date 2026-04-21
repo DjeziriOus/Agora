@@ -17,7 +17,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLowStockProducts } from "@/hooks/useApi";
 
 const vendorNavItems = [
@@ -55,16 +55,54 @@ const vendorNavItems = [
 ];
 
 export function VendorSidebar() {
+  console.log("VendorSidebar rendered");
   const pathname = usePathname();
   const { user, logout } = useAuth();
+
+  console.log("VendorSidebar rendered");
+  console.log("user =", user);
+  console.log("role =", user?.role);
+  
   const [collapsed, setCollapsed] = useState(false);
+  const [shopName, setShopName] = useState("Ma boutique");
   const { data: lowStockProducts } = useLowStockProducts();
 
   const lowStockCount = lowStockProducts?.length || 0;
 
+  useEffect(() => {
+    async function fetchShopName() {
+      if (user?.role !== "seller") return;
+
+      try {
+        const res = await fetch("http://localhost:5001/api/shops/my", {
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          console.log("fetch shop failed:", res.status);
+          return;
+        }
+
+        const data = await res.json();
+        console.log("shop data:", data);
+
+        const name =
+          data?.shop?.name ||
+          data?.name ||
+          data?.store?.name ||
+          "Ma boutique";
+
+        setShopName(name);
+      } catch (error) {
+        console.error("fetch shop error:", error);
+      }
+    }
+
+    fetchShopName();
+  }, [user?.role]);
+
   return (
     <>
-      {/* Mobile Toggle */}
       <Button
         variant="ghost"
         size="icon"
@@ -74,7 +112,6 @@ export function VendorSidebar() {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Sidebar */}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-40 bg-background border-r transition-all duration-300",
@@ -83,18 +120,20 @@ export function VendorSidebar() {
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
           <div className="h-16 flex items-center justify-between px-4 border-b">
             {!collapsed && (
-              <Link href="/vendeur" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <Link href="/vendeur" className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
                   <span className="text-primary-foreground font-heading font-bold text-lg">
                     A
                   </span>
                 </div>
-                <span className="font-heading font-bold text-lg">
-                  Agora <span className="text-primary">Vendeur</span>
-                </span>
+
+                <div className="min-w-0">
+                  <span className="font-heading font-bold text-lg block truncate">
+                    {shopName}
+                  </span>
+                </div>
               </Link>
             )}
 
@@ -113,7 +152,6 @@ export function VendorSidebar() {
             </Button>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
             {vendorNavItems.map((item) => {
               const isActive = item.exact
@@ -136,6 +174,7 @@ export function VendorSidebar() {
                 >
                   <Icon className="h-5 w-5 shrink-0" />
                   {!collapsed && <span>{item.label}</span>}
+
                   {!collapsed &&
                     item.href === "/vendeur/produits" &&
                     lowStockCount > 0 && (
@@ -149,25 +188,25 @@ export function VendorSidebar() {
             })}
           </nav>
 
-          {/* User Section */}
           <div className="p-4 border-t">
-            {!collapsed ? (
+            {!collapsed && (
               <div className="flex items-center gap-3 mb-3">
                 {user?.image ? (
                   <img
-                    src={user?.image}
-                    alt={`${user?.firstName} ${user?.lastName}`}
+                    src={user.image}
+                    alt={`${user?.firstName || ""} ${user?.lastName || ""}`}
                     className="w-10 h-10 rounded-full object-cover"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full  bg-primary/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <span className="font-semibold text-primary">
                       {user?.firstName?.charAt(0)}
                       {user?.lastName?.charAt(0)}
                     </span>
                   </div>
                 )}
+
                 <div className="min-w-0">
                   <p className="font-medium text-sm truncate">
                     {user?.firstName} {user?.lastName}
@@ -177,7 +216,8 @@ export function VendorSidebar() {
                   </p>
                 </div>
               </div>
-            ) : null}
+            )}
+
             <Button
               variant="ghost"
               className={cn(
@@ -186,7 +226,7 @@ export function VendorSidebar() {
               )}
               onClick={logout}
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className={cn("h-4 w-4", !collapsed && "mr-2")} />
               {!collapsed && "Déconnexion"}
             </Button>
           </div>
