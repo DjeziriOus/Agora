@@ -1,4 +1,18 @@
+
 "use client";
+// Address type definition
+interface Address {
+  _id: string;
+  recipientName: string;
+  phone: string;
+  addressLabel: "home" | "work" | "other";
+  addressLine: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -39,13 +53,58 @@ interface PaymentInfo {
 }
 
 export default function CheckoutPage() {
+  // Step state must be declared before any effect using it
+  const [currentStep, setCurrentStep] = useState<CheckoutStep>("shipping");
+  // Address selection state
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+
+  // Fetch address list from backend
+  useEffect(() => {
+    if (currentStep !== "shipping") return;
+    fetch("http://localhost:5001/api/addresses", { credentials: "include" })
+      .then(res => res.json())
+      .then(data => {
+        setAddresses(data);
+        // Select default address if exists
+        const def = data.find((a: Address) => a.isDefault);
+        setSelectedAddressId(def?._id || (data[0]?._id ?? null));
+        // Auto-fill shippingInfo with default address
+        if (def) {
+          setShippingInfo({
+            firstName: def.recipientName,
+            lastName: "",
+            address: def.addressLine,
+            city: def.city,
+            postalCode: def.postalCode,
+            phone: def.phone,
+          });
+        }
+      });
+  }, [currentStep]);
+
+  // Auto-fill shippingInfo when address is selected
+  useEffect(() => {
+    if (!selectedAddressId) return;
+    const addr = addresses.find(a => a._id === selectedAddressId);
+    if (addr) {
+      setShippingInfo({
+        firstName: addr.recipientName,
+        lastName: "",
+        address: addr.addressLine,
+        city: addr.city,
+        postalCode: addr.postalCode,
+        phone: addr.phone,
+      });
+    }
+  }, [selectedAddressId]);
   const router = useRouter();
   const { items, clearCart } = useCart();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [isCheckingSellerRedirect, setIsCheckingSellerRedirect] =
     useState(false);
 
-  const [currentStep, setCurrentStep] = useState<CheckoutStep>("shipping");
+  // (Moved above for correct initialization order)
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const createOrder = useCreateOrder();
@@ -81,16 +140,10 @@ export default function CheckoutPage() {
     );
   }, [items]);
 
+  // Shipping step is valid if an address is selected
   const isShippingValid = useMemo(() => {
-    return (
-      shippingInfo.firstName.trim() !== "" &&
-      shippingInfo.lastName.trim() !== "" &&
-      shippingInfo.address.trim() !== "" &&
-      shippingInfo.city.trim() !== "" &&
-      shippingInfo.postalCode.trim() !== "" &&
-      shippingInfo.phone.trim() !== ""
-    );
-  }, [shippingInfo]);
+    return !!selectedAddressId;
+  }, [selectedAddressId]);
 
   const isPaymentValid = useMemo(() => {
     return (
@@ -164,6 +217,8 @@ export default function CheckoutPage() {
     } else if (currentStep === "payment" && isPaymentValid) {
       setIsProcessing(true);
       try {
+        const selectedAddress = addresses.find(a => a._id === selectedAddressId);
+        if (!selectedAddress) throw new Error("Please select an address");
         const result = await createOrder.mutateAsync({
           items: items.map((item) => ({
             productId: item.productId,
@@ -171,12 +226,13 @@ export default function CheckoutPage() {
             quantity: item.quantity,
           })),
           deliveryAddress: {
-            firstName: shippingInfo.firstName,
-            lastName: shippingInfo.lastName,
-            addressLine1: shippingInfo.address,
-            city: shippingInfo.city,
-            postalCode: shippingInfo.postalCode,
-            country: "France",
+            firstName: selectedAddress.recipientName,
+            lastName: "", // Fill if you have lastName
+            addressLine1: selectedAddress.addressLine,
+            city: selectedAddress.city,
+            postalCode: selectedAddress.postalCode,
+            country: selectedAddress.country,
+            phone: selectedAddress.phone,
           },
           paymentMethod: "card",
         });
@@ -184,9 +240,9 @@ export default function CheckoutPage() {
         await clearCart();
         setCurrentStep("confirmation");
       } catch (err) {
-        console.error("Erreur création commande:", err);
-        const msg = err instanceof Error ? err.message : "Erreur inconnue";
-        toast.error(`Erreur : ${msg}`);
+        console.error("Order creation error:", err);
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        toast.error(`Error: ${msg}`);
       } finally {
         setIsProcessing(false);
       }
@@ -218,7 +274,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-[var(--agora-bg)]">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        {/* Back to Cart */}
+        {/* Back to Cart button */}
         {currentStep !== "confirmation" && (
           <Link
             href="/panier"
@@ -229,10 +285,10 @@ export default function CheckoutPage() {
           </Link>
         )}
 
-        {/* Progress Stepper */}
+        {/* Progress Stepper UI */}
         <div className="mb-8">
           <div className="flex items-center justify-between relative">
-            {/* Progress Line */}
+            {/* Progress Line UI */}
             <div className="absolute top-5 left-0 right-0 h-0.5 bg-[var(--agora-line)]">
               <div
                 className="h-full bg-[var(--agora-primary)] transition-all duration-300"
@@ -242,7 +298,7 @@ export default function CheckoutPage() {
               />
             </div>
 
-            {/* Steps */}
+            {/* Step icons and labels */}
             {steps.map((step, index) => {
               const isActive = index === currentStepIndex;
               const isComplete = index < currentStepIndex;
@@ -288,118 +344,48 @@ export default function CheckoutPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
+          {/* Main Content area */}
           <div className="lg:col-span-2">
-            {/* Shipping Step */}
+            {/* Shipping Step: address selection */}
             {currentStep === "shipping" && (
               <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] p-6">
                 <h2 className="font-display font-semibold text-xl text-[var(--agora-ink)] mb-6">
-                  Adresse de livraison
+                  Select a shipping address
                 </h2>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Prénom
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.firstName}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({
-                          ...s,
-                          firstName: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="Jean"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Nom
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.lastName}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({
-                          ...s,
-                          lastName: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="Dupont"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Adresse
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.address}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({
-                          ...s,
-                          address: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="123 Rue de la Paix"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Ville
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.city}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({ ...s, city: e.target.value }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="Paris"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Code postal
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.postalCode}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({
-                          ...s,
-                          postalCode: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="75001"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Téléphone
-                    </label>
-                    <input
-                      type="tel"
-                      value={shippingInfo.phone}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({
-                          ...s,
-                          phone: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="06 12 34 56 78"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  {addresses.length === 0 && (
+                    <div className="text-[var(--agora-mid)]">No address found. <a href="/compte/adresses" className="text-[var(--agora-primary)] underline">Add an address</a></div>
+                  )}
+                  {addresses.map(addr => (
+                    <div
+                      key={addr._id}
+                      onClick={() => setSelectedAddressId(addr._id)}
+                      className={`p-4 border rounded cursor-pointer transition-all ${
+                        addr._id === selectedAddressId
+                          ? "border-[var(--agora-primary)] bg-[var(--agora-primary)]/10"
+                          : addr.isDefault
+                          ? "border-[var(--agora-green)]"
+                          : "border-[var(--agora-line)]"
+                      }`}
+                    >
+                      <div className="font-bold flex items-center">
+                        {addr.recipientName}
+                        {addr.isDefault && (
+                          <span className="text-[var(--agora-green)] ml-2 text-xs">(default)</span>
+                        )}
+                        {addr._id === selectedAddressId && (
+                          <span className="ml-2 text-[var(--agora-primary)] text-xs">(selected)</span>
+                        )}
+                      </div>
+                      <div>{addr.addressLine}, {addr.city}</div>
+                      <div>{addr.phone}</div>
+                    </div>
+                  ))}
                 </div>
-
-                {/* Shipping Method */}
+                <div className="mt-4">
+                  <a href="/compte/adresses" className="text-[var(--agora-primary)] underline">Manage my addresses</a>
+                </div>
+                {/* Shipping Method UI */}
                 <div className="mt-6 pt-6 border-t border-[var(--agora-line)]">
                   <h3 className="font-medium text-[var(--agora-ink)] mb-3">
                     Mode de livraison
@@ -424,7 +410,7 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* Payment Step */}
+            {/* Payment Step: payment form */}
             {currentStep === "payment" && (
               <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -513,7 +499,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Shipping Summary */}
+                {/* Shipping address summary in payment step */}
                 <div className="mt-6 pt-6 border-t border-[var(--agora-line)]">
                   <h3 className="font-medium text-[var(--agora-ink)] mb-3">
                     Adresse de livraison
@@ -536,7 +522,7 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* Confirmation Step */}
+            {/* Confirmation Step: order success */}
             {currentStep === "confirmation" && orderId && (
               <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] p-8 text-center">
                 <div className="w-20 h-20 mx-auto rounded-full bg-[var(--agora-green)]/10 flex items-center justify-center mb-6">
@@ -578,7 +564,7 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* Navigation Buttons */}
+            {/* Navigation Buttons for stepper */}
             {currentStep !== "confirmation" && (
               <div className="flex items-center justify-between mt-6">
                 {currentStep === "payment" ? (
@@ -636,7 +622,7 @@ export default function CheckoutPage() {
                   Votre commande
                 </h3>
 
-                {/* Items */}
+                {/* Cart items list */}
                 <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
                   {items.map((item) => (
                     <div key={item.productId} className="flex gap-3">
@@ -670,7 +656,7 @@ export default function CheckoutPage() {
 
                 <hr className="my-4 border-[var(--agora-line)]" />
 
-                {/* Totals */}
+                {/* Order totals */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-[var(--agora-mid)]">Sous-total</span>
