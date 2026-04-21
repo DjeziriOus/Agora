@@ -2,12 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSellerOrders, useUpdateOrderStatus } from "@/hooks/useApi";
+import {
+  useMyStore,
+  useSellerOrders,
+  useUpdateOrderStatus,
+} from "@/hooks/useApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { SellerShopRequiredState } from "@/components/SellerShopRequiredState";
+import { isMissingSellerShopError } from "@/lib/shopErrors";
 import {
   Table,
   TableBody,
@@ -50,7 +56,15 @@ const statusOptions = [
 ];
 
 export default function VendorOrdersPage() {
-  const { data: orders, isLoading, error } = useSellerOrders();
+  const {
+    data: store,
+    isLoading: isStoreLoading,
+    error: storeError,
+  } = useMyStore();
+  const hasStore = Boolean(store);
+  const { data: orders, isLoading, error } = useSellerOrders({
+    enabled: hasStore,
+  });
   const updateStatus = useUpdateOrderStatus();
 
   const [search, setSearch] = useState("");
@@ -78,7 +92,7 @@ export default function VendorOrdersPage() {
     }
   };
 
-  if (isLoading) {
+  if (isStoreLoading || (hasStore && isLoading)) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -86,6 +100,21 @@ export default function VendorOrdersPage() {
         </div>
         <Skeleton className="h-[500px] w-full" />
       </div>
+    );
+  }
+
+  if (isMissingSellerShopError(storeError)) {
+    return <SellerShopRequiredState />;
+  }
+
+  if (storeError) {
+    return (
+      <EmptyState
+        icon={<ShoppingCart className="w-12 h-12" />}
+        title="Erreur de chargement"
+        description="Impossible de charger votre boutique."
+        action={{ label: "Réessayer", href: "/vendeur/commandes" }}
+      />
     );
   }
 

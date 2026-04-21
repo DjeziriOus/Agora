@@ -8,12 +8,15 @@ import {
   useSellerProducts,
   useToggleProductActive,
   useDeleteProduct,
+  useMyStore,
 } from "@/hooks/useApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { SellerShopRequiredState } from "@/components/SellerShopRequiredState";
+import { isMissingSellerShopError } from "@/lib/shopErrors";
 import {
   Table,
   TableBody,
@@ -57,7 +60,13 @@ function VendorProductsContent() {
   const searchParams = useSearchParams();
   const filterLowStock = searchParams.get("filter") === "low-stock";
 
-  const { data, isLoading, error } = useSellerProducts();
+  const {
+    data: store,
+    isLoading: isStoreLoading,
+    error: storeError,
+  } = useMyStore();
+  const hasStore = Boolean(store);
+  const { data, isLoading, error } = useSellerProducts({ enabled: hasStore });
   const toggleActive = useToggleProductActive();
   const deleteProduct = useDeleteProduct();
 
@@ -105,7 +114,7 @@ function VendorProductsContent() {
     }
   };
 
-  if (isLoading) {
+  if (isStoreLoading || (hasStore && isLoading)) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -114,6 +123,24 @@ function VendorProductsContent() {
         </div>
         <Skeleton className="h-[500px] w-full" />
       </div>
+    );
+  }
+
+  if (isMissingSellerShopError(storeError)) {
+    return <SellerShopRequiredState />;
+  }
+
+  if (storeError) {
+    return (
+      <EmptyState
+        icon={<Package className="w-12 h-12" />}
+        title="Erreur de chargement"
+        description="Impossible de charger votre boutique."
+        action={{
+          label: "Réessayer",
+          href: "/vendeur/produits",
+        }}
+      />
     );
   }
 
