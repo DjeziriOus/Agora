@@ -2,7 +2,7 @@
 
 import { AccountProfileSettingsCard } from "@/components/AccountProfileSettingsCard";
 import { AccountPasswordSettingsCard } from "@/components/AccountPasswordSettingsCard";
-import { useAuth } from "@/context/AuthContext";
+import { AccountDangerZoneCard } from "@/components/AccountDangerZoneCard";
 import {
   Card,
   CardContent,
@@ -13,12 +13,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Bell, LogOut } from "lucide-react";
+import { Bell } from "lucide-react";
 import { toast } from "sonner";
 
 export default function VendorSettingsPage() {
-  const { logout } = useAuth();
-
   const handleSaveNotifications = () => {
     toast.success("Préférences de notification mises à jour");
   };
@@ -94,39 +92,7 @@ export default function VendorSettingsPage() {
 
       <AccountPasswordSettingsCard />
 
-      {/* Danger Zone */}
-      <Card className="border-destructive/50">
-        <CardHeader>
-          <CardTitle className="text-destructive">Zone de danger</CardTitle>
-          <CardDescription>
-            Actions irréversibles sur votre compte
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Déconnexion</p>
-              <p className="text-sm text-muted-foreground">
-                Se déconnecter de votre compte
-              </p>
-            </div>
-            <Button variant="outline" onClick={logout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Déconnexion
-            </Button>
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-destructive">Supprimer le compte</p>
-              <p className="text-sm text-muted-foreground">
-                Supprimer définitivement votre compte et toutes vos données
-              </p>
-            </div>
-            <Button variant="destructive">Supprimer</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <AccountDangerZoneCard />
     </div>
   );
 }
