@@ -3,12 +3,14 @@
 import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useSellerProducts } from "@/hooks/useApi";
+import { useMyStore, useSellerProducts } from "@/hooks/useApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { SellerShopRequiredState } from "@/components/SellerShopRequiredState";
+import { isMissingSellerShopError } from "@/lib/shopErrors";
 import {
   Table,
   TableBody,
@@ -143,7 +145,13 @@ const flattenVisibleLines = (groups: ProductStockGroup[]): StockLine[] => {
 };
 
 export default function VendorStockPage() {
-  const { data, isLoading, error } = useSellerProducts();
+  const {
+    data: store,
+    isLoading: isStoreLoading,
+    error: storeError,
+  } = useMyStore();
+  const hasStore = Boolean(store);
+  const { data, isLoading, error } = useSellerProducts({ enabled: hasStore });
   const [search, setSearch] = useState("");
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
@@ -213,7 +221,7 @@ export default function VendorStockPage() {
   ).length;
   const outOfStockCount = visibleLines.filter((line) => line.stock <= 0).length;
 
-  if (isLoading) {
+  if (isStoreLoading || (hasStore && isLoading)) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-56" />
@@ -224,6 +232,21 @@ export default function VendorStockPage() {
         </div>
         <Skeleton className="h-[420px] w-full" />
       </div>
+    );
+  }
+
+  if (isMissingSellerShopError(storeError)) {
+    return <SellerShopRequiredState />;
+  }
+
+  if (storeError) {
+    return (
+      <EmptyState
+        icon={<Boxes className="w-12 h-12" />}
+        title="Erreur de chargement"
+        description="Impossible de charger votre boutique."
+        action={{ label: "Retour aux produits", href: "/vendeur/produits" }}
+      />
     );
   }
 
