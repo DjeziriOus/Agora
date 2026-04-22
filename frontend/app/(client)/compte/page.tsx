@@ -18,40 +18,7 @@ export default function AccountPage() {
 
   return (
     <div className="space-y-6">
-      {/* Email Verification Alert */}
-      {user && !user.emailVerified && (
-        <div className="flex items-start gap-4 p-4 rounded-xl border-2 border-amber-300 bg-amber-50">
-          <div className="p-2.5 rounded-full bg-amber-100 shrink-0">
-            <Package className="h-5 w-5 text-amber-600" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-amber-800 text-sm">
-              Adresse email non vérifiée
-            </h3>
-            <p className="text-xs text-amber-700 mt-1">
-              Vérifiez votre adresse email pour passer des commandes, et accéder
-              à toutes les fonctionnalités d&apos;Agora.
-            </p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0 border-amber-400 text-amber-700 hover:bg-amber-100"
-            onClick={async () => {
-              if (!user.email) return;
-              try {
-                const { authClient } = await import("@/lib/auth-client");
-                await authClient.sendVerificationEmail({
-                  email: user.email,
-                  callbackURL: "/compte",
-                });
-              } catch {}
-            }}
-          >
-            Renvoyer l&apos;email
-          </Button>
-        </div>
-      )}
+
 
       <div>
         <h1 className="text-2xl font-heading font-bold text-foreground">

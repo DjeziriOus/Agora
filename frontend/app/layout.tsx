@@ -71,7 +71,6 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <QueryProvider>
           <AuthProvider>
-            <VerificationBanner />
             {children}
             <Toaster
               position="top-right"

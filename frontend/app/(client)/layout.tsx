@@ -1,6 +1,5 @@
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { VerificationBanner } from "@/components/VerificationBanner";
 
 export default function ClientLayout({
   children,

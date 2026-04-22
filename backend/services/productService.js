@@ -193,7 +193,7 @@ const getProducts = async (query = {}) => {
 
 	const [products, total] = await Promise.all([
 		Product.find(filters)
-			.populate("shop", "name logo")
+			.populate("shop", "name slug logo")
 			.sort({ createdAt: -1 })
 			.skip(skip)
 			.limit(limit),
@@ -218,7 +218,7 @@ const getProductById = async (productId) => {
 		_id: productId,
 		isDeleted: false,
 		isActive: true,
-	}).populate("shop", "name logo");
+	}).populate("shop", "name slug logo");
 
 	if (!product) {
 		const error = new Error("Product not found.");
@@ -239,7 +239,7 @@ const getMyProductById = async ({ ownerId, productId }) => {
 		_id: productId,
 		shop: shop._id,
 		isDeleted: false,
-	}).populate("shop", "name logo");
+	}).populate("shop", "name slug logo");
 
 	if (!product) {
 		const error = new Error("Product not found.");

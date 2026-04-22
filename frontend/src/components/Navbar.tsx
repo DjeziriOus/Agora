@@ -22,19 +22,17 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { VerificationBanner } from './VerificationBanner';
+import Image from 'next/image';
 
 function AgoraIcon() {
   return (
-    <svg
-      width="28"
-      height="28"
-      viewBox="0 0 28 28"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path d="M14 3L27 25H1L14 3Z" fill="var(--agora-gold)" />
-      <path d="M14 10L23 25H5L14 10Z" fill="var(--agora-primary)" />
-    </svg>
+    <Image
+      src="/logo.png"
+      alt="Agora"
+      width={45}
+      height={45}
+    />
   );
 }
 
@@ -78,12 +76,13 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-[var(--agora-line)]">
+      <VerificationBanner   />
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-4 h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
+          <Link href="/" className="flex items-center gap-1 shrink-0">
             <AgoraIcon />
-            <span className="font-bold text-[var(--agora-ink)] text-lg leading-none">
+            <span className="font-bold text-[var(--agora-ink)] text-xl leading-none">
               Agora
             </span>
           </Link>
@@ -256,7 +255,7 @@ export function Navbar() {
                         <Link
                           href="/vendeur"
                           onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-gold)] hover:bg-[var(--agora-accent)] transition-colors"
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-primary)] hover:text-[var(--agora-gold)] transition-colors"
                         >
                           <LayoutDashboard className="w-4 h-4" />
                           Tableau de bord

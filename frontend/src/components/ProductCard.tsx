@@ -138,7 +138,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
         {/* Store Link */}
         <Link
-          href={`/boutique/${product.storeId}`}
+          href={`/boutique/${product.storeSlug}`}
           onClick={(e) => e.stopPropagation()}
           className="text-xs text-[var(--agora-primary)] hover:underline mb-3 block"
         >

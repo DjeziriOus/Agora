@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useLowStockProducts } from "@/hooks/useApi";
+import { useLowStockProducts, useMyStore } from "@/hooks/useApi";
 
 const vendorNavItems = [
   {
@@ -58,7 +58,9 @@ export function VendorSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
-  const { data: lowStockProducts } = useLowStockProducts();
+  const { data: store } = useMyStore();
+  const hasStore = !!store;
+  const { data: lowStockProducts } = useLowStockProducts({ enabled: hasStore });
 
   const lowStockCount = lowStockProducts?.length || 0;
 
@@ -115,7 +117,14 @@ export function VendorSidebar() {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
-            {vendorNavItems.map((item) => {
+            {vendorNavItems
+              .filter((item) => {
+                if (!hasStore) {
+                  return item.href === "/vendeur/boutique" || item.href === "/vendeur/parametres";
+                }
+                return true;
+              })
+              .map((item) => {
               const isActive = item.exact
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
@@ -161,7 +170,7 @@ export function VendorSidebar() {
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full  bg-primary/10 flex items-center justify-center">
+                  <div className="w-10 h-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
                     <span className="font-semibold text-primary">
                       {user?.firstName?.charAt(0)}
                       {user?.lastName?.charAt(0)}

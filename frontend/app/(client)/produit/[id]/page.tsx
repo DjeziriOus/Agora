@@ -55,7 +55,7 @@ export default function ProductDetailPage({
   const isNotFoundError = errorStatus === 404;
   const allProducts = productsResponse?.products ?? [];
   const store = product?.storeId
-    ? { id: product.storeId, name: product.storeName, logo: product.storeLogo }
+    ? { id: product.storeId, slug: product.storeSlug, name: product.storeName, logo: product.storeLogo }
     : null;
   const reviews: Review[] = [];
   const relatedProducts = useMemo(
@@ -383,7 +383,7 @@ export default function ProductDetailPage({
             {/* Store Card */}
             {store && (
               <Link
-                href={`/boutique/${store.id}`}
+                href={`/boutique/${store.slug}`}
                 className="mt-6 p-4 bg-[var(--agora-accent)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] flex items-center gap-4 hover:border-[var(--agora-primary)] transition-colors"
               >
                 <div className="w-12 h-12 rounded-full bg-[var(--agora-surface)] border border-[var(--agora-line)] overflow-hidden relative">

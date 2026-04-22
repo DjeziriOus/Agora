@@ -37,6 +37,7 @@ export interface Product {
   rating: number;
   reviewCount: number;
   storeId: string;
+  storeSlug: string;
   storeName: string;
   storeLogo?: string;
   images: string[];

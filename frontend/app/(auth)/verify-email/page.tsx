@@ -108,7 +108,7 @@ function VerifyEmailContent() {
     setIsResending(true);
 
     try {
-      await resendVerification(verificationEmail);
+      await resendVerification();
       const availableAt = Date.now() + RESEND_COOLDOWN_SECONDS * 1000;
       window.sessionStorage.setItem(
         getResendCooldownStorageKey(verificationEmail),

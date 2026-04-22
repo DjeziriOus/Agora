@@ -1,15 +1,16 @@
-const express = require('express');
+import express from 'express';
+import { getProfile, resendVerificationEmail } from '../controllers/authController.js';
+import { verifyToken } from '../middleware/auth.js';
+import { resendLimiter } from '../middleware/rateLimiter.js';
+
 const router = express.Router();
-const { register, login, getProfile } = require('../controllers/authController');
-const { verifyToken } = require('../middleware/auth');
+router.get("/me", verifyToken, getProfile);
 
-// POST /api/auth/register
-router.post('/register', register);
+router.post(
+  "/resend-verification",
+  resendLimiter,
+  verifyToken,
+  resendVerificationEmail
+);
 
-// POST /api/auth/login
-router.post('/login', login);
-
-// GET /api/auth/me  (protected)
-router.get('/me', verifyToken, getProfile);
-
-module.exports = router;
+export default router;

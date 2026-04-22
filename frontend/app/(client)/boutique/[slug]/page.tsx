@@ -12,16 +12,16 @@ import { useStore, useStoreProducts } from "@/hooks/useApi";
 export default function StorePage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = use(params);
-  const { data: store, isLoading } = useStore(id);
+  const { slug } = use(params);
+  const { data: store, isLoading } = useStore(slug);
   const {
     data: products = [],
     isLoading: isProductsLoading,
     isError: isProductsError,
     error: productsError,
-  } = useStoreProducts(id);
+  } = useStoreProducts(slug);
 
   if (isLoading || isProductsLoading) {
     return (

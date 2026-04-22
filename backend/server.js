@@ -16,6 +16,7 @@ import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import clientAddressRoutes from "./routes/clientAddressRoutes.js";
+import accountRoutes from "./routes/authRoutes.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -61,6 +62,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/addresses", clientAddressRoutes);
+app.use("/api/account", accountRoutes);
 
 // Health-check
 app.get("/", (_req, res) => {

@@ -8,6 +8,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User, Package, MapPin, Settings, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from '@/components/ui/button';
+import EmailVerificationAlert from '@/components/EmailVerificationAlert';
 
 const accountLinks = [
   { href: "/compte", label: "Mon compte", icon: User, exact: true },
@@ -73,6 +75,7 @@ export default function AccountLayoutClient({
   return (
     <main className="min-h-screen bg-muted/30">
       <div className="container mx-auto px-4 py-8">
+        <EmailVerificationAlert user={user} />
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
           <aside className="w-full lg:w-64 shrink-0">
@@ -81,7 +84,7 @@ export default function AccountLayoutClient({
                 <p className="font-heading font-semibold text-foreground">
                   {user.firstName} {user.lastName}
                 </p>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
+                <p className="text-sm text-muted-foreground truncate">{user.email}</p>
               </div>
               <nav className="space-y-1">
                 {accountLinks.map((link) => {
@@ -89,8 +92,7 @@ export default function AccountLayoutClient({
                     ? pathname === link.href
                     : pathname.startsWith(link.href);
                   const Icon = link.icon;
-                  const showBadge =
-                    link.href === "/compte" && user && !user.emailVerified;
+                  const isUnverified = user && !user.emailVerified;
                   return (
                     <Link
                       key={link.href}
@@ -104,12 +106,7 @@ export default function AccountLayoutClient({
                     >
                       <Icon className="h-4 w-4" />
                       {link.label}
-                      {showBadge && (
-                        <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-red-500 rounded-full">
-                          1
-                        </span>
-                      )}
-                      {isActive && !showBadge && (
+                      {isActive && (
                         <ChevronRight className="h-4 w-4 ml-auto" />
                       )}
                     </Link>

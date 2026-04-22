@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { API_URL } from "@/config";
 import type { User } from "@/types";
 
 const PENDING_VERIFICATION_EMAIL_STORAGE_KEY =
@@ -33,7 +34,7 @@ interface AuthContextType {
     role: "buyer" | "seller";
   }) => Promise<void>;
   logout: () => Promise<void>;
-  resendVerification: (email: string) => Promise<void>;
+  resendVerification: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -257,13 +258,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Reset is no longer needed but kept for API compat.
   const clearEmailNotVerified = useCallback(() => {}, []);
 
-  // Ask Better Auth to send a fresh verification email for the pending address.
-  const resendVerification = useCallback(async (email: string) => {
-    const { error } = await authClient.sendVerificationEmail({
-      email,
-      callbackURL: "/verify-email",
+  // Ask the backend to resend the verification email.
+  // No email is sent from the frontend — the backend derives it from the session.
+  const resendVerification = useCallback(async () => {
+    const res = await fetch(`${API_URL}/api/account/resend-verification`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "ngrok-skip-browser-warning": "true" },
     });
-    if (error) throw new Error(error.message ?? "Impossible d'envoyer l'email");
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message ?? "Impossible d'envoyer l'email");
+    }
   }, []);
 
   return (

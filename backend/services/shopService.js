@@ -167,12 +167,10 @@ const createShop = async ({
 };
 
 /**
- * GET /api/shops/:id
+ * GET /api/shops/:slug
  */
-const getShopById = async (shopId) => {
-  assertObjectId(shopId, "shop id");
-
-  const shop = await Shop.findOne({ _id: shopId, isDeleted: false }).populate(
+const getShopBySlug = async (slug) => {
+  const shop = await Shop.findOne({ slug, isDeleted: false }).populate(
     "owner",
     "name email firstName lastName",
   );
@@ -185,12 +183,10 @@ const getShopById = async (shopId) => {
 };
 
 /**
- * GET /api/shops/:id/products
+ * GET /api/shops/:slug/products
  */
-const getShopProducts = async (shopId) => {
-  assertObjectId(shopId, "shop id");
-
-  const shop = await Shop.findOne({ _id: shopId, isDeleted: false });
+const getShopProductsBySlug = async (slug) => {
+  const shop = await Shop.findOne({ slug, isDeleted: false });
   if (!shop) {
     const error = new Error("Shop not found.");
     error.statusCode = 404;
@@ -202,7 +198,7 @@ const getShopProducts = async (shopId) => {
     isDeleted: false,
     isActive: true,
   })
-    .populate("shop", "name")
+    .populate("shop", "name slug")
     .sort({ createdAt: -1 });
 
   return enrichProductsWithVariants(products);
@@ -260,14 +256,7 @@ const getMyShop = async (ownerId) => {
     "owner",
     "name email firstName lastName",
   );
-  if (!shop) {
-    const error = new Error(
-      "Vous n'avez pas encore de boutique, créez-en une pour commencer à vendre !",
-    );
-    error.statusCode = 404;
-    throw error;
-  }
   return shop;
 };
 
-export default { createShop, getShopById, getShopProducts, updateShop, getMyShop };
+export default { createShop, getShopBySlug, getShopProductsBySlug, updateShop, getMyShop };

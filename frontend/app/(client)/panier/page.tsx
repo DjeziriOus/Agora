@@ -69,13 +69,14 @@ export default function CartPage() {
       if (!acc[storeId]) {
         acc[storeId] = {
           storeName: item.product.storeName,
+          storeSlug: item.product.storeSlug,
           items: [],
         };
       }
       acc[storeId].items.push(item);
       return acc;
     },
-    {} as Record<string, { storeName: string; items: CartItemType[] }>,
+    {} as Record<string, { storeName: string; storeSlug: string; items: CartItemType[] }>,
   );
 
   const storeIds = Object.keys(groupedItems);
@@ -139,7 +140,7 @@ export default function CartPage() {
                 <div className="flex items-center gap-2 px-4 py-3 bg-[var(--agora-accent)] border-b border-[var(--agora-line)]">
                   <Store className="w-4 h-4 text-[var(--agora-mid)]" />
                   <Link
-                    href={`/boutique/${storeId}`}
+                    href={`/boutique/${groupedItems[storeId].storeSlug}`}
                     className="text-sm font-medium text-[var(--agora-ink)] hover:text-[var(--agora-primary)]"
                   >
                     {groupedItems[storeId].storeName}
@@ -216,7 +217,7 @@ export default function CartPage() {
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <p className="mt-2 text-xs text-amber-600 text-center">
-                    ⚠ Vérifiez votre email pour passer commande.
+                    ⚠ Vérifiez votre email pour pouvoir passer des commandes.
                   </p>
                 </div>
               ) : (

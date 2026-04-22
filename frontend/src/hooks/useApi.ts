@@ -93,7 +93,7 @@ export function useSellerProducts() {
   });
 }
 
-export function useLowStockProducts() {
+export function useLowStockProducts(options?: { enabled?: boolean }) {
   return useQuery<Product[]>({
     queryKey: queryKeys.products.lowStock,
     queryFn: async () => {
@@ -102,6 +102,7 @@ export function useLowStockProducts() {
         (product) => product.totalStock <= product.stockThreshold,
       );
     },
+    enabled: options?.enabled,
   });
 }
 

@@ -37,7 +37,7 @@ export function VerificationBanner() {
     if (!user?.email || isSending) return;
     setIsSending(true);
     try {
-      await resendVerification(user.email);
+      await resendVerification();
       setSent(true);
       setTimeout(() => setSent(false), 5000);
     } catch {
@@ -52,10 +52,11 @@ export function VerificationBanner() {
 
   return (
     <div
-      className={cn(
-        "relative bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200/80",
-        "animate-in slide-in-from-top duration-300",
-      )}
+className={cn(
+  "sticky top-0 z-100",
+  "bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200/80",
+  "animate-in slide-in-from-top duration-300",
+)}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
         <div className="flex items-center justify-center gap-3 text-sm">

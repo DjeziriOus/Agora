@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { API_URL } from "../config";
 import type {
   Cart,
@@ -26,6 +27,7 @@ type BackendStore = {
   _id?: string;
   id?: string;
   name: string;
+  slug?: string;
   description?: string;
   logo?: BackendStoreImage;
   banner?: BackendStoreImage;
@@ -42,6 +44,7 @@ type BackendProductShop =
       _id?: string;
       id?: string;
       name?: string;
+      slug?: string;
       logo?: BackendStoreImage;
     };
 
@@ -125,6 +128,9 @@ const mapProduct = (product: BackendProduct): Product => {
       ? product.shop
       : (product.shop?.id ?? product.shop?._id ?? "");
 
+  const storeSlug =
+    typeof product.shop === "string" ? "" : (product.shop?.slug ?? "");
+
   const storeName =
     typeof product.shop === "string" ? "" : (product.shop?.name ?? "");
 
@@ -155,6 +161,7 @@ const mapProduct = (product: BackendProduct): Product => {
     rating: product.rating ?? 0,
     reviewCount: product.reviewCount ?? 0,
     storeId,
+    storeSlug,
     storeName,
     storeLogo,
     images: (product.images ?? []).map((image) =>
@@ -296,6 +303,8 @@ export async function apiFetch<T>(
     } catch {
       /* non-JSON error body */
     }
+    // console.log("message", message);
+    toast.error(message);
     throw new ApiError(res.status, message);
   }
 
@@ -392,6 +401,7 @@ export const storesApi = {
   },
   getMyStore: async () => {
     const store = await apiFetch<unknown>("/api/shops/my");
+
     return store ?? null;
   },
   create: (data: unknown) =>
