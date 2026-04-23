@@ -184,11 +184,12 @@ export function useStoreProducts(id: string, params?: ProductQuery) {
   });
 }
 
-export function useMyStore() {
+export function useMyStore(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.stores.my,
     queryFn: () => shopsApi.getMyStore(),
     retry: false,
+    enabled: options?.enabled ?? true,
   });
 }
 

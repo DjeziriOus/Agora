@@ -1,6 +1,0 @@
-[dotenv@17.2.4] injecting env (12) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
-[2m2026-03-26T16:04:46.173Z[0m [33mWARN[0m [1m[Better Auth]:[0m Social provider google is missing clientId or clientSecret
-MongoDB connected: localhost
-Server running on http://localhost:5000
-BetterAuth health: http://localhost:5000/api/auth/ok
-^C
