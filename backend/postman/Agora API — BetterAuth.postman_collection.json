@@ -1,15 +1,116 @@
 {
   "info": {
     "_postman_id": "63386f9b-c323-4001-a70a-67a31f394d0e",
-    "name": "Agora API — BetterAuth",
-    "description": "Full Agora multi-vendor API collection. Base URL: {{backend_origin}}/api\n\nAuth routes are handled by BetterAuth at /api/auth/*\nAll protected routes use session cookies — Postman must have 'Send cookies' enabled.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "53586768"
+    "_exporter_id": "codex",
+    "name": "Agora API — BetterAuth"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const origin = pm.collectionVariables.get('frontend_origin') || 'http://localhost:3000';",
+          "pm.request.headers.upsert({ key: 'Origin', value: origin });"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "backend_origin",
+      "value": "http://localhost:5001",
+      "type": "string"
+    },
+    {
+      "key": "frontend_origin",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "base_url",
+      "value": "{{backend_origin}}/api",
+      "type": "string"
+    },
+    {
+      "key": "buyer_email",
+      "value": "buyer.postman@agora.fr",
+      "type": "string"
+    },
+    {
+      "key": "seller_email",
+      "value": "seller.postman@agora.fr",
+      "type": "string"
+    },
+    {
+      "key": "user_password",
+      "value": "Password123!",
+      "type": "string"
+    },
+    {
+      "key": "verify_email_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_password_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "product_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "variant_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shop_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seller_order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "address_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
   "item": [
     {
       "name": "🔐 Auth (BetterAuth)",
       "item": [
+        {
+          "name": "Get Auth Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/config",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "config"
+              ]
+            }
+          },
+          "response": []
+        },
         {
           "name": "Register (Buyer)",
           "request": {
@@ -20,10 +121,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Djeziri Oussama\",\n  \"firstName\": \"Oussama\",\n  \"lastName\": \"Djeziri\",\n  \"email\": \"buyer@test.com\",\n  \"password\": \"password123\",\n  \"role\": \"buyer\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/auth/sign-up/email",
               "host": [
@@ -34,6 +131,15 @@
                 "sign-up",
                 "email"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Buyer Test\",\n  \"email\": \"{{buyer_email}}\",\n  \"password\": \"{{user_password}}\",\n  \"role\": \"buyer\",\n  \"callbackURL\": \"{{frontend_origin}}/\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -48,10 +154,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Vendeur Test\",\n  \"firstName\": \"Vendeur\",\n  \"lastName\": \"Test\",\n  \"email\": \"seller@test.com\",\n  \"password\": \"password123\",\n  \"role\": \"seller\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/auth/sign-up/email",
               "host": [
@@ -62,6 +164,15 @@
                 "sign-up",
                 "email"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Seller Test\",\n  \"email\": \"{{seller_email}}\",\n  \"password\": \"{{user_password}}\",\n  \"role\": \"seller\",\n  \"callbackURL\": \"{{frontend_origin}}/\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -76,17 +187,8 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"buyer@test.com\",\n  \"password\": \"password123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
-              "raw": "{{base_url}}/auth/sign-in/email?Origin=http://localhost:3000",
+              "raw": "{{base_url}}/auth/sign-in/email",
               "host": [
                 "{{base_url}}"
               ],
@@ -94,15 +196,16 @@
                 "auth",
                 "sign-in",
                 "email"
-              ],
-              "query": [
-                {
-                  "key": "Origin",
-                  "value": "http://localhost:3000",
-                  "type": "text",
-                  "id": 0
-                }
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{buyer_email}}\",\n  \"password\": \"{{user_password}}\",\n  \"rememberMe\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -113,140 +216,12 @@
             "method": "POST",
             "header": [
               {
-                "name": "cache-control",
-                "sortOrder": 2,
-                "infoTitle": "We recommend using this header",
-                "info": "Postman added \"Cache-Control: no-cache\" as a precautionary measure to prevent the server from returning stale response when one makes repeated requests.\n\nYou can remove this header in the app settings or enter a new one with a different value.",
-                "allowedToToggle": false,
-                "disableEdit": true,
-                "previewSettingsLink": "Go to settings",
-                "key": "Cache-Control",
-                "value": "no-cache",
-                "system": true,
-                "type": "text"
-              },
-              {
-                "name": "postman-token",
-                "sortOrder": 3,
-                "infoTitle": "We recommend using this header",
-                "info": "The Postman-Token header appends a random UUID to every outgoing request. Postman adds this header for API developers to better debug requests sent and to ensure separate requests appear distinct to the receiving server.\n\nYou can remove this header in the app settings.",
-                "allowedToToggle": false,
-                "disableEdit": true,
-                "previewSettingsLink": "Go to settings",
-                "key": "Postman-Token",
-                "value": "<calculated when request is sent>",
-                "system": true,
-                "type": "text"
-              },
-              {
-                "name": "content-type",
-                "sortOrder": 4,
-                "infoTitle": "This header was automatically added",
-                "info": "The Content-Type header is added to help the server identify the media type of the request body that is present in this request.\n\nUse the request body tab to control the value or to remove this header.",
-                "allowedToToggle": true,
-                "disableEdit": true,
-                "previewSettingsLink": "Go to body",
                 "key": "Content-Type",
-                "value": "application/json",
-                "system": true,
-                "type": "text"
-              },
-              {
-                "name": "content-length",
-                "sortOrder": 5,
-                "infoTitle": "This header was automatically added",
-                "info": "The Content-Length header was added to indicate to the server the size of the request body that is added to this request. Server uses this value to parse the request body accurately.\n\nYou can remove the header or enter a new one with a different value.",
-                "allowedToToggle": true,
-                "disableEdit": true,
-                "previewSettingsLink": "Go to body",
-                "key": "Content-Length",
-                "value": "<calculated when request is sent>",
-                "system": true,
-                "type": "text"
-              },
-              {
-                "name": "host",
-                "sortOrder": 6,
-                "infoTitle": "We recommend using this header",
-                "info": "The Host header is added to identify the domain name for which a request is being sent to the server. This header is implicitly sent by every HTTP client.\n\nYou can remove the header or enter a new one with a different value. It is most likely that without this header, your request will return an HTTP 400 error.",
-                "allowedToToggle": true,
-                "disableEdit": true,
-                "key": "Host",
-                "value": "<calculated when request is sent>",
-                "system": true,
-                "type": "text"
-              },
-              {
-                "name": "user-agent",
-                "sortOrder": 7,
-                "infoTitle": "We recommend using this header",
-                "info": "The User-Agent header is added to help the server identify Postman as the HTTP requesting application or client.\n\nIt is recommended that this header be sent, but you can remove the header or enter a new one with a different value.",
-                "allowedToToggle": true,
-                "disableEdit": true,
-                "key": "User-Agent",
-                "value": "PostmanRuntime/7.39.1",
-                "system": true,
-                "type": "text"
-              },
-              {
-                "name": "accept",
-                "sortOrder": 8,
-                "infoTitle": "We recommend using this header",
-                "info": "The \"Accept: */*\" header is added to tell the server that Postman can understand and process all forms of response content types.\n\nIt is recommended that this header be sent, but you can remove the header or enter a new one with a different value.",
-                "allowedToToggle": true,
-                "disableEdit": true,
-                "key": "Accept",
-                "value": "*/*",
-                "system": true,
-                "type": "text"
-              },
-              {
-                "name": "accept-encoding",
-                "sortOrder": 9,
-                "infoTitle": "We recommend using this header",
-                "info": "The Accept-Encoding header is added to indicate to the server that Postman HTTP client supports a defined list of content-encoding or compression algorithms as response.\n\nYou can remove the header or enter a new one with a different value. Doing that may not accurately render the response within the app.",
-                "allowedToToggle": true,
-                "disableEdit": true,
-                "key": "Accept-Encoding",
-                "value": "gzip, deflate, br",
-                "system": true,
-                "type": "text"
-              },
-              {
-                "name": "connection",
-                "sortOrder": 10,
-                "infoTitle": "We recommend using this header",
-                "info": "Postman added the Connection header to indicate the server to keep the underlying network connection open once the current response is received. This allows Postman to reuse the same connection for faster response times in subsequent requests to the same server.\n\nYou can remove this header or enter a new one with a different value, such as `Connection: Close` to control this behaviour.",
-                "allowedToToggle": true,
-                "disableEdit": true,
-                "key": "Connection",
-                "value": "keep-alive",
-                "system": true,
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "id": 0
-              },
-              {
-                "key": "Origin",
-                "value": "http://localhost:3000",
-                "type": "text",
-                "id": 1
+                "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"seller@test.com\",\n  \"password\": \"password123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
-              "raw": "{{base_url}}/auth/sign-in/email?Origin=http://localhost:3000",
+              "raw": "{{base_url}}/auth/sign-in/email",
               "host": [
                 "{{base_url}}"
               ],
@@ -254,42 +229,16 @@
                 "auth",
                 "sign-in",
                 "email"
-              ],
-              "query": [
-                {
-                  "key": "Origin",
-                  "value": "http://localhost:3000",
-                  "type": "text",
-                  "id": 0
-                }
               ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Logout",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            },
             "body": {
               "mode": "raw",
-              "raw": "{}"
-            },
-            "url": {
-              "raw": "{{base_url}}/auth/sign-out",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "auth",
-                "sign-out"
-              ]
+              "raw": "{\n  \"email\": \"{{seller_email}}\",\n  \"password\": \"{{user_password}}\",\n  \"rememberMe\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -313,12 +262,44 @@
           "response": []
         },
         {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/sign-out",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "sign-out"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Verify Email",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/auth/verify-email?token=PASTE_TOKEN_FROM_EMAIL",
+              "raw": "{{base_url}}/auth/verify-email?token={{verify_email_token}}",
               "host": [
                 "{{base_url}}"
               ],
@@ -329,7 +310,7 @@
               "query": [
                 {
                   "key": "token",
-                  "value": "PASTE_TOKEN_FROM_EMAIL"
+                  "value": "{{verify_email_token}}"
                 }
               ]
             }
@@ -337,7 +318,7 @@
           "response": []
         },
         {
-          "name": "Forgot Password (Request Reset Email)",
+          "name": "Forgot Password",
           "request": {
             "method": "POST",
             "header": [
@@ -346,10 +327,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"buyer@test.com\",\n  \"redirectTo\": \"http://localhost:3000/reset-password\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/auth/forget-password",
               "host": [
@@ -359,12 +336,21 @@
                 "auth",
                 "forget-password"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{buyer_email}}\",\n  \"redirectTo\": \"{{frontend_origin}}/reset-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
         },
         {
-          "name": "Reset Password (Submit New Password)",
+          "name": "Reset Password",
           "request": {
             "method": "POST",
             "header": [
@@ -373,10 +359,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"PASTE_TOKEN_FROM_RESET_EMAIL\",\n  \"newPassword\": \"newpassword456\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/auth/reset-password",
               "host": [
@@ -386,17 +368,26 @@
                 "auth",
                 "reset-password"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{reset_password_token}}\",\n  \"newPassword\": \"{{user_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
         },
         {
-          "name": "Google OAuth — Initiate (open in browser)",
+          "name": "Start Google OAuth",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/auth/sign-in/social?provider=google&callbackURL=http://localhost:3000/dashboard",
+              "raw": "{{base_url}}/auth/sign-in/social?provider=google&callbackURL={{frontend_origin}}/oauth-callback",
               "host": [
                 "{{base_url}}"
               ],
@@ -412,7 +403,7 @@
                 },
                 {
                   "key": "callbackURL",
-                  "value": "http://localhost:3000/dashboard"
+                  "value": "{{frontend_origin}}/oauth-callback"
                 }
               ]
             }
@@ -420,7 +411,7 @@
           "response": []
         },
         {
-          "name": "Health Check",
+          "name": "BetterAuth OK",
           "request": {
             "method": "GET",
             "header": [],
@@ -461,18 +452,6 @@
         },
         {
           "name": "Add Address",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const j = pm.response.json();",
-                  "if(j._id) pm.collectionVariables.set('address_id', j._id);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [
@@ -481,10 +460,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"label\": \"Maison\",\n  \"firstName\": \"Oussama\",\n  \"lastName\": \"Djeziri\",\n  \"phone\": \"+213555000001\",\n  \"street\": \"12 Rue des Fleurs\",\n  \"city\": \"Alger\",\n  \"postalCode\": \"16000\",\n  \"country\": \"Algeria\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/addresses",
               "host": [
@@ -492,6 +467,46 @@
               ],
               "path": [
                 "addresses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientName\": \"Jean Dupont\",\n  \"phone\": \"0612345678\",\n  \"email\": \"{{buyer_email}}\",\n  \"addressLabel\": \"Domicile\",\n  \"addressLine\": \"123 Rue de la Paix\",\n  \"city\": \"Paris\",\n  \"province\": \"Île-de-France\",\n  \"postalCode\": \"75001\",\n  \"country\": \"France\",\n  \"isDefault\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "const id = j && (j.id || j._id);",
+                  "if (id) pm.collectionVariables.set('address_id', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Address By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/addresses/{{address_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "addresses",
+                "{{address_id}}"
               ]
             }
           },
@@ -507,10 +522,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"label\": \"Bureau\",\n  \"street\": \"5 Avenue de l'Indépendance\",\n  \"city\": \"Oran\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/addresses/{{address_id}}",
               "host": [
@@ -520,14 +531,23 @@
                 "addresses",
                 "{{address_id}}"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientName\": \"Jean Dupont\",\n  \"phone\": \"0612345678\",\n  \"email\": \"{{buyer_email}}\",\n  \"addressLabel\": \"Travail\",\n  \"addressLine\": \"10 Avenue de France\",\n  \"city\": \"Paris\",\n  \"province\": \"Île-de-France\",\n  \"postalCode\": \"75013\",\n  \"country\": \"France\",\n  \"isDefault\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
         },
         {
-          "name": "Set Address as Default",
+          "name": "Set Default Address",
           "request": {
-            "method": "PATCH",
+            "method": "POST",
             "header": [],
             "url": {
               "raw": "{{base_url}}/addresses/{{address_id}}/default",
@@ -539,6 +559,101 @@
                 "{{address_id}}",
                 "default"
               ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Addresses (Advanced)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/addresses/search/advanced?city=Paris&addressLabel=Domicile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "addresses",
+                "search",
+                "advanced"
+              ],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Paris"
+                },
+                {
+                  "key": "addressLabel",
+                  "value": "Domicile"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Batch Update Address Label",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/addresses/batch/update-label",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "addresses",
+                "batch",
+                "update-label"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"addressIds\": [\"{{address_id}}\"],\n  \"newLabel\": \"Résidence principale\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Batch Delete Addresses",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/addresses/batch/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "addresses",
+                "batch",
+                "delete"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"addressIds\": [\"{{address_id}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -568,33 +683,9 @@
       "item": [
         {
           "name": "Create Shop (Seller)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const j = pm.response.json();",
-                  "const shop = j.shop || j;",
-                  "pm.test('Shop id returned', () => pm.expect(shop.id || shop._id).to.be.ok);",
-                  "pm.collectionVariables.set('shop_id', shop.id || shop._id);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Ma Boutique Test\",\n  \"description\": \"Vente d'électronique et accessoires.\"\n}"
-            },
+            "header": [],
             "url": {
               "raw": "{{base_url}}/shops",
               "host": [
@@ -603,27 +694,88 @@
               "path": [
                 "shops"
               ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Boutique Demo Seller",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Boutique de démonstration pour tests Postman.",
+                  "type": "text"
+                },
+                {
+                  "key": "contactEmail",
+                  "value": "{{seller_email}}",
+                  "type": "text"
+                },
+                {
+                  "key": "contactPhone",
+                  "value": "0611111111",
+                  "type": "text"
+                },
+                {
+                  "key": "contactAddress",
+                  "value": "Paris, France",
+                  "type": "text"
+                }
+              ]
             }
           },
-          "response": []
-        },
-        {
-          "name": "Get Shop by ID",
+          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const shop = pm.response.json();",
-                  "pm.test('Has public catalogue count', () => {",
-                  "  pm.expect(shop).to.have.property('productCount');",
-                  "});"
-                ],
-                "type": "text/javascript"
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "const shop = j.shop || j;",
+                  "const id = shop && (shop.id || shop._id);",
+                  "if (id) pm.collectionVariables.set('shop_id', id);"
+                ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Get My Shop (Seller)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/shops/my",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "shops",
+                "my"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "const shop = j.shop || j;",
+                  "const id = shop && (shop.id || shop._id);",
+                  "if (id) pm.collectionVariables.set('shop_id', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Shop by ID (Public)",
           "request": {
             "method": "GET",
             "header": [],
@@ -641,19 +793,29 @@
           "response": []
         },
         {
-          "name": "Update Shop",
+          "name": "Get Shop Products (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/shops/{{shop_id}}/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "shops",
+                "{{shop_id}}",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Shop (Seller)",
           "request": {
             "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"description\": \"Description mise à jour de la boutique.\"\n}"
-            },
+            "header": [],
             "url": {
               "raw": "{{base_url}}/shops/{{shop_id}}",
               "host": [
@@ -662,6 +824,36 @@
               "path": [
                 "shops",
                 "{{shop_id}}"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Boutique Demo Seller Updated",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Description mise à jour via Postman.",
+                  "type": "text"
+                },
+                {
+                  "key": "contactEmail",
+                  "value": "{{seller_email}}",
+                  "type": "text"
+                },
+                {
+                  "key": "contactPhone",
+                  "value": "0622222222",
+                  "type": "text"
+                },
+                {
+                  "key": "contactAddress",
+                  "value": "Lyon, France",
+                  "type": "text"
+                }
               ]
             }
           },
@@ -700,12 +892,12 @@
           "response": []
         },
         {
-          "name": "Search & Filter Products",
+          "name": "Search & Filter Products (Public)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/products?search=phone&category=Electronics&minPrice=100&maxPrice=1000",
+              "raw": "{{base_url}}/products?search=boot&category=Mode&minPrice=10&maxPrice=500",
               "host": [
                 "{{base_url}}"
               ],
@@ -715,19 +907,19 @@
               "query": [
                 {
                   "key": "search",
-                  "value": "phone"
+                  "value": "boot"
                 },
                 {
                   "key": "category",
-                  "value": "Electronics"
+                  "value": "Mode"
                 },
                 {
                   "key": "minPrice",
-                  "value": "100"
+                  "value": "10"
                 },
                 {
                   "key": "maxPrice",
-                  "value": "1000"
+                  "value": "500"
                 }
               ]
             }
@@ -735,7 +927,7 @@
           "response": []
         },
         {
-          "name": "Get Product by ID",
+          "name": "Get Product by ID (Public)",
           "request": {
             "method": "GET",
             "header": [],
@@ -772,19 +964,6 @@
         },
         {
           "name": "Get My Product by ID (Seller)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const j = pm.response.json();",
-                  "const firstImage = j.images && j.images[0];",
-                  "if (firstImage && firstImage.publicId) pm.collectionVariables.set('product_image_public_id', firstImage.publicId);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -804,50 +983,49 @@
         },
         {
           "name": "Create Product (Seller)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const j = pm.response.json();",
-                  "const product = j.product || {};",
-                  "if (product.id || product._id) pm.collectionVariables.set('product_id', product.id || product._id);",
-                  "const firstImage = product.images && product.images[0];",
-                  "if (firstImage && firstImage.publicId) pm.collectionVariables.set('product_image_public_id', firstImage.publicId);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [],
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products"
+              ]
+            },
             "body": {
               "mode": "formdata",
               "formdata": [
                 {
                   "key": "name",
-                  "value": "Smartphone XYZ",
+                  "value": "Produit démo Postman",
                   "type": "text"
                 },
                 {
                   "key": "description",
-                  "value": "Dernier modèle avec 128GB de stockage.",
-                  "type": "text"
-                },
-                {
-                  "key": "price",
-                  "value": "45000",
+                  "value": "Produit créé pour tester l’API.",
                   "type": "text"
                 },
                 {
                   "key": "category",
-                  "value": "Electronics",
+                  "value": "Mode",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "49.99",
                   "type": "text"
                 },
                 {
                   "key": "stock",
-                  "value": "20",
+                  "value": "12",
+                  "type": "text"
+                },
+                {
+                  "key": "stockThreshold",
+                  "value": "3",
                   "type": "text"
                 },
                 {
@@ -858,100 +1036,33 @@
                 {
                   "key": "images",
                   "type": "file",
-                  "src": []
+                  "src": ""
                 }
               ]
             },
-            "url": {
-              "raw": "{{base_url}}/products",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "products"
-              ]
-            }
+            "description": "Sélectionnez au moins une image locale dans le champ images avant l’envoi."
           },
-          "response": []
-        },
-        {
-          "name": "Get Shop Products (Public) - Invalid Shop ID",
+          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 400 for invalid shop ID', () => pm.response.to.have.status(400));",
-                  "const error = pm.response.json();",
-                  "pm.test('Error message present', () => pm.expect(error.message).to.be.a('string'));"
-                ],
-                "type": "text/javascript"
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "const product = j.product || j;",
+                  "const id = product && (product.id || product._id);",
+                  "if (id) pm.collectionVariables.set('product_id', id);"
+                ]
               }
             }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/shops/invalid-shop-id/products",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "shops",
-                "invalid-shop-id",
-                "products"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Shop Products (Public) - Empty Shop",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const products = pm.response.json();",
-                  "pm.test('Response is empty array', () => pm.expect(products).to.be.an('array').and.have.lengthOf(0));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/shops/{{empty_shop_id}}/products",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "shops",
-                "{{empty_shop_id}}",
-                "products"
-              ]
-            }
-          },
-          "response": []
+          ]
         },
         {
           "name": "Update Product (Seller)",
           "request": {
             "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"price\": 42000,\n  \"category\": \"Electronics\",\n  \"isActive\": false\n}"
-            },
+            "header": [],
             "url": {
               "raw": "{{base_url}}/products/{{product_id}}",
               "host": [
@@ -961,66 +1072,45 @@
                 "products",
                 "{{product_id}}"
               ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Product Images (Seller)",
-          "request": {
-            "method": "PUT",
-            "header": [],
+            },
             "body": {
               "mode": "formdata",
               "formdata": [
                 {
-                  "key": "keepImages",
-                  "value": "[\"{{product_image_public_id}}\"]",
+                  "key": "name",
+                  "value": "Produit démo Postman (updated)",
                   "type": "text"
                 },
                 {
-                  "key": "images",
-                  "type": "file",
-                  "src": []
+                  "key": "description",
+                  "value": "Version mise à jour du produit de test.",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Mode",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "59.99",
+                  "type": "text"
+                },
+                {
+                  "key": "stock",
+                  "value": "8",
+                  "type": "text"
+                },
+                {
+                  "key": "stockThreshold",
+                  "value": "2",
+                  "type": "text"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "type": "text"
                 }
-              ]
-            },
-            "url": {
-              "raw": "{{base_url}}/products/{{product_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "products",
-                "{{product_id}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Product Stock (Seller)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"stock\": 15\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/products/{{product_id}}/stock",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "products",
-                "{{product_id}}",
-                "stock"
               ]
             }
           },
@@ -1050,7 +1140,7 @@
       "name": "🛒 Cart",
       "item": [
         {
-          "name": "Get Cart",
+          "name": "Get Cart (Buyer)",
           "request": {
             "method": "GET",
             "header": [],
@@ -1067,19 +1157,7 @@
           "response": []
         },
         {
-          "name": "Add Item to Cart",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Has items', () => pm.expect(pm.response.json()).to.have.property('items'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "name": "Add Item to Cart (Buyer)",
           "request": {
             "method": "POST",
             "header": [
@@ -1088,25 +1166,30 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"productId\": \"{{product_id}}\",\n  \"quantity\": 1\n}"
-            },
             "url": {
-              "raw": "{{base_url}}/cart/items",
+              "raw": "{{base_url}}/cart/add",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "cart",
-                "items"
+                "add"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{product_id}}\",\n  \"quantity\": 1,\n  \"variantId\": \"{{variant_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
         },
         {
-          "name": "Update Item Quantity",
+          "name": "Update Item Quantity (Buyer)",
           "request": {
             "method": "PUT",
             "header": [
@@ -1115,55 +1198,123 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{base_url}}/cart/update-quantity",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cart",
+                "update-quantity"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"quantity\": 3\n}"
+              "raw": "{\n  \"productId\": \"{{product_id}}\",\n  \"quantity\": 2,\n  \"variantId\": \"{{variant_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Item Selected (Buyer)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/cart/toggle-selected",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cart",
+                "toggle-selected"
+              ]
             },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{product_id}}\",\n  \"variantId\": \"{{variant_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Checkout Summary (Buyer)",
+          "request": {
+            "method": "GET",
+            "header": [],
             "url": {
-              "raw": "{{base_url}}/cart/items/{{product_id}}",
+              "raw": "{{base_url}}/cart/checkout-summary",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "cart",
-                "items",
-                "{{product_id}}"
+                "checkout-summary"
               ]
             }
           },
           "response": []
         },
         {
-          "name": "Remove Item from Cart",
+          "name": "Remove Item from Cart (Buyer)",
           "request": {
             "method": "DELETE",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
-              "raw": "{{base_url}}/cart/items/{{product_id}}",
+              "raw": "{{base_url}}/cart/remove",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "cart",
-                "items",
-                "{{product_id}}"
+                "remove"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{product_id}}\",\n  \"variantId\": \"{{variant_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
         },
         {
-          "name": "Clear Cart",
+          "name": "Clear Cart (Buyer)",
           "request": {
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/cart",
+              "raw": "{{base_url}}/cart/clear",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "cart"
+                "cart",
+                "clear"
               ]
             }
           },
@@ -1175,19 +1326,7 @@
       "name": "🛒 Orders",
       "item": [
         {
-          "name": "Create Order (Buyer — needs verified email)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const j = pm.response.json();",
-                  "if(j._id) pm.collectionVariables.set('order_id', j._id);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "name": "Create Order (Buyer)",
           "request": {
             "method": "POST",
             "header": [
@@ -1196,10 +1335,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"items\": [\n    { \"product\": \"{{product_id}}\", \"quantity\": 1 }\n  ],\n  \"deliveryAddressId\": \"{{address_id}}\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/orders",
               "host": [
@@ -1207,66 +1342,209 @@
               ],
               "path": [
                 "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{product_id}}\",\n      \"quantity\": 1,\n      \"variantId\": \"{{variant_id}}\"\n    }\n  ],\n  \"deliveryAddress\": {\n    \"firstName\": \"Jean\",\n    \"lastName\": \"Dupont\",\n    \"addressLine1\": \"123 Rue de la Paix\",\n    \"city\": \"Paris\",\n    \"postalCode\": \"75001\",\n    \"country\": \"France\",\n    \"phone\": \"0612345678\"\n  },\n  \"paymentMethod\": \"card\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "const id = j && (j.id || j._id);",
+                  "if (id) pm.collectionVariables.set('order_id', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Client Orders (Buyer)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/client",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "client"
               ]
             }
           },
           "response": []
         },
         {
-          "name": "Get My Orders (Buyer) / Shop Orders (Seller)",
+          "name": "Get Client Order Detail (Buyer)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/orders",
+              "raw": "{{base_url}}/orders/client/{{order_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "orders"
+                "orders",
+                "client",
+                "{{order_id}}"
               ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Buyer Order By ID (Frontend Route Support)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/{{order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "{{order_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Seller Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/seller",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "seller"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = []; try { j = pm.response.json(); } catch (e) {}",
+                  "const id = Array.isArray(j) && j[0] ? (j[0].id || j[0]._id) : null;",
+                  "if (id) pm.collectionVariables.set('seller_order_id', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Seller Order Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/seller/{{seller_order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "seller",
+                "{{seller_order_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Seller Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders/{{seller_order_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "{{seller_order_id}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"en_preparation\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
         }
       ]
-    }
-  ],
-  "variable": [
-    {
-      "key": "backend_origin",
-      "value": "http://localhost:5001",
-      "type": "string"
     },
     {
-      "key": "base_url",
-      "value": "{{backend_origin}}/api",
-      "type": "string"
-    },
-    {
-      "key": "product_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "product_image_public_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "shop_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "order_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "address_id",
-      "value": "",
-      "type": "string"
+      "name": "⚠️ Account",
+      "item": [
+        {
+          "name": "Delete Account Pre-check",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/account/delete-check",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "account",
+                "delete-check"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"{{user_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

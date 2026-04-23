@@ -20,6 +20,34 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useLowStockProducts, useMyStore } from "@/hooks/useApi";
 
+const getShopName = (store: unknown): string => {
+  if (!store || typeof store !== "object") {
+    return "Ma boutique";
+  }
+
+  const record = store as Record<string, unknown>;
+
+  if (typeof record.name === "string" && record.name.trim()) {
+    return record.name;
+  }
+
+  if (record.shop) {
+    const nestedShopName = getShopName(record.shop);
+    if (nestedShopName !== "Ma boutique") {
+      return nestedShopName;
+    }
+  }
+
+  if (record.store) {
+    const nestedStoreName = getShopName(record.store);
+    if (nestedStoreName !== "Ma boutique") {
+      return nestedStoreName;
+    }
+  }
+
+  return "Ma boutique";
+};
+
 const vendorNavItems = [
   {
     label: "Tableau de bord",
@@ -58,15 +86,16 @@ export function VendorSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
-  const { data: store } = useMyStore();
-  const hasStore = !!store;
+  const { data: store } = useMyStore({ enabled: isSeller });
   const { data: lowStockProducts } = useLowStockProducts({ enabled: hasStore });
+  const hasStore = !!store;
+  const isSeller = user?.role === "seller";
 
   const lowStockCount = lowStockProducts?.length || 0;
+  const shopName = getShopName(store);
 
   return (
     <>
-      {/* Mobile Toggle */}
       <Button
         variant="ghost"
         size="icon"
@@ -76,7 +105,6 @@ export function VendorSidebar() {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Sidebar */}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-40 bg-background border-r transition-all duration-300",
@@ -85,18 +113,20 @@ export function VendorSidebar() {
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
           <div className="h-16 flex items-center justify-between px-4 border-b">
             {!collapsed && (
-              <Link href="/vendeur" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <Link href="/vendeur" className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
                   <span className="text-primary-foreground font-heading font-bold text-lg">
                     A
                   </span>
                 </div>
-                <span className="font-heading font-bold text-lg">
-                  Agora <span className="text-primary">Vendeur</span>
-                </span>
+
+                <div className="min-w-0">
+                  <span className="font-heading font-bold text-lg block truncate">
+                    {shopName}
+                  </span>
+                </div>
               </Link>
             )}
 
@@ -115,57 +145,59 @@ export function VendorSidebar() {
             </Button>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
             {vendorNavItems
               .filter((item) => {
                 if (!hasStore) {
-                  return item.href === "/vendeur/boutique" || item.href === "/vendeur/parametres";
+                  return (
+                    item.href === "/vendeur/boutique" ||
+                    item.href === "/vendeur/parametres"
+                  );
                 }
                 return true;
               })
               .map((item) => {
-              const isActive = item.exact
-                ? pathname === item.href
-                : pathname.startsWith(item.href);
-              const Icon = item.icon;
+                const isActive = item.exact
+                  ? pathname === item.href
+                  : pathname.startsWith(item.href);
+                const Icon = item.icon;
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    collapsed && "justify-center px-2",
-                  )}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
-                  {!collapsed &&
-                    item.href === "/vendeur/produits" &&
-                    lowStockCount > 0 && (
-                      <span className="ml-auto flex items-center gap-1 text-xs text-agora-warning">
-                        <AlertTriangle className="h-3 w-3" />
-                        {lowStockCount}
-                      </span>
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      collapsed && "justify-center px-2",
                     )}
-                </Link>
-              );
-            })}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <Icon className="h-5 w-5 shrink-0" />
+                    {!collapsed && <span>{item.label}</span>}
+
+                    {!collapsed &&
+                      item.href === "/vendeur/produits" &&
+                      lowStockCount > 0 && (
+                        <span className="ml-auto flex items-center gap-1 text-xs text-agora-warning">
+                          <AlertTriangle className="h-3 w-3" />
+                          {lowStockCount}
+                        </span>
+                      )}
+                  </Link>
+                );
+              })}
           </nav>
 
-          {/* User Section */}
           <div className="p-4 border-t">
-            {!collapsed ? (
+            {!collapsed && (
               <div className="flex items-center gap-3 mb-3">
                 {user?.image ? (
                   <img
-                    src={user?.image}
-                    alt={`${user?.firstName} ${user?.lastName}`}
+                    src={user.image}
+                    alt={`${user?.firstName || ""} ${user?.lastName || ""}`}
                     className="w-10 h-10 rounded-full object-cover"
                     referrerPolicy="no-referrer"
                   />
@@ -177,6 +209,7 @@ export function VendorSidebar() {
                     </span>
                   </div>
                 )}
+
                 <div className="min-w-0">
                   <p className="font-medium text-sm truncate">
                     {user?.firstName} {user?.lastName}
@@ -186,7 +219,8 @@ export function VendorSidebar() {
                   </p>
                 </div>
               </div>
-            ) : null}
+            )}
+
             <Button
               variant="ghost"
               className={cn(
@@ -195,7 +229,7 @@ export function VendorSidebar() {
               )}
               onClick={logout}
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className={cn("h-4 w-4", !collapsed && "mr-2")} />
               {!collapsed && "Déconnexion"}
             </Button>
           </div>

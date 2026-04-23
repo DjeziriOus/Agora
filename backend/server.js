@@ -3,12 +3,11 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { toNodeHandler } from "better-auth/node";
 
-
 // Load .env first — before importing auth (which needs env vars)
 dotenv.config();
 
 import connectDB from "./config/db.js";
-import { auth } from "./auth.js";
+import { auth, requireEmailVerification } from "./auth.js";
 
 // Routes
 import shopRoutes from "./routes/shopRoutes.js";
@@ -17,6 +16,7 @@ import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import clientAddressRoutes from "./routes/clientAddressRoutes.js";
 import accountRoutes from "./routes/authRoutes.js";
+import accountRoutes from "./routes/accountDeletionRoutes.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -47,6 +47,11 @@ app.use((req, _res, next) => {
 });
 
 // ── BetterAuth Handler ────────────────────────────────────────────────────────
+// Expose the backend auth policy to the frontend before the Better Auth catch-all.
+app.get("/api/auth/config", (_req, res) => {
+  res.json({ requireEmailVerification });
+});
+
 // MUST be mounted BEFORE express.json() — BetterAuth parses its own body
 // Express v5 syntax: /*splat
 app.all("/api/auth/*splat", toNodeHandler(auth));

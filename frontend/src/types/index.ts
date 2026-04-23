@@ -146,6 +146,7 @@ export interface DeliveryAddress {
   city: string;
   postalCode: string;
   country: string;
+  phone?: string;
 }
 
 export interface Category {

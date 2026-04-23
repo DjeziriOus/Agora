@@ -567,5 +567,5 @@ export const addressesApi = {
   delete: (id: string) =>
     apiFetch<void>(`/api/addresses/${id}`, { method: "DELETE" }),
   setDefault: (id: string) =>
-    apiFetch<unknown>(`/api/addresses/${id}/default`, { method: "PATCH" }),
+    apiFetch<unknown>(`/api/addresses/${id}/default`, { method: "POST" }),
 };

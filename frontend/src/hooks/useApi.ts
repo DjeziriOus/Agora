@@ -86,10 +86,11 @@ export function useSellerProduct(id: string) {
   });
 }
 
-export function useSellerProducts() {
+export function useSellerProducts(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.products.seller,
     queryFn: () => productsApi.getMine(),
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -184,10 +185,12 @@ export function useStoreProducts(id: string, params?: ProductQuery) {
   });
 }
 
-export function useMyStore() {
+export function useMyStore(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.stores.my,
     queryFn: () => shopsApi.getMyStore(),
+    retry: false,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -242,10 +245,11 @@ export function useOrder(id: string) {
   });
 }
 
-export function useSellerOrders() {
+export function useSellerOrders(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.orders.seller,
     queryFn: () => ordersApi.getSellerOrders(),
+    enabled: options?.enabled ?? true,
   });
 }
 

@@ -7,17 +7,18 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
 const RESEND_COOLDOWN_SECONDS = 60;
+const RESEND_COOLDOWN_STORAGE_KEY_PREFIX =
+  "agora_resend_verification_available_at";
 
-// Build a per-email storage key so each address gets its own resend cooldown window.
 function getResendCooldownStorageKey(email: string) {
-  return `agora_resend_verification_available_at_${email.toLowerCase()}`;
+  return `${RESEND_COOLDOWN_STORAGE_KEY_PREFIX}_${email.trim().toLowerCase()}`;
 }
 
 function VerifyEmailContent() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
-  const [cooldownRemaining, setCooldownRemaining] = useState(60);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const {
     resendVerification,
     pendingVerificationEmail,
@@ -39,14 +40,18 @@ function VerifyEmailContent() {
       return;
     }
 
-    const storageKey = getResendCooldownStorageKey(verificationEmail);
-
     try {
-      const availableAt = Number(window.sessionStorage.getItem(storageKey));
+      const availableAt = Number(
+        window.sessionStorage.getItem(
+          getResendCooldownStorageKey(verificationEmail),
+        ),
+      );
       const remainingMs = availableAt - Date.now();
 
       if (!availableAt || remainingMs <= 0) {
-        window.sessionStorage.removeItem(storageKey);
+        window.sessionStorage.removeItem(
+          getResendCooldownStorageKey(verificationEmail),
+        );
         setCooldownRemaining(0);
         return;
       }
@@ -59,16 +64,21 @@ function VerifyEmailContent() {
 
   // Keep the resend countdown ticking while the current cooldown window is still active.
   useEffect(() => {
-    if (cooldownRemaining <= 0 || !verificationEmail) return;
+    if (!verificationEmail || cooldownRemaining <= 0) return;
 
-    const storageKey = getResendCooldownStorageKey(verificationEmail);
     const intervalId = window.setInterval(() => {
       try {
-        const availableAt = Number(window.sessionStorage.getItem(storageKey));
+        const availableAt = Number(
+          window.sessionStorage.getItem(
+            getResendCooldownStorageKey(verificationEmail),
+          ),
+        );
         const remainingMs = availableAt - Date.now();
 
         if (!availableAt || remainingMs <= 0) {
-          window.sessionStorage.removeItem(storageKey);
+          window.sessionStorage.removeItem(
+            getResendCooldownStorageKey(verificationEmail),
+          );
           setCooldownRemaining(0);
           return;
         }

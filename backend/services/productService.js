@@ -75,6 +75,12 @@ const getSellerShopOrThrow = async (ownerId) => {
 	return shop;
 };
 
+// Public catalogue endpoints should only expose products that still belong
+// to a visible shop. This prevents leaked products when account deletion
+// soft-deletes the shop but a product document somehow remains public.
+const getActivePublicShopIds = async () =>
+	Shop.distinct("_id", { isDeleted: false });
+
 /**
  * Enrich a product document with its variants and computed aggregates.
  * Returns a plain object ready for API response.
@@ -150,8 +156,9 @@ const buildMineFilters = (shopId, query = {}) => {
 };
 
 // Build filters for public catalogue listing.
-const buildPublicFilters = (query = {}) => {
+const buildPublicFilters = (query = {}, activeShopIds = []) => {
 	const filters = {
+		shop: { $in: activeShopIds },
 		isDeleted: false,
 		isActive: true,
 	};
@@ -174,7 +181,8 @@ const getProducts = async (query = {}) => {
 	const limit = Math.min(toSafeInt(query.limit, DEFAULT_LIMIT), MAX_LIMIT);
 	const skip = (page - 1) * limit;
 
-	const filters = buildPublicFilters(query);
+	const activeShopIds = await getActivePublicShopIds();
+	const filters = buildPublicFilters(query, activeShopIds);
 
 	// If price filtering is requested, find product IDs with matching variant prices first
 	const minPrice = Number(query.minPrice);
@@ -214,8 +222,10 @@ const getProducts = async (query = {}) => {
 const getProductById = async (productId) => {
 	assertObjectId(productId, "product id");
 
+	const activeShopIds = await getActivePublicShopIds();
 	const product = await Product.findOne({
 		_id: productId,
+		shop: { $in: activeShopIds },
 		isDeleted: false,
 		isActive: true,
 	}).populate("shop", "name slug logo");

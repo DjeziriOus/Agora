@@ -48,6 +48,7 @@ export default function RegisterPage() {
     isLoading,
     setPendingVerificationEmail,
     clearPendingVerificationEmail,
+    refreshSession,
   } = useAuth();
   const router = useRouter();
 
@@ -84,16 +85,17 @@ export default function RegisterPage() {
         password,
         role,
       });
-      // const shouldVerifyEmail = await ensureAuthConfig();
+      const shouldVerifyEmail = await ensureAuthConfig();
 
-      if (!emailVerified) {
+      if (shouldVerifyEmail && !emailVerified) {
         setPendingVerificationEmail(email);
         router.push("/verify-email");
         return;
       }
 
       clearPendingVerificationEmail();
-      router.push("/login");
+      await refreshSession();
+      router.push(role === "seller" ? "/vendeur/boutique" : "/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
     }

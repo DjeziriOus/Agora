@@ -25,14 +25,14 @@ interface AuthContextType {
   clearPendingVerificationEmail: () => void;
   pendingVerificationEmail: string | null;
   refreshSession: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User | null | undefined>;
   register: (data: {
     firstName: string;
     lastName: string;
     email: string;
     password: string;
     role: "buyer" | "seller";
-  }) => Promise<void>;
+  }) => Promise<{ emailVerified: boolean | undefined }>;
   logout: () => Promise<void>;
   resendVerification: () => Promise<void>;
 }
@@ -74,18 +74,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // // Fetch the backend auth flags so register and verify-email flows stay in sync.
-  // const ensureAuthConfig = useCallback(async () => {
-  //   try {
-  //     setRequireEmailVerification(data.requireEmailVerification);
-  //     return data.requireEmailVerification;
-  //   } catch {
-  //     // Fail closed: keep verification enabled in the UI when config cannot be loaded.
-  //     return true;
-  //   } finally {
-  //     setIsAuthConfigLoading(false);
-  //   }
-  // }, []);
+  // Fetch the backend auth flags so register, verify-email, and settings flows stay in sync.
+  const ensureAuthConfig = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/config`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Impossible de charger la configuration d'auth.");
+      }
+
+      const data = (await response.json()) as AuthConfigResponse;
+      const shouldRequireVerification = Boolean(data.requireEmailVerification);
+
+      setRequireEmailVerification(shouldRequireVerification);
+      return shouldRequireVerification;
+    } catch {
+      // Fail closed: keep verification enabled in the UI when config cannot be loaded.
+      return true;
+    } finally {
+      setIsAuthConfigLoading(false);
+    }
+  }, []);
 
   // Persist the pending verification email so the verify page survives navigation and refreshes.
   const setPendingVerificationEmail = useCallback((email: string) => {
@@ -131,7 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    initAuth();
+    void ensureAuthConfig();
+    void initAuth();
 
     try {
       const storedEmail = window.sessionStorage.getItem(
@@ -143,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore storage failures and keep the pending email empty.
     }
-  }, []);
+  }, [ensureAuthConfig]);
 
   useEffect(() => {
     if (isLoading || !user) return;
@@ -280,6 +297,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isSeller: user?.role === "seller",
         isLoading,
         pendingVerificationEmail: pendingVerificationEmailState,
+        clearEmailNotVerified,
+        ensureAuthConfig,
         setPendingVerificationEmail,
         clearPendingVerificationEmail,
         refreshSession,

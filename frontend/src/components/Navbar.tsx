@@ -9,6 +9,7 @@ import {
   LogOut,
   Package,
   LayoutDashboard,
+  Settings,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -262,15 +263,33 @@ export function Navbar() {
                         </Link>
                       )}
                       {!isSeller && (
-                        <Link
-                          href="/compte/commandes"
-                          onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
-                        >
-                          <Package className="w-4 h-4 text-[var(--agora-mid)]" />
-                          Mes commandes
-                        </Link>
+                        <>
+                          <Link
+                            href="/compte"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
+                          >
+                            <User className="w-4 h-4 text-[var(--agora-mid)]" />
+                            Mon compte
+                          </Link>
+                          <Link
+                            href="/compte/commandes"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
+                          >
+                            <Package className="w-4 h-4 text-[var(--agora-mid)]" />
+                            Mes commandes
+                          </Link>
+                        </>
                       )}
+                      <Link
+                        href={isSeller ? "/vendeur/parametres" : "/compte/parametres"}
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
+                      >
+                        <Settings className="w-4 h-4 text-[var(--agora-mid)]" />
+                        Paramètres
+                      </Link>
                       <button
                         onClick={() => {
                           setDropdownOpen(false);

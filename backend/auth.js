@@ -10,6 +10,10 @@ import {
   sendVerificationEmail,
   sendPasswordResetEmail,
 } from "./services/emailService.js";
+import {
+  cleanupDeletedUserData,
+  getAccountDeletionBlockReason,
+} from "./services/accountDeletionService.js";
 
 // BetterAuth gets its own direct MongoClient connection.
 // This avoids the timing issue where mongoose.connection.getClient() is undefined
@@ -93,6 +97,32 @@ export const auth = betterAuth({
 
   // ── Extended profile fields on the user document ──────
   user: {
+    changeEmail: {
+      enabled: true,
+      // Keep email-change verification aligned with the global auth policy.
+      updateEmailWithoutVerification: !requireEmailVerification,
+    },
+    deleteUser: {
+      enabled: true,
+      beforeDelete: async (user) => {
+        const blockReason = await getAccountDeletionBlockReason({
+          userId: user.id,
+          role: typeof user.role === "string" ? user.role : "buyer",
+        });
+
+        if (blockReason) {
+          throw new APIError("BAD_REQUEST", {
+            code: blockReason.code,
+            message: blockReason.message,
+          });
+        }
+
+        await cleanupDeletedUserData({
+          userId: user.id,
+          role: typeof user.role === "string" ? user.role : "buyer",
+        });
+      },
+    },
     additionalFields: {
       firstName: { type: "string", input: true, defaultValue: "" },
       lastName: { type: "string", input: true, defaultValue: "" },
