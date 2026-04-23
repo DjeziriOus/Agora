@@ -1,34 +1,37 @@
 import express from 'express';
 import clientAddressController from '../controllers/clientAddressController.js';
-import { verifyToken } from '../middleware/auth.js';
+import { isBuyer, verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// All client address endpoints require an authenticated buyer.
+router.use(verifyToken, isBuyer);
+
 // Create a new address
-router.post('/', verifyToken, clientAddressController.createAddress);
+router.post('/', clientAddressController.createAddress);
 
 // Get all addresses for current user
-router.get('/', verifyToken, clientAddressController.getAddresses);
+router.get('/', clientAddressController.getAddresses);
 
 // Search addresses by city and/or label
-router.get('/search/advanced', verifyToken, clientAddressController.searchAddresses);
+router.get('/search/advanced', clientAddressController.searchAddresses);
 
 // Batch delete addresses
-router.post('/batch/delete', verifyToken, clientAddressController.batchDeleteAddresses);
+router.post('/batch/delete', clientAddressController.batchDeleteAddresses);
 
 // Batch update address label
-router.post('/batch/update-label', verifyToken, clientAddressController.batchUpdateAddressLabel);
+router.post('/batch/update-label', clientAddressController.batchUpdateAddressLabel);
 
 // Set default address
-router.post('/:id/default', verifyToken, clientAddressController.setDefaultAddress);
+router.post('/:id/default', clientAddressController.setDefaultAddress);
 
 // Get a single address by id
-router.get('/:id', verifyToken, clientAddressController.getAddressById);
+router.get('/:id', clientAddressController.getAddressById);
 
 // Update an address
-router.put('/:id', verifyToken, clientAddressController.updateAddress);
+router.put('/:id', clientAddressController.updateAddress);
 
 // Delete an address
-router.delete('/:id', verifyToken, clientAddressController.deleteAddress);
+router.delete('/:id', clientAddressController.deleteAddress);
 
 export default router;

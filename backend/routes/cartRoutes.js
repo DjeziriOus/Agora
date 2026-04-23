@@ -8,12 +8,12 @@ import {
   toggleCartItemSelected,
   updateCartItemQuantity,
 } from "../controllers/cartController.js";
-import { verifyToken } from "../middleware/auth.js";
+import { isBuyer, verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// All cart endpoints require an authenticated user.
-router.use(verifyToken);
+// All cart endpoints require an authenticated buyer.
+router.use(verifyToken, isBuyer);
 
 // GET /api/cart
 router.get("/", getMyCart);

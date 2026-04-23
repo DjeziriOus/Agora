@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyToken, isSeller } from '../middleware/auth.js';
+import { verifyToken, isBuyer, isSeller } from '../middleware/auth.js';
 import {
   createOrder,
   getClientOrders,
@@ -12,7 +12,7 @@ import {
 const router = express.Router();
 
 // POST /api/orders - Create order (buyer)
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', verifyToken, isBuyer, async (req, res) => {
   try {
     const { items, deliveryAddress, paymentMethod } = req.body;
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -29,7 +29,7 @@ router.post('/', verifyToken, async (req, res) => {
 });
 
 // GET /api/orders/client - All orders for the logged-in buyer
-router.get('/client', verifyToken, async (req, res) => {
+router.get('/client', verifyToken, isBuyer, async (req, res) => {
   try {
     const orders = await getClientOrders(req.user.id);
     res.json(orders);
@@ -39,7 +39,7 @@ router.get('/client', verifyToken, async (req, res) => {
 });
 
 // GET /api/orders/client/:id - Single buyer order detail
-router.get('/client/:id', verifyToken, async (req, res) => {
+router.get('/client/:id', verifyToken, isBuyer, async (req, res) => {
   try {
     const order = await getClientOrderById(req.user.id, req.params.id);
     if (!order) return res.status(404).json({ message: 'Commande introuvable' });
@@ -87,7 +87,7 @@ router.patch('/:id/status', verifyToken, isSeller, async (req, res) => {
 });
 
 // GET /api/orders/:id - Single buyer order (used by /compte/commandes/[id])
-router.get('/:id', verifyToken, async (req, res) => {
+router.get('/:id', verifyToken, isBuyer, async (req, res) => {
   try {
     const order = await getClientOrderById(req.user.id, req.params.id);
     if (!order) return res.status(404).json({ message: 'Commande introuvable' });
