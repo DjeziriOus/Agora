@@ -17,8 +17,36 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
-import { useLowStockProducts } from "@/hooks/useApi";
+import { useState } from "react";
+import { useLowStockProducts, useMyStore } from "@/hooks/useApi";
+
+const getShopName = (store: unknown): string => {
+  if (!store || typeof store !== "object") {
+    return "Ma boutique";
+  }
+
+  const record = store as Record<string, unknown>;
+
+  if (typeof record.name === "string" && record.name.trim()) {
+    return record.name;
+  }
+
+  if (record.shop) {
+    const nestedShopName = getShopName(record.shop);
+    if (nestedShopName !== "Ma boutique") {
+      return nestedShopName;
+    }
+  }
+
+  if (record.store) {
+    const nestedStoreName = getShopName(record.store);
+    if (nestedStoreName !== "Ma boutique") {
+      return nestedStoreName;
+    }
+  }
+
+  return "Ma boutique";
+};
 
 const vendorNavItems = [
   {
@@ -55,51 +83,15 @@ const vendorNavItems = [
 ];
 
 export function VendorSidebar() {
-  console.log("VendorSidebar rendered");
   const pathname = usePathname();
   const { user, logout } = useAuth();
-
-  console.log("VendorSidebar rendered");
-  console.log("user =", user);
-  console.log("role =", user?.role);
-  
   const [collapsed, setCollapsed] = useState(false);
-  const [shopName, setShopName] = useState("Ma boutique");
+  const isSeller = user?.role === "seller";
+  const { data: store } = useMyStore({ enabled: isSeller });
   const { data: lowStockProducts } = useLowStockProducts();
 
   const lowStockCount = lowStockProducts?.length || 0;
-
-  useEffect(() => {
-    async function fetchShopName() {
-      if (user?.role !== "seller") return;
-
-      try {
-        const res = await fetch("http://localhost:5001/api/shops/my", {
-          credentials: "include",
-        });
-
-        if (!res.ok) {
-          console.log("fetch shop failed:", res.status);
-          return;
-        }
-
-        const data = await res.json();
-        console.log("shop data:", data);
-
-        const name =
-          data?.shop?.name ||
-          data?.name ||
-          data?.store?.name ||
-          "Ma boutique";
-
-        setShopName(name);
-      } catch (error) {
-        console.error("fetch shop error:", error);
-      }
-    }
-
-    fetchShopName();
-  }, [user?.role]);
+  const shopName = getShopName(store);
 
   return (
     <>

@@ -1,18 +1,5 @@
 
 "use client";
-// Address type definition
-interface Address {
-  _id: string;
-  recipientName: string;
-  phone: string;
-  addressLabel: "home" | "work" | "other";
-  addressLine: string;
-  city: string;
-  province: string;
-  postalCode: string;
-  country: string;
-  isDefault: boolean;
-}
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -31,10 +18,23 @@ import { toast } from "sonner";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/context/AuthContext";
 import { useCreateOrder } from "@/hooks/useApi";
-import { shopsApi } from "@/lib/api";
+import { addressesApi, shopsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type CheckoutStep = "shipping" | "payment" | "confirmation";
+
+interface Address {
+  _id: string;
+  recipientName: string;
+  phone: string;
+  addressLabel: "home" | "work" | "other";
+  addressLine: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
 
 interface ShippingInfo {
   firstName: string;
@@ -58,35 +58,49 @@ export default function CheckoutPage() {
   // Address selection state
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [addressesError, setAddressesError] = useState<string | null>(null);
 
   // Fetch address list from backend
   useEffect(() => {
     if (currentStep !== "shipping") return;
-    fetch("http://localhost:5001/api/addresses", { credentials: "include" })
-      .then(res => res.json())
-      .then(data => {
+    let isCancelled = false;
+
+    const loadAddresses = async () => {
+      try {
+        setAddressesError(null);
+        const data = (await addressesApi.getAll()) as Address[];
+        if (isCancelled) return;
+
         setAddresses(data);
-        // Select default address if exists
-        const def = data.find((a: Address) => a.isDefault);
-        setSelectedAddressId(def?._id || (data[0]?._id ?? null));
-        // Auto-fill shippingInfo with default address
-        if (def) {
-          setShippingInfo({
-            firstName: def.recipientName,
-            lastName: "",
-            address: def.addressLine,
-            city: def.city,
-            postalCode: def.postalCode,
-            phone: def.phone,
-          });
-        }
-      });
+
+        const defaultAddress = data.find((address) => address.isDefault);
+        setSelectedAddressId(
+          defaultAddress?._id ?? data[0]?._id ?? null,
+        );
+      } catch (error) {
+        if (isCancelled) return;
+
+        setAddresses([]);
+        setSelectedAddressId(null);
+        setAddressesError(
+          error instanceof Error
+            ? error.message
+            : "Impossible de charger vos adresses.",
+        );
+      }
+    };
+
+    void loadAddresses();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [currentStep]);
 
   // Auto-fill shippingInfo when address is selected
   useEffect(() => {
     if (!selectedAddressId) return;
-    const addr = addresses.find(a => a._id === selectedAddressId);
+    const addr = addresses.find((address) => address._id === selectedAddressId);
     if (addr) {
       setShippingInfo({
         firstName: addr.recipientName,
@@ -97,7 +111,7 @@ export default function CheckoutPage() {
         phone: addr.phone,
       });
     }
-  }, [selectedAddressId]);
+  }, [addresses, selectedAddressId]);
   const router = useRouter();
   const { items, clearCart } = useCart();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -353,7 +367,12 @@ export default function CheckoutPage() {
                     Sélectionnez une adresse de livraison
                 </h2>
                 <div className="space-y-2">
-                  {addresses.length === 0 && (
+                  {addressesError ? (
+                    <div className="text-[var(--agora-danger)]">
+                      {addressesError}
+                    </div>
+                  ) : null}
+                  {addresses.length === 0 && !addressesError && (
                       <div className="text-[var(--agora-mid)]">Aucune adresse trouvée. <a href="/compte/adresses" className="text-[var(--agora-primary)] underline">Ajouter une adresse</a></div>
                   )}
                   {addresses.map(addr => (
