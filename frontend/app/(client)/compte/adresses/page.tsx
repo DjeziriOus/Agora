@@ -1,12 +1,25 @@
 "use client";
 
-import { useState, Suspense, useEffect } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MapPin, Plus, Edit, Trash, Home, Building } from "lucide-react";
+import { toast } from "sonner";
+
+import { addressesApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Address {
-  _id?: string;
+  _id: string;
   recipientName: string;
   phone: string;
   addressLabel: "home" | "work" | "other";
@@ -18,19 +31,16 @@ interface Address {
   isDefault: boolean;
 }
 
+type AddressPayload = Omit<Address, "_id" | "isDefault">;
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { MapPin, Plus, Edit, Trash, Home, Building } from "lucide-react";
-import { toast } from "sonner";
+const addressLabelMap: Record<Address["addressLabel"], string> = {
+  home: "Domicile",
+  work: "Travail",
+  other: "Autre",
+};
 
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
 
 function AddressesContent() {
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -39,130 +49,116 @@ function AddressesContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch address list from backend
-  useEffect(() => {
+  const loadAddresses = useCallback(async () => {
     setLoading(true);
-    fetch("http://localhost:5001/api/addresses", {
-      credentials: "include"
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Error loading addresses");
-        return res.json();
-      })
-      .then((data) => setAddresses(data))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    setError(null);
+
+    try {
+      const data = (await addressesApi.getAll()) as Address[];
+      setAddresses(data);
+    } catch (error) {
+      setError(getErrorMessage(error, "Erreur lors du chargement des adresses."));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Save (create/edit)
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const newAddress: Omit<Address, "id"> = {
+  useEffect(() => {
+    void loadAddresses();
+  }, [loadAddresses]);
+
+  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const shouldSetAsDefault =
+      formData.get("isDefault") === "on" || addresses.length === 0;
+    const addressPayload: AddressPayload = {
       recipientName: formData.get("recipientName") as string,
       phone: formData.get("phone") as string,
-      addressLabel: formData.get("addressLabel") as "home" | "work" | "other",
+      addressLabel: formData.get("addressLabel") as Address["addressLabel"],
       addressLine: formData.get("addressLine") as string,
       city: formData.get("city") as string,
       province: formData.get("province") as string,
       postalCode: formData.get("postalCode") as string,
       country: formData.get("country") as string,
-      isDefault: addresses.length === 0,
     };
+
     try {
       setLoading(true);
-      if (editingAddress) {
-        // Edit
-        const res = await fetch(`http://localhost:5001/api/addresses/${editingAddress._id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(newAddress),
-          credentials: "include"
-        });
-        if (!res.ok) {
-          const errorData = await res.json();
-          if (res.status === 409) {
-            throw new Error(errorData.error || "Adresse déjà existante");
-          }
-          throw new Error(errorData.error || "Erreur lors de la modification de l'adresse");
-        }
-        toast.success("Adresse modifiée");
-      } else {
-        // Create
-        const res = await fetch("http://localhost:5001/api/addresses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(newAddress),
-          credentials: "include"
-        });
-        if (!res.ok) {
-          const errorData = await res.json();
-          if (res.status === 409) {
-            throw new Error(errorData.error || "Adresse déjà existante");
-          }
-          throw new Error(errorData.error || "Erreur lors de l'ajout de l'adresse");
-        }
-        toast.success("Adresse ajoutée");
+      setError(null);
+
+      const savedAddress = editingAddress
+        ? ((await addressesApi.update(
+            editingAddress._id,
+            addressPayload,
+          )) as Address)
+        : ((await addressesApi.create(addressPayload)) as Address);
+
+      if (shouldSetAsDefault) {
+        await addressesApi.setDefault(savedAddress._id);
       }
-      // Refresh list
-      const refreshed = await fetch("http://localhost:5001/api/addresses", {
-        credentials: "include"
-      }).then((r) => r.json());
-      setAddresses(refreshed);
+
+      toast.success(
+        editingAddress ? "Adresse modifiée" : "Adresse ajoutée",
+      );
+      await loadAddresses();
       setIsDialogOpen(false);
       setEditingAddress(null);
-    } catch (err: any) {
-      setError(err.message);
-      toast.error(err.message);
+    } catch (error) {
+      const message = getErrorMessage(
+        error,
+        editingAddress
+          ? "Erreur lors de la modification de l'adresse."
+          : "Erreur lors de l'ajout de l'adresse.",
+      );
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Delete
   const handleDelete = async (id: string) => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:5001/api/addresses/${id}`, {
-        method: "DELETE",
-        credentials: "include"
-      });
-      if (!res.ok) throw new Error("Erreur lors de la suppression de l'adresse");
+      setError(null);
+      await addressesApi.delete(id);
       toast.success("Adresse supprimée");
-      setAddresses(addresses.filter((a) => a._id !== id));
-    } catch (err: any) {
-      setError(err.message);
-      toast.error(err.message);
+      await loadAddresses();
+    } catch (error) {
+      const message = getErrorMessage(
+        error,
+        "Erreur lors de la suppression de l'adresse.",
+      );
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Set as default
   const handleSetDefault = async (id: string) => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:5001/api/addresses/${id}/default`, {
-        method: "POST",
-        credentials: "include"
-      });
-      if (!res.ok) throw new Error("Erreur lors de la définition de l'adresse par défaut");
+      setError(null);
+      await addressesApi.setDefault(id);
       toast.success("Adresse par défaut modifiée");
-      // Refresh list
-      const refreshed = await fetch("http://localhost:5001/api/addresses", {
-        credentials: "include"
-      }).then((r) => r.json());
-      setAddresses(refreshed);
-    } catch (err: any) {
-      setError(err.message);
-      toast.error(err.message);
+      await loadAddresses();
+    } catch (error) {
+      const message = getErrorMessage(
+        error,
+        "Erreur lors de la définition de l'adresse par défaut.",
+      );
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
-  const getAddressIcon = (type: Address["type"]) => {
-    switch (type) {
+  const getAddressIcon = (addressLabel: Address["addressLabel"]) => {
+    switch (addressLabel) {
       case "home":
         return Home;
       case "work":
@@ -361,7 +357,7 @@ function AddressesContent() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base flex items-center gap-2">
                         <Icon className="h-4 w-4" />
-                        {address.addressLabel}
+                        {addressLabelMap[address.addressLabel]}
                       </CardTitle>
                       {address.isDefault && (
                         <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
