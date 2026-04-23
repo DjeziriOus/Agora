@@ -41,9 +41,7 @@ It also calls out a few files that still exist in the repo but behave more like 
 │   │   ├── createStore.json
 │   │   └── getStore.json
 │   ├── postman/
-│   │   ├── Agora API — BetterAuth.postman_collection.json
-│   │   ├── collection copy.json
-│   │   └── collection.json
+│   │   └── Agora API — BetterAuth.postman_collection.json
 │   ├── routes/
 │   │   ├── authRoutes.js
 │   │   ├── cartRoutes.js
@@ -196,7 +194,7 @@ It also calls out a few files that still exist in the repo but behave more like 
   - `migrate-to-variants.js` for the product variant migration
 
 - `backend/postman/`
-  Backend API collections. The Better Auth collection is the most relevant current collection for team testing, while the other JSON files remain as alternate or older collections.
+  Backend API collection. The maintained collection for team testing is `Agora API — BetterAuth.postman_collection.json`.
 
 ## Frontend Notes
 
@@ -313,8 +311,6 @@ npm run dev
 
 A few files in the repository are useful as references or leftovers from earlier iterations, but they are not the main maintained structure:
 
-- `backend/postman/collection.json`
-- `backend/postman/collection copy.json`
 - some duplicate UI files such as `frontend/src/components/ui/* copy.tsx`
 - `frontend/lib/utils copy.ts`
 - `frontend/styles/globals.css`
