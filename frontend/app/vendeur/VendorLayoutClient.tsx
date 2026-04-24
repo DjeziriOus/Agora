@@ -6,9 +6,9 @@ import { useEffect } from "react";
 import { VendorSidebar } from "@/components/VendorSidebar";
 import { useMyStore } from "@/hooks/useApi";
 import { usePathname } from "next/navigation";
-import { Package } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import EmailVerificationAlert from '@/components/EmailVerificationAlert';
+import { Package } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import EmailVerificationAlert from "@/components/EmailVerificationAlert";
 
 export default function VendorLayoutClient({
   children,
@@ -27,7 +27,11 @@ export default function VendorLayoutClient({
         router.push("/login?redirect=/vendeur");
       } else if (user.role !== "seller") {
         router.push("/");
-      } else if (!store && pathname !== "/vendeur/boutique" && !pathname.startsWith("/vendeur/parametres")) {
+      } else if (
+        !store &&
+        pathname !== "/vendeur/boutique" &&
+        !pathname.startsWith("/vendeur/parametres")
+      ) {
         router.push("/vendeur/boutique");
       }
     }
@@ -47,10 +51,10 @@ export default function VendorLayoutClient({
     <div className="min-h-screen bg-muted/30">
       <VendorSidebar />
       <main className="lg:pl-64 min-h-screen">
-
         <div className="p-6 lg:p-8">
-          <EmailVerificationAlert  user={user} />
-          {children}</div>
+          <EmailVerificationAlert user={user} />
+          {children}
+        </div>
       </main>
     </div>
   );

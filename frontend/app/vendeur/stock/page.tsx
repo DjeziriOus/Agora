@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { SellerShopRequiredState } from "@/components/SellerShopRequiredState";
+import { Pagination } from "@/components/Pagination";
 import { isMissingSellerShopError } from "@/lib/shopErrors";
 import {
   Table,
@@ -144,6 +145,8 @@ const flattenVisibleLines = (groups: ProductStockGroup[]): StockLine[] => {
   });
 };
 
+const PRODUCTS_PER_PAGE = 10;
+
 export default function VendorStockPage() {
   const {
     data: store,
@@ -151,7 +154,11 @@ export default function VendorStockPage() {
     error: storeError,
   } = useMyStore();
   const hasStore = Boolean(store);
-  const { data, isLoading, error } = useSellerProducts({ enabled: hasStore });
+  const [page, setPage] = useState(1);
+  const { data, isLoading, error } = useSellerProducts(
+    { page: String(page), limit: String(PRODUCTS_PER_PAGE) },
+    { enabled: hasStore },
+  );
   const [search, setSearch] = useState("");
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
@@ -159,6 +166,8 @@ export default function VendorStockPage() {
     if (!data) return [];
     return Array.isArray(data) ? data : (data.products ?? []);
   }, [data]);
+  const total = (data && !Array.isArray(data)) ? data.total ?? 0 : products.length;
+  const totalPages = Math.ceil(total / PRODUCTS_PER_PAGE);
 
   const stockGroups = useMemo(() => buildStockGroups(products), [products]);
 
@@ -496,6 +505,11 @@ export default function VendorStockPage() {
           )}
         </CardContent>
       </Card>
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

@@ -340,13 +340,21 @@ export const productsApi = {
     const product = await apiFetch<BackendProduct>(`/api/products/mine/${id}`);
     return mapSellerProduct(product);
   },
-  getMine: async () => {
+  getMine: async (params?: ProductQuery) => {
+    const qs = params
+      ? "?" +
+        new URLSearchParams(
+          Object.fromEntries(
+            Object.entries(params).filter(([, v]) => v !== undefined),
+          ) as Record<string, string>,
+        ).toString()
+      : "";
     const result = await apiFetch<{
       products: BackendProduct[];
       total: number;
       page: number;
       limit: number;
-    }>(`/api/products/mine`);
+    }>(`/api/products/mine${qs}`);
 
     return {
       ...result,
@@ -394,10 +402,15 @@ export const storesApi = {
           ) as Record<string, string>,
         ).toString()
       : "";
-    const products = await apiFetch<BackendProduct[]>(
+    const result = await apiFetch<{
+      products: BackendProduct[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(
       `/api/shops/${id}/products${qs}`,
     );
-    return products.map(mapProduct);
+    return { ...result, products: result.products.map(mapProduct) };
   },
   getMyStore: async () => {
     const store = await apiFetch<unknown>("/api/shops/my");

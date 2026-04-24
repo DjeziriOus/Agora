@@ -86,10 +86,10 @@ export function useSellerProduct(id: string) {
   });
 }
 
-export function useSellerProducts(options?: { enabled?: boolean }) {
+export function useSellerProducts(params?: ProductQuery, options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: queryKeys.products.seller,
-    queryFn: () => productsApi.getMine(),
+    queryKey: [...queryKeys.products.seller, params] as const,
+    queryFn: () => productsApi.getMine(params),
     enabled: options?.enabled ?? true,
   });
 }

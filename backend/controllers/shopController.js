@@ -81,8 +81,8 @@ export const getShopById = async (req, res) => {
  */
 export const getShopProducts = async (req, res) => {
   try {
-    const products = await shopService.getShopProductsBySlug(req.params.slug);
-    res.status(200).json(products);
+    const result = await shopService.getShopProductsBySlug(req.params.slug, req.query);
+    res.status(200).json(result);
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message });
   }

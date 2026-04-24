@@ -221,6 +221,13 @@ export interface ProductQuery {
   limit?: string;
 }
 
+export interface PaginatedResponse<T> {
+  products: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 // Dashboard Stats
 export interface VendorStats {
   revenue: number;

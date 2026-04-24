@@ -86,10 +86,10 @@ export function VendorSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
-  const { data: store } = useMyStore({ enabled: isSeller });
-  const { data: lowStockProducts } = useLowStockProducts({ enabled: hasStore });
-  const hasStore = !!store;
   const isSeller = user?.role === "seller";
+  const { data: store } = useMyStore({ enabled: isSeller });
+  const hasStore = !!store;
+  const { data: lowStockProducts } = useLowStockProducts({ enabled: hasStore });
 
   const lowStockCount = lowStockProducts?.length || 0;
   const shopName = getShopName(store);

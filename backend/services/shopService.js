@@ -182,10 +182,19 @@ const getShopBySlug = async (slug) => {
   return serializePublicShop(shop);
 };
 
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 12;
+const MAX_LIMIT = 100;
+
+const toSafeInt = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 /**
  * GET /api/shops/:slug/products
  */
-const getShopProductsBySlug = async (slug) => {
+const getShopProductsBySlug = async (slug, query = {}) => {
   const shop = await Shop.findOne({ slug, isDeleted: false });
   if (!shop) {
     const error = new Error("Shop not found.");
@@ -193,15 +202,33 @@ const getShopProductsBySlug = async (slug) => {
     throw error;
   }
 
-  const products = await Product.find({
+  const page = toSafeInt(query.page, DEFAULT_PAGE);
+  const limit = Math.min(toSafeInt(query.limit, DEFAULT_LIMIT), MAX_LIMIT);
+  const skip = (page - 1) * limit;
+
+  const filters = {
     shop: shop._id,
     isDeleted: false,
     isActive: true,
-  })
-    .populate("shop", "name slug")
-    .sort({ createdAt: -1 });
+  };
 
-  return enrichProductsWithVariants(products);
+  const [products, total] = await Promise.all([
+    Product.find(filters)
+      .populate("shop", "name slug logo")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Product.countDocuments(filters),
+  ]);
+
+  const enriched = await enrichProductsWithVariants(products);
+
+  return {
+    products: enriched,
+    total,
+    page,
+    limit,
+  };
 };
 
 /**
