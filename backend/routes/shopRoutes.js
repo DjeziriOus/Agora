@@ -5,6 +5,8 @@ import {
   getShopById,
   getMyShop,
   getShopProducts,
+  getVendorStats,
+  getStockStats,
 } from "../controllers/shopController.js";
 import { verifyToken, isSeller } from "../middleware/auth.js";
 import { uploadShopImages } from "../middleware/upload.js";
@@ -19,6 +21,12 @@ router.put("/:id", verifyToken, isSeller, uploadShopImages, updateShop);
 
 // GET /api/shops/my
 router.get("/my", verifyToken, isSeller, getMyShop);
+
+// GET /api/shops/my/stats
+router.get("/my/stats", verifyToken, isSeller, getVendorStats);
+
+// GET /api/shops/my/stock-stats
+router.get("/my/stock-stats", verifyToken, isSeller, getStockStats);
 
 // GET /api/shops/:slug/products  (public)
 router.get("/:slug/products", getShopProducts);

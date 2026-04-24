@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import { Shield } from "lucide-react";
+import { Shield, Eye, EyeOff, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 import { authClient } from "@/lib/auth-client";
 import {
@@ -15,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -51,9 +53,13 @@ function mapChangePasswordError(error: {
 }
 
 export function AccountPasswordSettingsCard() {
+  const { logout } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<PasswordErrors>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -151,16 +157,27 @@ export function AccountPasswordSettingsCard() {
 
           <div className="space-y-2">
             <Label htmlFor="currentPassword">Mot de passe actuel</Label>
-            <Input
-              id="currentPassword"
-              type="password"
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={handleFieldChange(
-                "currentPassword",
-                setCurrentPassword,
-              )}
-            />
+            <div className="relative">
+              <Input
+                id="currentPassword"
+                type={showCurrentPassword ? "text" : "password"}
+                autoComplete="current-password"
+                className="pr-10"
+                value={currentPassword}
+                onChange={handleFieldChange(
+                  "currentPassword",
+                  setCurrentPassword,
+                )}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showCurrentPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              >
+                {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
             {errors.currentPassword ? (
               <p className="text-sm text-destructive">
                 {errors.currentPassword}
@@ -171,13 +188,24 @@ export function AccountPasswordSettingsCard() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="newPassword">Nouveau mot de passe</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={handleFieldChange("newPassword", setNewPassword)}
-              />
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showNewPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  className="pr-10"
+                  value={newPassword}
+                  onChange={handleFieldChange("newPassword", setNewPassword)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showNewPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                >
+                  {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
               {errors.newPassword ? (
                 <p className="text-sm text-destructive">
                   {errors.newPassword}
@@ -188,16 +216,27 @@ export function AccountPasswordSettingsCard() {
               <Label htmlFor="confirmPassword">
                 Confirmer le mot de passe
               </Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={handleFieldChange(
-                  "confirmPassword",
-                  setConfirmPassword,
-                )}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  className="pr-10"
+                  value={confirmPassword}
+                  onChange={handleFieldChange(
+                    "confirmPassword",
+                    setConfirmPassword,
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
               {errors.confirmPassword ? (
                 <p className="text-sm text-destructive">
                   {errors.confirmPassword}
@@ -210,6 +249,21 @@ export function AccountPasswordSettingsCard() {
             {isSaving ? "Modification..." : "Changer le mot de passe"}
           </Button>
         </form>
+
+        <Separator className="my-6" />
+
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <p className="font-medium">Déconnexion</p>
+            <p className="text-sm text-muted-foreground">
+              Se déconnecter de votre compte
+            </p>
+          </div>
+          <Button variant="outline" onClick={logout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Déconnexion
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

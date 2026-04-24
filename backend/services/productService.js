@@ -134,7 +134,7 @@ const enrichProductsWithVariants = async (products) => {
 };
 
 // Build Mongo filters for seller inventory listing (search, stock, status).
-const buildMineFilters = (shopId, query = {}) => {
+const buildMineFilters = async (shopId, query = {}) => {
 	const filters = {
 		shop: shopId,
 		isDeleted: false,
@@ -143,9 +143,18 @@ const buildMineFilters = (shopId, query = {}) => {
 	const q = (query.q || query.search || "").trim();
 	if (q) {
 		const safeQ = escapeRegExp(q);
+		
+		const matchingVariantProductIds = await Variant.distinct("product", {
+			$or: [
+				{ sku: { $regex: safeQ, $options: "i" } },
+				{ name: { $regex: safeQ, $options: "i" } },
+			],
+		});
+
 		filters.$or = [
 			{ name: { $regex: safeQ, $options: "i" } },
 			{ description: { $regex: safeQ, $options: "i" } },
+			{ _id: { $in: matchingVariantProductIds } },
 		];
 	}
 
@@ -220,22 +229,44 @@ const getProducts = async (query = {}) => {
 		filters._id = { $in: matchingProductIds };
 	}
 
-	const sortOrder = buildSortOrder(query.sort);
+	const sortParam = query.sort || "relevance";
 
-	const [products, total] = await Promise.all([
-		Product.find(filters)
-			.populate("shop", "name slug logo")
-			.sort(sortOrder)
-			.skip(skip)
-			.limit(limit),
-		Product.countDocuments(filters),
-	]);
+	// If sorting by relevance, we can do it natively in DB
+	if (sortParam === "relevance") {
+		const [products, total] = await Promise.all([
+			Product.find(filters)
+				.populate("shop", "name slug logo")
+				.sort({ createdAt: -1 })
+				.skip(skip)
+				.limit(limit),
+			Product.countDocuments(filters),
+		]);
 
-	const enriched = await enrichProductsWithVariants(products);
+		const enriched = await enrichProductsWithVariants(products);
+
+		return {
+			products: enriched,
+			total,
+			page,
+			limit,
+		};
+	}
+
+	// For price_asc, price_desc, rating: we MUST fetch all matching, enrich, sort in memory, then paginate
+	const allProducts = await Product.find(filters).populate("shop", "name slug logo");
+	let enriched = await enrichProductsWithVariants(allProducts);
+
+	if (sortParam === "price_asc") {
+		enriched.sort((a, b) => (a.displayPrice || 0) - (b.displayPrice || 0) || new Date(b.createdAt) - new Date(a.createdAt));
+	} else if (sortParam === "price_desc") {
+		enriched.sort((a, b) => (b.displayPrice || 0) - (a.displayPrice || 0) || new Date(b.createdAt) - new Date(a.createdAt));
+	} else if (sortParam === "rating") {
+		enriched.sort((a, b) => (b.rating || 0) - (a.rating || 0) || new Date(b.createdAt) - new Date(a.createdAt));
+	}
 
 	return {
-		products: enriched,
-		total,
+		products: enriched.slice(skip, skip + limit),
+		total: enriched.length,
 		page,
 		limit,
 	};
@@ -291,7 +322,21 @@ const getMyProducts = async ({ ownerId, query = {} }) => {
 	const limit = Math.min(toSafeInt(query.limit, DEFAULT_LIMIT), MAX_LIMIT);
 	const skip = (page - 1) * limit;
 
-	const filters = buildMineFilters(shop._id, query);
+	const filters = await buildMineFilters(shop._id, query);
+
+	if (query.lowStock === "true") {
+		// Fetch all products matching filters without limit
+		const allProducts = await Product.find(filters).sort({ createdAt: -1 });
+		let enriched = await enrichProductsWithVariants(allProducts);
+		enriched = enriched.filter((p) => p.totalStock <= (p.stockThreshold ?? 5));
+		
+		return {
+			products: enriched.slice(skip, skip + limit),
+			total: enriched.length,
+			page,
+			limit,
+		};
+	}
 
 	const [products, total] = await Promise.all([
 		Product.find(filters).sort({ createdAt: -1 }).skip(skip).limit(limit),
@@ -300,14 +345,9 @@ const getMyProducts = async ({ ownerId, query = {} }) => {
 
 	let enriched = await enrichProductsWithVariants(products);
 
-	// Filter low stock after enrichment (since stock is now on variants)
-	if (query.lowStock === "true") {
-		enriched = enriched.filter((p) => p.totalStock <= (p.stockThreshold ?? 5));
-	}
-
 	return {
 		products: enriched,
-		total: query.lowStock === "true" ? enriched.length : total,
+		total,
 		page,
 		limit,
 	};

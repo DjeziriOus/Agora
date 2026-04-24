@@ -459,7 +459,13 @@ export const categoriesApi = {
 // };
 
 export const vendorApi = {
-  getStats: () => apiFetch<unknown>("/api/vendor/stats"),
+  getStats: () => apiFetch<any>("/api/shops/my/stats"),
+  getStockStats: () =>
+    apiFetch<{
+      inStockCount: number;
+      lowStockCount: number;
+      outOfStockCount: number;
+    }>("/api/shops/my/stock-stats"),
 };
 
 // export const authApi = {

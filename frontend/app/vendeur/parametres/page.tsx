@@ -38,7 +38,7 @@ export default function VendorSettingsPage() {
 
       <AccountProfileSettingsCard />
 
-      {/* Notifications */}
+      {/* Notifications 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -92,6 +92,7 @@ export default function VendorSettingsPage() {
           <Button onClick={handleSaveNotifications}>Enregistrer</Button>
         </CardContent>
       </Card>
+      */}
 
       <AccountPasswordSettingsCard />
 

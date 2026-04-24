@@ -1,9 +1,9 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useMyStore, useSellerProducts } from "@/hooks/useApi";
+import { useMyStore, useSellerProducts, useStockStats } from "@/hooks/useApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -155,11 +155,29 @@ export default function VendorStockPage() {
   } = useMyStore();
   const hasStore = Boolean(store);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset to first page on new search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const { data, isLoading, error } = useSellerProducts(
-    { page: String(page), limit: String(PRODUCTS_PER_PAGE) },
+    { 
+      page: String(page), 
+      limit: String(PRODUCTS_PER_PAGE),
+      ...(debouncedSearch ? { q: debouncedSearch } : {}) 
+    },
     { enabled: hasStore },
   );
-  const [search, setSearch] = useState("");
+  const { data: stockStats, isLoading: isStatsLoading } = useStockStats({
+    enabled: hasStore,
+  });
+
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
   const products: Product[] = useMemo(() => {
@@ -222,15 +240,11 @@ export default function VendorStockPage() {
     });
   };
 
-  const inStockCount = visibleLines.filter(
-    (line) => line.stock > line.threshold,
-  ).length;
-  const lowStockCount = visibleLines.filter(
-    (line) => line.stock > 0 && line.stock <= line.threshold,
-  ).length;
-  const outOfStockCount = visibleLines.filter((line) => line.stock <= 0).length;
+  const inStockCount = stockStats?.inStockCount ?? 0;
+  const lowStockCount = stockStats?.lowStockCount ?? 0;
+  const outOfStockCount = stockStats?.outOfStockCount ?? 0;
 
-  if (isStoreLoading || (hasStore && isLoading)) {
+  if (isStoreLoading || (hasStore && isLoading) || isStatsLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-56" />

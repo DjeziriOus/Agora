@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { authClient } from "@/lib/auth-client";
 import { shopsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 function LoginContent() {
   const [email, setEmail] = useState("");
@@ -74,9 +75,9 @@ function LoginContent() {
           <div className="text-center mb-8">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 justify-center"
+              className="inline-flex items-center gap-1 justify-center"
             >
-              <Diamond className="w-6 h-6 text-[var(--agora-primary)]" />
+              <Image src="/logo.png" alt="Agora" width={45} height={45} />
               <span className="font-display text-2xl font-bold text-[var(--agora-primary)]">
                 Agora
               </span>
@@ -240,7 +241,7 @@ function LoginContent() {
           </p>
 
           {/* Demo Credentials */}
-          <div className="mt-6 p-3 rounded-[var(--radius-md)] bg-[var(--agora-accent)] border border-[var(--agora-line)]">
+          {/* <div className="mt-6 p-3 rounded-[var(--radius-md)] bg-[var(--agora-accent)] border border-[var(--agora-line)]">
             <p className="text-xs text-[var(--agora-mid)] font-medium mb-2">
               Comptes de démonstration :
             </p>
@@ -253,7 +254,7 @@ function LoginContent() {
                 password123
               </p>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

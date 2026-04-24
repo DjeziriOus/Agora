@@ -219,6 +219,7 @@ export interface ProductQuery {
   sort?: "relevance" | "price_asc" | "price_desc" | "rating";
   page?: string;
   limit?: string;
+  lowStock?: string;
 }
 
 export interface PaginatedResponse<T> {

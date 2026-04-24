@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   productsApi,
   shopsApi,
@@ -91,6 +91,7 @@ export function useSellerProducts(params?: ProductQuery, options?: { enabled?: b
     queryKey: [...queryKeys.products.seller, params] as const,
     queryFn: () => productsApi.getMine(params),
     enabled: options?.enabled ?? true,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -98,10 +99,8 @@ export function useLowStockProducts(options?: { enabled?: boolean }) {
   return useQuery<Product[]>({
     queryKey: queryKeys.products.lowStock,
     queryFn: async () => {
-      const result = await productsApi.getMine();
-      return result.products.filter(
-        (product) => product.totalStock <= product.stockThreshold,
-      );
+      const result = await productsApi.getMine({ limit: "100", lowStock: "true" });
+      return result.products;
     },
     enabled: options?.enabled,
   });
@@ -350,15 +349,14 @@ export function useClearCart() {
 export function useVendorStats() {
   return useQuery({
     queryKey: queryKeys.vendor.stats,
-    queryFn: async () => {
-      // TODO: implement real vendor stats API
-      return {
-        revenue: 0,
-        revenueChange: 0,
-        ordersReceived: 0,
-        activeProducts: 0,
-        averageRating: 0,
-      };
-    },
+    queryFn: () => vendorApi.getStats(),
+  });
+}
+
+export function useStockStats(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["vendor", "stock-stats"],
+    queryFn: () => vendorApi.getStockStats(),
+    enabled: options?.enabled ?? true,
   });
 }

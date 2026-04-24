@@ -204,21 +204,6 @@ export function AccountDangerZoneCard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Déconnexion</p>
-              <p className="text-sm text-muted-foreground">
-                Se déconnecter de votre compte
-              </p>
-            </div>
-            <Button variant="outline" onClick={logout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Déconnexion
-            </Button>
-          </div>
-
-          <Separator />
-
           <div className="flex items-center justify-between gap-4">
             <div className="max-w-md">
               <p className="font-medium text-destructive">Supprimer le compte</p>
