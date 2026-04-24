@@ -117,7 +117,7 @@ export function VendorSidebar() {
             {!collapsed && (
               <Link href="/vendeur" className="flex items-center gap-2 min-w-0">
                 <img
-                  src="/Logo.png"
+                  src="/logo.png"
                   alt="Agora logo"
                   className="w-10 h-10 rounded-lg border border-agora-line p-1 object-cover"
                 />
