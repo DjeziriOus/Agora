@@ -16,7 +16,7 @@ import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import clientAddressRoutes from "./routes/clientAddressRoutes.js";
 import accountRoutes from "./routes/authRoutes.js";
-import accountRoutes from "./routes/accountDeletionRoutes.js";
+// import accountRoutes from "./routes/accountDeletionRoutes.js";
 
 const app = express();
 app.set("trust proxy", 1);

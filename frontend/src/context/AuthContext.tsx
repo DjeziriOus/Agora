@@ -15,12 +15,22 @@ import type { User } from "@/types";
 
 const PENDING_VERIFICATION_EMAIL_STORAGE_KEY =
   "agora_pending_verification_email";
+type AuthConfigResponse = {
+  requireEmailVerification: boolean;
+};
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isSeller: boolean;
   isLoading: boolean;
+  isAuthConfigLoading: boolean;
+  requireEmailVerification: boolean;
+  /** true when the server rejected login specifically because email is unverified */
+  emailNotVerified: boolean;
+  pendingVerificationEmail: string | null;
+  clearEmailNotVerified: () => void;
+  ensureAuthConfig: () => Promise<boolean>;
   setPendingVerificationEmail: (email: string) => void;
   clearPendingVerificationEmail: () => void;
   pendingVerificationEmail: string | null;
@@ -58,6 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [pendingVerificationEmailState, setPendingVerificationEmailState] =
     useState<string | null>(null);
+  const [isAuthConfigLoading, setIsAuthConfigLoading] = useState(true);
+  const [requireEmailVerification, setRequireEmailVerification] =
+    useState(true);
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -147,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    void ensureAuthConfig();
+    // void ensureAuthConfig();
     void initAuth();
 
     try {
@@ -160,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore storage failures and keep the pending email empty.
     }
-  }, [ensureAuthConfig]);
+  }, []);
 
   useEffect(() => {
     if (isLoading || !user) return;
@@ -273,7 +287,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearPendingVerificationEmail, router]);
 
   // Reset is no longer needed but kept for API compat.
-  const clearEmailNotVerified = useCallback(() => {}, []);
+  const clearEmailNotVerified = useCallback(() => {
+    setEmailNotVerified(false);
+  }, []);
 
   // Ask the backend to resend the verification email.
   // No email is sent from the frontend — the backend derives it from the session.
