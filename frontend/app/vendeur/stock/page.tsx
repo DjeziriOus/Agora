@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useMyStore, useSellerProducts } from "@/hooks/useApi";
+import { useMyStore, useSellerProducts, useStockStats } from "@/hooks/useApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -159,6 +159,9 @@ export default function VendorStockPage() {
     { page: String(page), limit: String(PRODUCTS_PER_PAGE) },
     { enabled: hasStore },
   );
+  const { data: stockStats, isLoading: isStatsLoading } = useStockStats({
+    enabled: hasStore,
+  });
   const [search, setSearch] = useState("");
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
@@ -222,15 +225,11 @@ export default function VendorStockPage() {
     });
   };
 
-  const inStockCount = visibleLines.filter(
-    (line) => line.stock > line.threshold,
-  ).length;
-  const lowStockCount = visibleLines.filter(
-    (line) => line.stock > 0 && line.stock <= line.threshold,
-  ).length;
-  const outOfStockCount = visibleLines.filter((line) => line.stock <= 0).length;
+  const inStockCount = stockStats?.inStockCount ?? 0;
+  const lowStockCount = stockStats?.lowStockCount ?? 0;
+  const outOfStockCount = stockStats?.outOfStockCount ?? 0;
 
-  if (isStoreLoading || (hasStore && isLoading)) {
+  if (isStoreLoading || (hasStore && isLoading) || isStatsLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-56" />

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Shop from "../models/Shop.js";
 import Product from "../models/Product.js";
 import Variant from "../models/Variant.js";
+import Order from "../models/Order.js";
 import {
   uploadToCloudinary,
   deleteFromCloudinary,
@@ -289,4 +290,80 @@ const getMyShop = async (ownerId) => {
   return shop;
 };
 
-export default { createShop, getShopBySlug, getShopProductsBySlug, updateShop, getMyShop };
+const getVendorStats = async (ownerId) => {
+  const shop = await Shop.findOne({ owner: ownerId, isDeleted: false });
+  if (!shop) {
+    const error = new Error("Shop not found.");
+    error.statusCode = 404;
+    throw error;
+  }
+  
+  // Orders
+  const orders = await Order.find({ "subOrders.sellerId": ownerId }).lean();
+  let totalRevenue = 0;
+  let totalOrders = 0;
+  let pendingOrders = 0;
+  
+  for (const order of orders) {
+    const sub = order.subOrders.find(s => s.sellerId?.toString() === ownerId.toString());
+    if (sub) {
+      totalOrders++;
+      totalRevenue += sub.total || 0;
+      if (sub.status === "en_attente") pendingOrders++;
+    }
+  }
+
+  // Products
+  const products = await Product.find({ shop: shop._id, isDeleted: false });
+  const totalProducts = products.length;
+  const activeProducts = products.filter(p => p.isActive).length;
+
+  return {
+    totalRevenue,
+    revenueChange: 0,
+    totalOrders,
+    pendingOrders,
+    totalProducts,
+    activeProducts,
+    averageRating: shop.rating || 0
+  };
+};
+
+const getStockStats = async (ownerId) => {
+  const shop = await Shop.findOne({ owner: ownerId, isDeleted: false });
+  if (!shop) {
+    const error = new Error("Shop not found.");
+    error.statusCode = 404;
+    throw error;
+  }
+  
+  const products = await Product.find({ shop: shop._id, isDeleted: false });
+  const enriched = await enrichProductsWithVariants(products);
+  
+  let inStockCount = 0;
+  let lowStockCount = 0;
+  let outOfStockCount = 0;
+
+  for (const group of enriched) {
+    if (group.variants && group.variants.length > 0) {
+      for (const variant of group.variants) {
+        if (!variant.isActive) continue;
+        const stock = variant.stock;
+        const threshold = group.stockThreshold ?? 5;
+        if (stock <= 0) outOfStockCount++;
+        else if (stock <= threshold) lowStockCount++;
+        else inStockCount++;
+      }
+    } else {
+      const stock = group.totalStock ?? 0;
+      const threshold = group.stockThreshold ?? 5;
+      if (stock <= 0) outOfStockCount++;
+      else if (stock <= threshold) lowStockCount++;
+      else inStockCount++;
+    }
+  }
+
+  return { inStockCount, lowStockCount, outOfStockCount };
+};
+
+export default { createShop, getShopBySlug, getShopProductsBySlug, updateShop, getMyShop, getVendorStats, getStockStats };

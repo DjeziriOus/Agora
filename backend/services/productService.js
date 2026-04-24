@@ -293,6 +293,20 @@ const getMyProducts = async ({ ownerId, query = {} }) => {
 
 	const filters = buildMineFilters(shop._id, query);
 
+	if (query.lowStock === "true") {
+		// Fetch all products matching filters without limit
+		const allProducts = await Product.find(filters).sort({ createdAt: -1 });
+		let enriched = await enrichProductsWithVariants(allProducts);
+		enriched = enriched.filter((p) => p.totalStock <= (p.stockThreshold ?? 5));
+		
+		return {
+			products: enriched.slice(skip, skip + limit),
+			total: enriched.length,
+			page,
+			limit,
+		};
+	}
+
 	const [products, total] = await Promise.all([
 		Product.find(filters).sort({ createdAt: -1 }).skip(skip).limit(limit),
 		Product.countDocuments(filters),
@@ -300,14 +314,9 @@ const getMyProducts = async ({ ownerId, query = {} }) => {
 
 	let enriched = await enrichProductsWithVariants(products);
 
-	// Filter low stock after enrichment (since stock is now on variants)
-	if (query.lowStock === "true") {
-		enriched = enriched.filter((p) => p.totalStock <= (p.stockThreshold ?? 5));
-	}
-
 	return {
 		products: enriched,
-		total: query.lowStock === "true" ? enriched.length : total,
+		total,
 		page,
 		limit,
 	};

@@ -116,11 +116,11 @@ export function VendorSidebar() {
           <div className="h-16 flex items-center justify-between px-4 border-b">
             {!collapsed && (
               <Link href="/vendeur" className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                  <span className="text-primary-foreground font-heading font-bold text-lg">
-                    A
-                  </span>
-                </div>
+                <img
+                  src="/Logo.png"
+                  alt="Agora logo"
+                  className="w-10 h-10 rounded-lg border border-agora-line p-1 object-cover"
+                />
 
                 <div className="min-w-0">
                   <span className="font-heading font-bold text-lg block truncate">

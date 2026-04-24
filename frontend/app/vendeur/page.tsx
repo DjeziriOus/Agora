@@ -5,6 +5,8 @@ import {
   useVendorStats,
   useSellerOrders,
   useLowStockProducts,
+  useStockStats,
+  useMyStore,
 } from "@/hooks/useApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,8 +62,11 @@ export default function VendorDashboardPage() {
   const { user } = useAuth();
   const { data: stats, isLoading: statsLoading } = useVendorStats();
   const { data: orders, isLoading: ordersLoading } = useSellerOrders();
+  const { data: store } = useMyStore();
+  const hasStore = !!store;
+  const { data: stockStats, isLoading: stockStatsLoading } = useStockStats({ enabled: hasStore });
   const { data: lowStockProducts, isLoading: lowStockLoading } =
-    useLowStockProducts();
+    useLowStockProducts({ enabled: hasStore });
 
   const recentOrders = orders?.slice(0, 5) || [];
 
@@ -103,17 +108,17 @@ export default function VendorDashboardPage() {
                       {stats?.totalRevenue?.toFixed(2) || "0.00"} €
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Chiffre d'affaires
+                      En Chiffre d'affaires
                     </p>
                   </>
                 )}
               </div>
-              <div className="p-3 rounded-xl bg-agora-success/10">
-                <Euro className="h-6 w-6 text-agora-success" />
+              <div className="p-3 rounded-xl bg-agora-green/20">
+                <Euro className="h-6 w-6 text-agora-green" />
               </div>
             </div>
-            {!statsLoading && stats?.revenueChange && (
-              <p className="text-xs text-agora-success mt-2 flex items-center gap-1">
+            {!statsLoading && typeof stats?.revenueChange === "number" && (
+              <p className="text-xs text-agora-primary mt-2 flex items-center gap-1">
                 <TrendingUp className="h-3 w-3" />+{stats.revenueChange}% ce
                 mois
               </p>
@@ -171,8 +176,8 @@ export default function VendorDashboardPage() {
                   </>
                 )}
               </div>
-              <div className="p-3 rounded-xl bg-agora-accent/10">
-                <Package className="h-6 w-6 text-agora-accent" />
+              <div className="p-3 rounded-xl bg-agora-ink/10">
+                <Package className="h-6 w-6 text-agora-ink" />
               </div>
             </div>
             {!statsLoading && stats?.activeProducts !== undefined && (
@@ -186,15 +191,13 @@ export default function VendorDashboardPage() {
         {/* Low Stock Alert */}
         <Card
           className={
-            (lowStockProducts?.length || 0) > 0
-              ? "border-agora-warning/50"
-              : ""
+            (lowStockProducts?.length || 0) > 0 ? "border-agora-warning/50" : ""
           }
         >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                {lowStockLoading ? (
+                {stockStatsLoading ? (
                   <>
                     <Skeleton className="h-8 w-16 mb-1" />
                     <Skeleton className="h-4 w-24" />
@@ -202,9 +205,11 @@ export default function VendorDashboardPage() {
                 ) : (
                   <>
                     <p className="text-2xl font-bold">
-                      {lowStockProducts?.length || 0}
+                      {stockStats?.lowStockCount || 0}
                     </p>
-                    <p className="text-sm text-muted-foreground">Stock faible</p>
+                    <p className="text-sm text-muted-foreground">
+                      Stock faible
+                    </p>
                   </>
                 )}
               </div>
@@ -212,7 +217,7 @@ export default function VendorDashboardPage() {
                 <AlertTriangle className="h-6 w-6 text-agora-warning" />
               </div>
             </div>
-            {!lowStockLoading && (lowStockProducts?.length || 0) > 0 && (
+            {!stockStatsLoading && (stockStats?.lowStockCount || 0) > 0 && (
               <Link
                 href="/vendeur/produits?filter=low-stock"
                 className="text-xs text-agora-warning mt-2 flex items-center gap-1 hover:underline"
@@ -228,7 +233,7 @@ export default function VendorDashboardPage() {
       {/* Charts and Recent Orders */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Sales Chart */}
-        <Card className="lg:col-span-3">
+        {/* <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Ventes de la semaine</CardTitle>
           </CardHeader>
@@ -281,7 +286,7 @@ export default function VendorDashboardPage() {
               </ResponsiveContainer>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Recent Orders */}
         <Card className="lg:col-span-2">
@@ -345,36 +350,46 @@ export default function VendorDashboardPage() {
       </div>
 
       {/* Low Stock Products */}
-      {(lowStockProducts?.length || 0) > 0 && (
-        <Card className="border-agora-warning/30">
+      {(stockStats?.lowStockCount || 0) > 0 && (
+        <Card className="border-agora-warning/30 ">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-agora-warning">
               <AlertTriangle className="h-5 w-5" />
-              Produits en stock faible
+              Quelque produits en stock faible
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {lowStockProducts?.slice(0, 4).map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/vendeur/produits/${product.id}`}
-                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                >
-                  <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                    <Package className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">
-                      {product.name}
-                    </p>
-                    <p className="text-xs text-agora-warning">
-                      Stock: {product.totalStock}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            {lowStockLoading ? (
+              <div className="space-y-4">
+                {[1, 2].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : (lowStockProducts?.length || 0) > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {lowStockProducts?.slice(0, 4).map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`/vendeur/produits/${product.id}`}
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Package className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {product.name}
+                      </p>
+                      <p className="text-xs text-agora-warning">
+                        Stock: {product.totalStock}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucun produit à afficher.</p>
+            )}
           </CardContent>
         </Card>
       )}

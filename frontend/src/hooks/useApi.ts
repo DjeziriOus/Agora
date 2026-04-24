@@ -98,10 +98,8 @@ export function useLowStockProducts(options?: { enabled?: boolean }) {
   return useQuery<Product[]>({
     queryKey: queryKeys.products.lowStock,
     queryFn: async () => {
-      const result = await productsApi.getMine();
-      return result.products.filter(
-        (product) => product.totalStock <= product.stockThreshold,
-      );
+      const result = await productsApi.getMine({ limit: "100", lowStock: "true" });
+      return result.products;
     },
     enabled: options?.enabled,
   });
@@ -350,15 +348,14 @@ export function useClearCart() {
 export function useVendorStats() {
   return useQuery({
     queryKey: queryKeys.vendor.stats,
-    queryFn: async () => {
-      // TODO: implement real vendor stats API
-      return {
-        revenue: 0,
-        revenueChange: 0,
-        ordersReceived: 0,
-        activeProducts: 0,
-        averageRating: 0,
-      };
-    },
+    queryFn: () => vendorApi.getStats(),
+  });
+}
+
+export function useStockStats(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["vendor", "stock-stats"],
+    queryFn: () => vendorApi.getStockStats(),
+    enabled: options?.enabled ?? true,
   });
 }

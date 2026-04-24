@@ -115,3 +115,27 @@ export const getMyShop = async (req, res) => {
 //     res.status(500).json({ message: error.message });
 //   }
 // };
+
+/**
+ * GET /api/shops/my/stats
+ */
+export const getVendorStats = async (req, res) => {
+  try {
+    const stats = await shopService.getVendorStats(req.user.id);
+    res.status(200).json(stats);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ message: error.message });
+  }
+};
+
+/**
+ * GET /api/shops/my/stock-stats
+ */
+export const getStockStats = async (req, res) => {
+  try {
+    const stats = await shopService.getStockStats(req.user.id);
+    res.status(200).json(stats);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ message: error.message });
+  }
+};
