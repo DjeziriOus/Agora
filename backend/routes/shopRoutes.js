@@ -20,10 +20,10 @@ router.put("/:id", verifyToken, isSeller, uploadShopImages, updateShop);
 // GET /api/shops/my
 router.get("/my", verifyToken, isSeller, getMyShop);
 
-// GET /api/shops/:id/products  (public)
-router.get("/:id/products", getShopProducts);
+// GET /api/shops/:slug/products  (public)
+router.get("/:slug/products", getShopProducts);
 
-// GET /api/shops/:id  (public)
-router.get("/:id", getShopById);
+// GET /api/shops/:slug  (public)
+router.get("/:slug", getShopById);
 
 export default router;

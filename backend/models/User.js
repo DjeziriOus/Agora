@@ -1,6 +1,4 @@
 import mongoose from "mongoose";
-import { requireEmailVerification } from "../auth.js";
-
 /**
  * Thin Mongoose User model — mirrors BetterAuth's `user` collection.
  * BetterAuth owns all writes; this model is used only for `.populate()` in
@@ -14,12 +12,13 @@ const userSchema = new mongoose.Schema(
     email: { type: String },
     emailVerified: {
       type: Boolean,
-      default: !requireEmailVerification, // auto-verified if email verification is disabled
+      default: false,
     },
     firstName: { type: String, default: "" },
     lastName: { type: String, default: "" },
     name: { type: String, default: "" }, // kept for BetterAuth compat
     image: { type: String, default: "" },
+    imagePublicId: { type: String, default: "" },
     age: { type: Number, default: null },
     gender: { type: String, default: "" },
     role: {

@@ -37,6 +37,7 @@ export interface Product {
   rating: number;
   reviewCount: number;
   storeId: string;
+  storeSlug: string;
   storeName: string;
   storeLogo?: string;
   images: string[];
@@ -145,6 +146,7 @@ export interface DeliveryAddress {
   city: string;
   postalCode: string;
   country: string;
+  phone?: string;
 }
 
 export interface Category {
@@ -217,6 +219,13 @@ export interface ProductQuery {
   sort?: "relevance" | "price_asc" | "price_desc" | "rating";
   page?: string;
   limit?: string;
+}
+
+export interface PaginatedResponse<T> {
+  products: T[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 // Dashboard Stats

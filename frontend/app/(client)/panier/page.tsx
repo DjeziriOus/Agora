@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Minus,
   Plus,
@@ -12,14 +13,54 @@ import {
   Store,
 } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/context/AuthContext";
 import type { CartItem as CartItemType } from "@/types";
 import { EmptyState } from "@/components/EmptyState";
+import { shopsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function CartPage() {
-  const { items, subtotal, updateQuantity, removeFromCart, clearCart, isLoading } =
-    useCart();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
+  const [isCheckingSellerRedirect, setIsCheckingSellerRedirect] =
+    useState(false);
+  const {
+    items,
+    subtotal,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    isLoading: isCartLoading,
+  } = useCart();
   const total = subtotal;
+
+  useEffect(() => {
+    if (isAuthLoading) return;
+
+    if (user?.role === "seller") {
+      let isCancelled = false;
+      setIsCheckingSellerRedirect(true);
+
+      shopsApi
+        .getMyStore()
+        .then((shop) => {
+          if (isCancelled) return;
+
+          router.replace(shop ? "/vendeur" : "/vendeur/boutique");
+        })
+        .catch(() => {
+          if (isCancelled) return;
+
+          router.replace("/vendeur/boutique");
+        });
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    setIsCheckingSellerRedirect(false);
+  }, [isAuthLoading, router, user]);
 
   // Group items by store
   const groupedItems = items.reduce(
@@ -28,24 +69,27 @@ export default function CartPage() {
       if (!acc[storeId]) {
         acc[storeId] = {
           storeName: item.product.storeName,
+          storeSlug: item.product.storeSlug,
           items: [],
         };
       }
       acc[storeId].items.push(item);
       return acc;
     },
-    {} as Record<string, { storeName: string; items: CartItemType[] }>,
+    {} as Record<string, { storeName: string; storeSlug: string; items: CartItemType[] }>,
   );
 
   const storeIds = Object.keys(groupedItems);
 
-  if (isLoading) {
+  if (isAuthLoading || isCheckingSellerRedirect || isCartLoading) {
     return (
       <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center">
         <span className="w-8 h-8 border-3 border-[var(--agora-line)] border-t-[var(--agora-primary)] rounded-full animate-spin" />
       </div>
     );
   }
+
+  if (user?.role === "seller") return null;
 
   if (items.length === 0) {
     return (
@@ -96,7 +140,7 @@ export default function CartPage() {
                 <div className="flex items-center gap-2 px-4 py-3 bg-[var(--agora-accent)] border-b border-[var(--agora-line)]">
                   <Store className="w-4 h-4 text-[var(--agora-mid)]" />
                   <Link
-                    href={`/boutique/${storeId}`}
+                    href={`/boutique/${groupedItems[storeId].storeSlug}`}
                     className="text-sm font-medium text-[var(--agora-ink)] hover:text-[var(--agora-primary)]"
                   >
                     {groupedItems[storeId].storeName}
@@ -163,13 +207,28 @@ export default function CartPage() {
               </div>
 
               {/* Checkout Button */}
-              <Link
-                href="/checkout"
-                className="w-full py-4 px-6 bg-[var(--agora-primary)] text-white rounded-[var(--radius-md)] font-medium text-center flex items-center justify-center gap-2 hover:bg-[var(--agora-primary-hover)] transition-colors"
-              >
-                Passer la commande
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              {user && !user.emailVerified ? (
+                <div>
+                  <button
+                    disabled
+                    className="w-full py-4 px-6 bg-[var(--agora-line)] text-[var(--agora-text-disabled)] rounded-[var(--radius-md)] font-medium text-center flex items-center justify-center gap-2 cursor-not-allowed"
+                  >
+                    Passer la commande
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <p className="mt-2 text-xs text-amber-600 text-center">
+                    ⚠ Vérifiez votre email pour pouvoir passer des commandes.
+                  </p>
+                </div>
+              ) : (
+                <Link
+                  href="/checkout"
+                  className="w-full py-4 px-6 bg-[var(--agora-primary)] text-white rounded-[var(--radius-md)] font-medium text-center flex items-center justify-center gap-2 hover:bg-[var(--agora-primary-hover)] transition-colors"
+                >
+                  Passer la commande
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              )}
 
               {/* Continue Shopping */}
               <Link

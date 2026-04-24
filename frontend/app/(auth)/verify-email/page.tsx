@@ -7,21 +7,20 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
 const RESEND_COOLDOWN_SECONDS = 60;
+const RESEND_COOLDOWN_STORAGE_KEY_PREFIX =
+  "agora_resend_verification_available_at";
 
-// Build a per-email storage key so each address gets its own resend cooldown window.
 function getResendCooldownStorageKey(email: string) {
-  return `agora_resend_verification_available_at_${email.toLowerCase()}`;
+  return `${RESEND_COOLDOWN_STORAGE_KEY_PREFIX}_${email.trim().toLowerCase()}`;
 }
 
 function VerifyEmailContent() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
-  const [cooldownRemaining, setCooldownRemaining] = useState(60);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const {
     resendVerification,
-    requireEmailVerification,
-    isAuthConfigLoading,
     pendingVerificationEmail,
     clearPendingVerificationEmail,
     isLoading,
@@ -33,16 +32,6 @@ function VerifyEmailContent() {
     if (isLoading) return;
     if (!pendingVerificationEmail) router.replace("/login");
   }, [isLoading, pendingVerificationEmail, router]);
-  // Drop stale pending-email state when the backend no longer requires email verification.
-  useEffect(() => {
-    if (!isAuthConfigLoading && !requireEmailVerification) {
-      clearPendingVerificationEmail();
-    }
-  }, [
-    clearPendingVerificationEmail,
-    isAuthConfigLoading,
-    requireEmailVerification,
-  ]);
 
   // Restore any persisted resend cooldown for the current pending verification email.
   useEffect(() => {
@@ -51,14 +40,18 @@ function VerifyEmailContent() {
       return;
     }
 
-    const storageKey = getResendCooldownStorageKey(verificationEmail);
-
     try {
-      const availableAt = Number(window.sessionStorage.getItem(storageKey));
+      const availableAt = Number(
+        window.sessionStorage.getItem(
+          getResendCooldownStorageKey(verificationEmail),
+        ),
+      );
       const remainingMs = availableAt - Date.now();
 
       if (!availableAt || remainingMs <= 0) {
-        window.sessionStorage.removeItem(storageKey);
+        window.sessionStorage.removeItem(
+          getResendCooldownStorageKey(verificationEmail),
+        );
         setCooldownRemaining(0);
         return;
       }
@@ -71,16 +64,21 @@ function VerifyEmailContent() {
 
   // Keep the resend countdown ticking while the current cooldown window is still active.
   useEffect(() => {
-    if (cooldownRemaining <= 0 || !verificationEmail) return;
+    if (!verificationEmail || cooldownRemaining <= 0) return;
 
-    const storageKey = getResendCooldownStorageKey(verificationEmail);
     const intervalId = window.setInterval(() => {
       try {
-        const availableAt = Number(window.sessionStorage.getItem(storageKey));
+        const availableAt = Number(
+          window.sessionStorage.getItem(
+            getResendCooldownStorageKey(verificationEmail),
+          ),
+        );
         const remainingMs = availableAt - Date.now();
 
         if (!availableAt || remainingMs <= 0) {
-          window.sessionStorage.removeItem(storageKey);
+          window.sessionStorage.removeItem(
+            getResendCooldownStorageKey(verificationEmail),
+          );
           setCooldownRemaining(0);
           return;
         }
@@ -103,13 +101,6 @@ function VerifyEmailContent() {
     setError(null);
     setMessage(null);
 
-    if (!requireEmailVerification) {
-      setError(
-        "La vérification par e-mail est désactivée pour le moment. Vous pouvez retourner à la connexion.",
-      );
-      return;
-    }
-
     if (!verificationEmail) {
       setError(
         "Adresse e-mail introuvable. Retournez à la page de connexion pour réessayer.",
@@ -127,7 +118,7 @@ function VerifyEmailContent() {
     setIsResending(true);
 
     try {
-      await resendVerification(verificationEmail);
+      await resendVerification();
       const availableAt = Date.now() + RESEND_COOLDOWN_SECONDS * 1000;
       window.sessionStorage.setItem(
         getResendCooldownStorageKey(verificationEmail),
@@ -191,35 +182,23 @@ function VerifyEmailContent() {
             </div>
 
             {/* Resend the verification email */}
-            {requireEmailVerification ? (
-              <p className="mt-6 text-center text-sm text-[var(--agora-mid)]">
-                Pas encore reçu le e-mail ?{" "}
-                <button
-                  type="button"
-                  onClick={handleResendVerification}
-                  disabled={
-                    isResending || cooldownRemaining > 0 || !verificationEmail
-                  }
-                  className="text-[var(--agora-primary)] font-medium hover:underline disabled:opacity-60 disabled:no-underline"
-                >
-                  {isResending
-                    ? "Renvoi en cours..."
-                    : cooldownRemaining > 0
-                      ? `Renvoyer dans ${cooldownRemaining}s`
-                      : "Renvoyer l'e-mail de vérification"}
-                </button>
-              </p>
-            ) : (
-              <p className="mt-6 text-center text-sm text-[var(--agora-mid)]">
-                La vérification par e-mail est désactivée.{" "}
-                <Link
-                  href="/login"
-                  className="text-[var(--agora-primary)] font-medium hover:underline"
-                >
-                  Retourner à la connexion
-                </Link>
-              </p>
-            )}
+            <p className="mt-6 text-center text-sm text-[var(--agora-mid)]">
+              Pas encore reçu le e-mail ?{" "}
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={
+                  isResending || cooldownRemaining > 0 || !verificationEmail
+                }
+                className="text-[var(--agora-primary)] font-medium hover:underline disabled:opacity-60 disabled:no-underline"
+              >
+                {isResending
+                  ? "Renvoi en cours..."
+                  : cooldownRemaining > 0
+                    ? `Renvoyer dans ${cooldownRemaining}s`
+                    : "Renvoyer l'e-mail de vérification"}
+              </button>
+            </p>
           </form>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -17,10 +17,15 @@ import {
 import { StarRating } from "@/components/StarRating";
 import { AgoraBadge } from "@/components/AgoraBadge";
 import { ProductCard } from "@/components/ProductCard";
+import { SkeletonProductGrid } from "@/components/SkeletonCard";
 import { useCart } from "@/hooks/useCart";
-import { useProduct } from "@/hooks/useApi";
+import { useProduct, useProducts } from "@/hooks/useApi";
+import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/api";
-import { mockProducts } from "@/lib/mockData";
+import {
+  getRelatedProducts,
+  PUBLIC_PRODUCTS_LIMIT,
+} from "@/lib/productBrowse";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { Product, Review } from "@/types";
+import type { Review } from "@/types";
 import { cn } from "@/lib/utils";
 
 export default function ProductDetailPage({
@@ -39,21 +44,24 @@ export default function ProductDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { isSeller } = useAuth();
   const { addToCart, isAdding } = useCart();
-  const { data: apiProduct, isLoading, error } = useProduct(id);
-  const fallbackProduct = mockProducts.find((p) => p.id === id);
-  const product = apiProduct ?? fallbackProduct;
+  const { data: product, isLoading, error } = useProduct(id);
+  const {
+    data: productsResponse,
+    isLoading: isRelatedProductsLoading,
+  } = useProducts({ limit: String(PUBLIC_PRODUCTS_LIMIT) });
   const errorStatus = error instanceof ApiError ? error.status : null;
   const isNotFoundError = errorStatus === 404;
+  const allProducts = productsResponse?.products ?? [];
   const store = product?.storeId
-    ? { id: product.storeId, name: product.storeName, logo: product.storeLogo }
+    ? { id: product.storeId, slug: product.storeSlug, name: product.storeName, logo: product.storeLogo }
     : null;
   const reviews: Review[] = [];
-  const relatedProducts: Product[] = product
-    ? mockProducts
-        .filter((p) => p.id !== product.id && p.category === product.category)
-        .slice(0, 4)
-    : [];
+  const relatedProducts = useMemo(
+    () => (product ? getRelatedProducts(allProducts, product) : []),
+    [allProducts, product],
+  );
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -67,13 +75,24 @@ export default function ProductDetailPage({
 
   // Auto-select the first active variant when product loads
   useEffect(() => {
-    if (product?.variants?.length) {
-      const firstActive = product.variants.find((v) => v.isActive);
-      if (firstActive && !selectedVariantCode) {
-        setSelectedVariantCode(firstActive.code);
-      }
+    if (!product?.variants?.length) {
+      setSelectedVariantCode(null);
+      return;
+    }
+
+    const hasMatchingActiveVariant = product.variants.some(
+      (variant) => variant.isActive && variant.code === selectedVariantCode,
+    );
+
+    if (!hasMatchingActiveVariant) {
+      const firstActive = product.variants.find((variant) => variant.isActive);
+      setSelectedVariantCode(firstActive?.code ?? null);
     }
   }, [product, selectedVariantCode]);
+
+  useEffect(() => {
+    setSelectedImage(0);
+  }, [product?.id]);
 
   // Show a loading state while the detail request is still resolving.
   if (isLoading && !product) {
@@ -133,6 +152,8 @@ export default function ProductDetailPage({
   const activeVariants = (product.variants ?? []).filter(
     (variant) => variant.isActive,
   );
+  const productImages =
+    product.images.length > 0 ? product.images : ["/placeholder-product.png"];
   const hasMultipleVariants = activeVariants.length > 1;
   const selectedVariant = activeVariants.find(
     (variant) => variant.code === selectedVariantCode,
@@ -141,6 +162,8 @@ export default function ProductDetailPage({
   const displayStock = selectedVariant?.stock ?? product.totalStock;
 
   const handleAddToCart = async () => {
+    if (isSeller) return;
+
     // Block the add-to-cart action when the selected product option is out of stock.
     if (displayStock === 0) return;
 
@@ -190,7 +213,7 @@ export default function ProductDetailPage({
             {/* Main Image */}
             <div className="relative aspect-square bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-xl)] overflow-hidden mb-4">
               <Image
-                src={product.images[selectedImage]}
+                src={productImages[selectedImage] ?? productImages[0]}
                 alt={product.name}
                 fill
                 className="object-cover"
@@ -221,7 +244,7 @@ export default function ProductDetailPage({
 
             {/* Thumbnails */}
             <div className="flex gap-3 overflow-x-auto pb-2">
-              {product.images.map((image, index) => (
+              {productImages.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
@@ -292,66 +315,75 @@ export default function ProductDetailPage({
               </div>
             )}
 
-            {/* Quantity Selector */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-[var(--agora-ink)] mb-2">
-                Quantité
-              </label>
-              <div className="inline-flex items-center border border-[var(--agora-line)] rounded-[var(--radius-md)]">
-                <button
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  disabled={quantity <= 1}
-                  className="p-3 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Minus className="w-4 h-4" />
-                </button>
-                <span className="w-12 text-center font-medium text-[var(--agora-ink)]">
-                  {quantity}
-                </span>
-                <button
-                  onClick={() =>
-                    setQuantity((q) => Math.min(displayStock, q + 1))
-                  }
-                  disabled={quantity >= displayStock}
-                  className="p-3 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+            {!isSeller ? (
+              <>
+                {/* Quantity Selector */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-[var(--agora-ink)] mb-2">
+                    Quantité
+                  </label>
+                  <div className="inline-flex items-center border border-[var(--agora-line)] rounded-[var(--radius-md)]">
+                    <button
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      disabled={quantity <= 1}
+                      className="p-3 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-12 text-center font-medium text-[var(--agora-ink)]">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setQuantity((q) => Math.min(displayStock, q + 1))
+                      }
+                      disabled={quantity >= displayStock}
+                      className="p-3 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
 
-            {/* Add to Cart Button */}
-            <button
-              onClick={handleAddToCart}
-              disabled={isOutOfStock || isAdding}
-              className={cn(
-                "w-full py-4 px-6 rounded-[var(--radius-md)] font-medium text-lg transition-all flex items-center justify-center gap-2",
-                isOutOfStock
-                  ? "bg-[var(--agora-line)] text-[var(--agora-mid)] cursor-not-allowed"
-                  : justAdded
-                  ? "bg-[var(--agora-green)] text-white"
-                  : "bg-[var(--agora-primary)] text-white hover:bg-[var(--agora-primary-hover)] active:scale-[0.98]"
-              )}
-            >
-              {justAdded ? (
-                <>
-                  <Check className="w-5 h-5 animate-checkmark" />
-                  Ajouté au panier
-                </>
-              ) : isAdding ? (
-                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <ShoppingCart className="w-5 h-5" />
-                  Ajouter au panier
-                </>
-              )}
-            </button>
+                {/* Add to Cart Button */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock || isAdding}
+                  className={cn(
+                    "w-full py-4 px-6 rounded-[var(--radius-md)] font-medium text-lg transition-all flex items-center justify-center gap-2",
+                    isOutOfStock
+                      ? "bg-[var(--agora-line)] text-[var(--agora-mid)] cursor-not-allowed"
+                      : justAdded
+                        ? "bg-[var(--agora-green)] text-white"
+                        : "bg-[var(--agora-primary)] text-white hover:bg-[var(--agora-primary-hover)] active:scale-[0.98]"
+                  )}
+                >
+                  {justAdded ? (
+                    <>
+                      <Check className="w-5 h-5 animate-checkmark" />
+                      Ajouté au panier
+                    </>
+                  ) : isAdding ? (
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-5 h-5" />
+                      Ajouter au panier
+                    </>
+                  )}
+                </button>
+              </>
+            ) : (
+              <div className="rounded-[var(--radius-md)] border border-[var(--agora-line)] bg-[var(--agora-accent)] px-4 py-4 text-sm leading-relaxed text-[var(--agora-mid)]">
+                Les comptes vendeurs ne peuvent pas passer commande. Veuillez
+                utiliser un compte particulier pour acheter ce produit.
+              </div>
+            )}
 
             {/* Store Card */}
             {store && (
               <Link
-                href={`/boutique/${store.id}`}
+                href={`/boutique/${store.slug}`}
                 className="mt-6 p-4 bg-[var(--agora-accent)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] flex items-center gap-4 hover:border-[var(--agora-primary)] transition-colors"
               >
                 <div className="w-12 h-12 rounded-full bg-[var(--agora-surface)] border border-[var(--agora-line)] overflow-hidden relative">
@@ -524,7 +556,17 @@ export default function ProductDetailPage({
         </section>
 
         {/* Related Products */}
-        {relatedProducts.length > 0 && (
+        {isRelatedProductsLoading ? (
+          <section className="mt-16">
+            <h2 className="font-display text-2xl font-bold text-[var(--agora-ink)] mb-6">
+              Produits similaires
+            </h2>
+            <SkeletonProductGrid
+              count={4}
+              className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+            />
+          </section>
+        ) : relatedProducts.length > 0 && (
           <section className="mt-16">
             <h2 className="font-display text-2xl font-bold text-[var(--agora-ink)] mb-6">
               Produits similaires

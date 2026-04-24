@@ -8,12 +8,16 @@ import {
   useSellerProducts,
   useToggleProductActive,
   useDeleteProduct,
+  useMyStore,
 } from "@/hooks/useApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { SellerShopRequiredState } from "@/components/SellerShopRequiredState";
+import { Pagination } from "@/components/Pagination";
+import { isMissingSellerShopError } from "@/lib/shopErrors";
 import {
   Table,
   TableBody,
@@ -53,11 +57,23 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+const PRODUCTS_PER_PAGE = 10;
+
 function VendorProductsContent() {
   const searchParams = useSearchParams();
   const filterLowStock = searchParams.get("filter") === "low-stock";
 
-  const { data, isLoading, error } = useSellerProducts();
+  const {
+    data: store,
+    isLoading: isStoreLoading,
+    error: storeError,
+  } = useMyStore();
+  const hasStore = Boolean(store);
+  const [page, setPage] = useState(1);
+  const { data, isLoading, error } = useSellerProducts(
+    { page: String(page), limit: String(PRODUCTS_PER_PAGE) },
+    { enabled: hasStore },
+  );
   const toggleActive = useToggleProductActive();
   const deleteProduct = useDeleteProduct();
 
@@ -68,8 +84,10 @@ function VendorProductsContent() {
   const products = Array.isArray(data)
     ? data
     : data?.products || [];
+  const total = (data && !Array.isArray(data)) ? data.total ?? 0 : products.length;
+  const totalPages = Math.ceil(total / PRODUCTS_PER_PAGE);
 
-  // Filter products
+  // Filter products (client-side search within current page)
   let filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -105,7 +123,7 @@ function VendorProductsContent() {
     }
   };
 
-  if (isLoading) {
+  if (isStoreLoading || (hasStore && isLoading)) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -114,6 +132,24 @@ function VendorProductsContent() {
         </div>
         <Skeleton className="h-[500px] w-full" />
       </div>
+    );
+  }
+
+  if (isMissingSellerShopError(storeError)) {
+    return <SellerShopRequiredState />;
+  }
+
+  if (storeError) {
+    return (
+      <EmptyState
+        icon={<Package className="w-12 h-12" />}
+        title="Erreur de chargement"
+        description="Impossible de charger votre boutique."
+        action={{
+          label: "Réessayer",
+          href: "/vendeur/produits",
+        }}
+      />
     );
   }
 
@@ -133,14 +169,14 @@ function VendorProductsContent() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header — use total from backend for accurate count */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-heading font-bold text-foreground">
             Mes produits
           </h1>
           <p className="text-muted-foreground mt-1">
-            {products.length} produit{products.length > 1 ? "s" : ""} au total
+            {total} produit{total > 1 ? "s" : ""} au total
           </p>
         </div>
         <Button asChild>
@@ -178,6 +214,7 @@ function VendorProductsContent() {
 
       {/* Products Table */}
       {filteredProducts.length > 0 ? (
+        <>
         <Card>
           <CardContent className="p-0">
             <Table>
@@ -313,6 +350,12 @@ function VendorProductsContent() {
             </Table>
           </CardContent>
         </Card>
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
+        </>
       ) : (
         <EmptyState
           icon={<Package className="w-12 h-12" />}

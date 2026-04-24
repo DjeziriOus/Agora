@@ -10,11 +10,11 @@ import {
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { API_URL } from "@/config";
 import type { User } from "@/types";
 
 const PENDING_VERIFICATION_EMAIL_STORAGE_KEY =
   "agora_pending_verification_email";
-
 type AuthConfigResponse = {
   requireEmailVerification: boolean;
 };
@@ -33,17 +33,18 @@ interface AuthContextType {
   ensureAuthConfig: () => Promise<boolean>;
   setPendingVerificationEmail: (email: string) => void;
   clearPendingVerificationEmail: () => void;
+  pendingVerificationEmail: string | null;
   refreshSession: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User | null | undefined>;
   register: (data: {
     firstName: string;
     lastName: string;
     email: string;
     password: string;
     role: "buyer" | "seller";
-  }) => Promise<void>;
+  }) => Promise<{ emailVerified: boolean | undefined }>;
   logout: () => Promise<void>;
-  resendVerification: (email: string) => Promise<void>;
+  resendVerification: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -65,12 +66,12 @@ function mapUser(sessionUser: Record<string, unknown>): User {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingVerificationEmailState, setPendingVerificationEmailState] =
+    useState<string | null>(null);
   const [isAuthConfigLoading, setIsAuthConfigLoading] = useState(true);
   const [requireEmailVerification, setRequireEmailVerification] =
     useState(true);
   const [emailNotVerified, setEmailNotVerified] = useState(false);
-  const [pendingVerificationEmailState, setPendingVerificationEmailState] =
-    useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -87,18 +88,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // // Fetch the backend auth flags so register and verify-email flows stay in sync.
-  // const ensureAuthConfig = useCallback(async () => {
-  //   try {
-  //     setRequireEmailVerification(data.requireEmailVerification);
-  //     return data.requireEmailVerification;
-  //   } catch {
-  //     // Fail closed: keep verification enabled in the UI when config cannot be loaded.
-  //     return true;
-  //   } finally {
-  //     setIsAuthConfigLoading(false);
-  //   }
-  // }, []);
+  // Fetch the backend auth flags so register, verify-email, and settings flows stay in sync.
+  const ensureAuthConfig = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/config`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Impossible de charger la configuration d'auth.");
+      }
+
+      const data = (await response.json()) as AuthConfigResponse;
+      const shouldRequireVerification = Boolean(data.requireEmailVerification);
+
+      setRequireEmailVerification(shouldRequireVerification);
+      return shouldRequireVerification;
+    } catch {
+      // Fail closed: keep verification enabled in the UI when config cannot be loaded.
+      return true;
+    } finally {
+      setIsAuthConfigLoading(false);
+    }
+  }, []);
 
   // Persist the pending verification email so the verify page survives navigation and refreshes.
   const setPendingVerificationEmail = useCallback((email: string) => {
@@ -144,7 +161,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    initAuth();
+    // void ensureAuthConfig();
+    void initAuth();
 
     try {
       const storedEmail = window.sessionStorage.getItem(
@@ -182,45 +200,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.replace("/choose-role");
   }, [isLoading, pathname, router, user]);
 
-  // Sign in the user and raise a one-shot redirect flag if the backend says the email is still unverified.
-  const login = useCallback(
-    async (email: string, password: string) => {
-      setIsLoading(true);
-      setEmailNotVerified(false);
-      clearPendingVerificationEmail();
+  // Sign in the user. With requireEmailVerification removed from Better Auth,
+  // unverified users can now log in — verification is enforced at checkout instead.
+  const login = useCallback(async (email: string, password: string) => {
+    setIsLoading(true);
 
-      const { data, error } = await authClient.signIn.email({
-        email,
-        password,
-      });
+    const { data, error } = await authClient.signIn.email({
+      email,
+      password,
+    });
 
-      setIsLoading(false);
+    setIsLoading(false);
 
-      if (error) {
-        // Better Auth returns this code when email is not verified
-        if (
-          error.code === "EMAIL_NOT_VERIFIED" ||
-          error.status === 403 ||
-          (error.message ?? "").toLowerCase().includes("verif")
-        ) {
-          setPendingVerificationEmail(email);
-          setEmailNotVerified(true);
-          return;
-        }
-        throw new Error(error.message ?? "Une erreur est survenue");
-      }
+    if (error) {
+      throw new Error(error.message ?? "Une erreur est survenue");
+    }
 
-      // On success, remap the Better Auth user payload to our own User model,
-      // then redirect to the appropriate page based on the user's role.
-      if (data?.user) {
-        const mapped = mapUser(data.user as Record<string, unknown>);
-        setUser(mapped);
-        return mapped;
-      }
-      return null;
-    },
-    [clearPendingVerificationEmail, router, setPendingVerificationEmail],
-  );
+    // On success, remap the Better Auth user payload to our own User model,
+    // then redirect to the appropriate page based on the user's role.
+    if (data?.user) {
+      const mapped = mapUser(data.user as Record<string, unknown>);
+      setUser(mapped);
+      return mapped;
+    }
+    return null;
+  }, []);
 
   // Create the account and let the caller decide whether to continue to login or email verification.
   const register = useCallback(
@@ -289,18 +293,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   }, [clearPendingVerificationEmail, router]);
 
-  // Reset the one-shot redirect flag after the login page has consumed it.
+  // Reset is no longer needed but kept for API compat.
   const clearEmailNotVerified = useCallback(() => {
     setEmailNotVerified(false);
   }, []);
 
-  // Ask Better Auth to send a fresh verification email for the pending address.
-  const resendVerification = useCallback(async (email: string) => {
-    const { error } = await authClient.sendVerificationEmail({
-      email,
-      callbackURL: "/verify-email",
+  // Ask the backend to resend the verification email.
+  // No email is sent from the frontend — the backend derives it from the session.
+  const resendVerification = useCallback(async () => {
+    const res = await fetch(`${API_URL}/api/account/resend-verification`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "ngrok-skip-browser-warning": "true" },
     });
-    if (error) throw new Error(error.message ?? "Impossible d'envoyer l'email");
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message ?? "Impossible d'envoyer l'email");
+    }
   }, []);
 
   return (
@@ -310,12 +319,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isSeller: user?.role === "seller",
         isLoading,
-        isAuthConfigLoading,
-        requireEmailVerification,
-        emailNotVerified,
         pendingVerificationEmail: pendingVerificationEmailState,
         clearEmailNotVerified,
-        // ensureAuthConfig,
+        ensureAuthConfig,
         setPendingVerificationEmail,
         clearPendingVerificationEmail,
         refreshSession,

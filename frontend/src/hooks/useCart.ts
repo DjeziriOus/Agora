@@ -136,19 +136,19 @@ const rollback = (
  * Components destructure only what they need.
  */
 export function useCart() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isSeller } = useAuth();
   const queryClient = useQueryClient();
 
   // ── Query: fetch cart ──────────────────────────────────────────────────────
   const cartQuery = useQuery<Cart>({
     queryKey: CART_KEY,
     queryFn: () => cartApi.get(),
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !isSeller,
     staleTime: 30_000,
   });
 
   const { items, itemCount, subtotal, storeGroups } = deriveCartValues(
-    cartQuery.data,
+    isSeller ? undefined : cartQuery.data,
   );
 
   // ── Mutation: add to cart ──────────────────────────────────────────────────
@@ -261,6 +261,11 @@ export function useCart() {
     quantity = 1,
     variantId?: string | null,
   ) => {
+    if (isSeller) {
+      toast.error("Les comptes vendeurs ne peuvent pas passer de commande");
+      return;
+    }
+
     const productId =
       typeof productOrId === "string" ? productOrId : productOrId.id;
 
@@ -288,14 +293,20 @@ export function useCart() {
     quantity: number,
     variantId: string,
   ) => {
+    if (isSeller) return;
+
     updateQtyMutation.mutate({ productId, quantity, variantId });
   };
 
   const removeFromCart = (productId: string, variantId: string) => {
+    if (isSeller) return;
+
     removeMutation.mutate({ productId, variantId });
   };
 
   const clearCart = () => {
+    if (isSeller) return;
+
     clearMutation.mutate();
   };
 
@@ -307,8 +318,8 @@ export function useCart() {
     storeGroups,
 
     // Loading states
-    isLoading: cartQuery.isLoading,
-    isFetching: cartQuery.isFetching,
+    isLoading: !isSeller && cartQuery.isLoading,
+    isFetching: !isSeller && cartQuery.isFetching,
 
     // Actions
     addToCart,

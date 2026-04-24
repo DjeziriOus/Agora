@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { API_URL } from "../config";
 import type {
   Cart,
@@ -26,6 +27,7 @@ type BackendStore = {
   _id?: string;
   id?: string;
   name: string;
+  slug?: string;
   description?: string;
   logo?: BackendStoreImage;
   banner?: BackendStoreImage;
@@ -42,6 +44,7 @@ type BackendProductShop =
       _id?: string;
       id?: string;
       name?: string;
+      slug?: string;
       logo?: BackendStoreImage;
     };
 
@@ -125,6 +128,9 @@ const mapProduct = (product: BackendProduct): Product => {
       ? product.shop
       : (product.shop?.id ?? product.shop?._id ?? "");
 
+  const storeSlug =
+    typeof product.shop === "string" ? "" : (product.shop?.slug ?? "");
+
   const storeName =
     typeof product.shop === "string" ? "" : (product.shop?.name ?? "");
 
@@ -155,6 +161,7 @@ const mapProduct = (product: BackendProduct): Product => {
     rating: product.rating ?? 0,
     reviewCount: product.reviewCount ?? 0,
     storeId,
+    storeSlug,
     storeName,
     storeLogo,
     images: (product.images ?? []).map((image) =>
@@ -296,6 +303,8 @@ export async function apiFetch<T>(
     } catch {
       /* non-JSON error body */
     }
+    // console.log("message", message);
+    toast.error(message);
     throw new ApiError(res.status, message);
   }
 
@@ -331,13 +340,21 @@ export const productsApi = {
     const product = await apiFetch<BackendProduct>(`/api/products/mine/${id}`);
     return mapSellerProduct(product);
   },
-  getMine: async () => {
+  getMine: async (params?: ProductQuery) => {
+    const qs = params
+      ? "?" +
+        new URLSearchParams(
+          Object.fromEntries(
+            Object.entries(params).filter(([, v]) => v !== undefined),
+          ) as Record<string, string>,
+        ).toString()
+      : "";
     const result = await apiFetch<{
       products: BackendProduct[];
       total: number;
       page: number;
       limit: number;
-    }>(`/api/products/mine`);
+    }>(`/api/products/mine${qs}`);
 
     return {
       ...result,
@@ -385,13 +402,19 @@ export const storesApi = {
           ) as Record<string, string>,
         ).toString()
       : "";
-    const products = await apiFetch<BackendProduct[]>(
+    const result = await apiFetch<{
+      products: BackendProduct[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(
       `/api/shops/${id}/products${qs}`,
     );
-    return products.map(mapProduct);
+    return { ...result, products: result.products.map(mapProduct) };
   },
   getMyStore: async () => {
     const store = await apiFetch<unknown>("/api/shops/my");
+
     return store ?? null;
   },
   create: (data: unknown) =>
@@ -535,7 +558,7 @@ export const ordersApi = {
       body: JSON.stringify({ status }),
     }),
   create: (data: unknown) =>
-    apiFetch<unknown>("/api/orders", {
+    apiFetch<{ id: string }>("/api/orders", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -557,5 +580,5 @@ export const addressesApi = {
   delete: (id: string) =>
     apiFetch<void>(`/api/addresses/${id}`, { method: "DELETE" }),
   setDefault: (id: string) =>
-    apiFetch<unknown>(`/api/addresses/${id}/default`, { method: "PATCH" }),
+    apiFetch<unknown>(`/api/addresses/${id}/default`, { method: "POST" }),
 };

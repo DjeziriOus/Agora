@@ -1,12 +1,15 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { shopsApi } from "@/lib/api";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User, Package, MapPin, Settings, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from '@/components/ui/button';
+import EmailVerificationAlert from '@/components/EmailVerificationAlert';
 
 const accountLinks = [
   { href: "/compte", label: "Mon compte", icon: User, exact: true },
@@ -23,14 +26,43 @@ export default function AccountLayoutClient({
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isCheckingSellerRedirect, setIsCheckingSellerRedirect] =
+    useState(false);
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login?redirect=/compte");
-    }
-  }, [user, isLoading, router]);
+    if (isLoading) return;
 
-  if (isLoading) {
+    if (!user) {
+      router.push("/login?redirect=/compte");
+      return;
+    }
+
+    if (user.role === "seller") {
+      let isCancelled = false;
+      setIsCheckingSellerRedirect(true);
+
+      shopsApi
+        .getMyStore()
+        .then((shop) => {
+          if (isCancelled) return;
+
+          router.replace(shop ? "/vendeur" : "/vendeur/boutique");
+        })
+        .catch(() => {
+          if (isCancelled) return;
+
+          router.replace("/vendeur/boutique");
+        });
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    setIsCheckingSellerRedirect(false);
+  }, [isLoading, router, user]);
+
+  if (isLoading || isCheckingSellerRedirect) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -38,11 +70,12 @@ export default function AccountLayoutClient({
     );
   }
 
-  if (!user) return null;
+  if (!user || user.role === "seller") return null;
 
   return (
     <main className="min-h-screen bg-muted/30">
       <div className="container mx-auto px-4 py-8">
+        <EmailVerificationAlert user={user} />
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
           <aside className="w-full lg:w-64 shrink-0">
@@ -51,7 +84,7 @@ export default function AccountLayoutClient({
                 <p className="font-heading font-semibold text-foreground">
                   {user.firstName} {user.lastName}
                 </p>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
+                <p className="text-sm text-muted-foreground truncate">{user.email}</p>
               </div>
               <nav className="space-y-1">
                 {accountLinks.map((link) => {
@@ -59,6 +92,7 @@ export default function AccountLayoutClient({
                     ? pathname === link.href
                     : pathname.startsWith(link.href);
                   const Icon = link.icon;
+                  const isUnverified = user && !user.emailVerified;
                   return (
                     <Link
                       key={link.href}
@@ -72,7 +106,9 @@ export default function AccountLayoutClient({
                     >
                       <Icon className="h-4 w-4" />
                       {link.label}
-                      {isActive && <ChevronRight className="h-4 w-4 ml-auto" />}
+                      {isActive && (
+                        <ChevronRight className="h-4 w-4 ml-auto" />
+                      )}
                     </Link>
                   );
                 })}

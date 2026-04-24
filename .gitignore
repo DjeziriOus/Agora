@@ -7,21 +7,24 @@
 #Postman
 agora-betterauth.postman_collection.json
 frontend/src/config.ts
-*.sh
+# *.sh
 
 .claude
 gantt tasks.txt
 /*.txt
 
 TODO.md
-change-log.md
+CHANGELOG.md
 DONE.md
 
 .continue
 /*.txt
-backend/scripts/move-test-to-multivendor.js
+
 gmail_api_rollback_guide.md
+backend/scripts/move-test-to-multivendor.js
+implementation_plan2.md
 tmp_sync
 .
 
 *.ps1
+sync-trunk.sh

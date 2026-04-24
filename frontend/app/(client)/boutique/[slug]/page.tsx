@@ -1,29 +1,38 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Store, Calendar, Package } from "lucide-react";
 import { StarRating } from "@/components/StarRating";
 import { ProductCard } from "@/components/ProductCard";
+import { SkeletonProductGrid } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
+import { Pagination } from "@/components/Pagination";
 import { useStore, useStoreProducts } from "@/hooks/useApi";
+
+const PRODUCTS_PER_PAGE = 12;
 
 export default function StorePage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = use(params);
-  const { data: store, isLoading } = useStore(id);
+  const { slug } = use(params);
+  const [page, setPage] = useState(1);
+  const { data: store, isLoading } = useStore(slug);
   const {
-    data: products = [],
+    data: productsResponse,
     isLoading: isProductsLoading,
     isError: isProductsError,
     error: productsError,
-  } = useStoreProducts(id);
+  } = useStoreProducts(slug, { page: String(page), limit: String(PRODUCTS_PER_PAGE) });
 
-  if (isLoading || isProductsLoading) {
+  const products = productsResponse?.products ?? [];
+  const total = productsResponse?.total ?? 0;
+  const totalPages = Math.ceil(total / PRODUCTS_PER_PAGE);
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center">
         <p>Chargement...</p>
@@ -54,7 +63,7 @@ export default function StorePage({
     : new Date().getFullYear();
   const bannerUrl = store.banner?.url?.trim() || "";
   const logoUrl = store.logo?.url?.trim() || "";
-  const productCount = store.productCount ?? products.length;
+  const productCount = store.productCount ?? total;
 
   return (
     <div className="min-h-screen bg-[var(--agora-bg)]">
@@ -135,12 +144,24 @@ export default function StorePage({
                 : "La boutique est chargée, mais la liste produits a échoué."
             }
           />
+        ) : isProductsLoading ? (
+          <SkeletonProductGrid
+            count={PRODUCTS_PER_PAGE}
+            className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          />
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </>
         ) : (
           <EmptyState
             type="products"

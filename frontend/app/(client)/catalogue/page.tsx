@@ -1,26 +1,20 @@
 "use client";
 
-import { useState, useMemo, Suspense, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useMemo, Suspense, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { SlidersHorizontal, Grid3X3, List, X, ChevronDown, ChevronUp } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { SkeletonProductGrid } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
-import { StarRating } from "@/components/StarRating";
-import { productsApi } from "@/lib/api";
+import { Pagination } from "@/components/Pagination";
+import { useProducts } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
-import type { Product } from "@/types";
+import type { ProductQuery } from "@/types";
 
 type SortOption = "relevance" | "price_asc" | "price_desc" | "rating";
 type ViewMode = "grid" | "list";
 
-interface FilterState {
-  minPrice: number;
-  maxPrice: number;
-  categories: string[];
-  stores: string[];
-  minRating: number;
-}
+const PRODUCTS_PER_PAGE = 12;
 
 const sortOptions: { value: SortOption; label: string }[] = [
   { value: "relevance", label: "Pertinence" },
@@ -31,42 +25,100 @@ const sortOptions: { value: SortOption; label: string }[] = [
 
 function CatalogueContent() {
   const searchParams = useSearchParams();
-  const categoryParam = searchParams.get("category");
+  const router = useRouter();
+  const categoryParam = searchParams.get("category") || "";
   const queryParam = searchParams.get("q") || "";
-
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const pageParam = searchParams.get("page") || "1";
+  const sortParam = (searchParams.get("sort") || "relevance") as SortOption;
+  const minPriceParam = searchParams.get("minPrice") || "";
+  const maxPriceParam = searchParams.get("maxPrice") || "";
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [sortBy, setSortBy] = useState<SortOption>("relevance");
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     price: true,
     category: true,
-    store: true,
     rating: true,
   });
 
-  const [filters, setFilters] = useState<FilterState>({
-    minPrice: 0,
-    maxPrice: 500,
-    categories: categoryParam ? [categoryParam] : [],
-    stores: [],
-    minRating: 0,
-  });
+  // Build the API query from URL search params
+  const apiQuery: ProductQuery = useMemo(() => {
+    const q: ProductQuery = {
+      page: pageParam,
+      limit: String(PRODUCTS_PER_PAGE),
+    };
+    if (queryParam) q.q = queryParam;
+    if (categoryParam) q.category = categoryParam;
+    if (sortParam && sortParam !== "relevance") q.sort = sortParam;
+    if (minPriceParam) q.minPrice = minPriceParam;
+    if (maxPriceParam) q.maxPrice = maxPriceParam;
+    return q;
+  }, [pageParam, queryParam, categoryParam, sortParam, minPriceParam, maxPriceParam]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await productsApi.getAll();
-        setProducts(res.products);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsLoadingProducts(false);
+  const {
+    data: productsResponse,
+    isLoading,
+    isError,
+  } = useProducts(apiQuery);
+
+  // Fetch all products once (no filters) to extract available categories
+  const { data: allProductsResponse } = useProducts({ limit: "100" });
+  const allProducts = allProductsResponse?.products ?? [];
+
+  const products = productsResponse?.products ?? [];
+  const total = productsResponse?.total ?? 0;
+  const currentPage = productsResponse?.page ?? 1;
+  const totalPages = Math.ceil(total / PRODUCTS_PER_PAGE);
+
+  // Build categories dynamically from ALL products (not just current page)
+  const categories = useMemo(() => {
+    const map = new Map<string, number>();
+    allProducts.forEach((p) => map.set(p.category, (map.get(p.category) ?? 0) + 1));
+    return Array.from(map.entries()).map(([name, count], i) => ({
+      id: `${i}`,
+      name,
+      productCount: count,
+    }));
+  }, [allProducts]);
+
+  // Update URL params helper
+  const updateParams = useCallback(
+    (updates: Record<string, string | undefined>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === undefined || value === "" || value === "0") {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
       }
-    })();
-  }, []);
+      // Reset to page 1 when any filter changes (except page itself)
+      if (!("page" in updates)) {
+        params.delete("page");
+      }
+      router.push(`/catalogue?${params.toString()}`);
+    },
+    [searchParams, router]
+  );
+
+  const handlePageChange = (page: number) => {
+    updateParams({ page: page === 1 ? undefined : String(page) });
+  };
+
+  const handleSortChange = (sort: SortOption) => {
+    updateParams({ sort: sort === "relevance" ? undefined : sort });
+  };
+
+  const handleCategoryToggle = (cat: string) => {
+    updateParams({ category: categoryParam === cat ? undefined : cat });
+  };
+
+  const handlePriceChange = (min: string, max: string) => {
+    updateParams({
+      minPrice: min && Number(min) > 0 ? min : undefined,
+      maxPrice: max && Number(max) < 10000 ? max : undefined,
+    });
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
@@ -76,97 +128,27 @@ function CatalogueContent() {
   };
 
   const resetFilters = () => {
-    setFilters({
-      minPrice: 0,
-      maxPrice: 500,
-      categories: [],
-      stores: [],
-      minRating: 0,
-    });
+    router.push("/catalogue");
   };
 
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
-
-    if (queryParam.trim() !== "") {
-      const q = queryParam.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q)
-      );
-    }
-
-    if (filters.minPrice > 0) {
-      result = result.filter((p) => p.displayPrice >= filters.minPrice);
-    }
-    if (filters.maxPrice < 500) {
-      result = result.filter((p) => p.displayPrice <= filters.maxPrice);
-    }
-    if (filters.categories.length > 0) {
-      result = result.filter((p) => filters.categories.includes(p.category));
-    }
-    if (filters.stores.length > 0) {
-      result = result.filter((p) => filters.stores.includes(p.storeId));
-    }
-    if (filters.minRating > 0) {
-      result = result.filter((p) => p.rating >= filters.minRating);
-    }
-
-    switch (sortBy) {
-      case "price_asc":
-        result.sort((a, b) => a.displayPrice - b.displayPrice);
-        break;
-      case "price_desc":
-        result.sort((a, b) => b.displayPrice - a.displayPrice);
-        break;
-      case "rating":
-        result.sort((a, b) => b.rating - a.rating);
-        break;
-      default:
-        break;
-    }
-
-    return result;
-  }, [products, filters, sortBy, queryParam]);
-
-  // Build categories and stores dynamically from real API data
-  const categories = useMemo(() => {
-    const map = new Map<string, number>();
-    products.forEach((p) => map.set(p.category, (map.get(p.category) ?? 0) + 1));
-    return Array.from(map.entries()).map(([name, count], i) => ({
-      id: `${i}`,
-      name,
-      productCount: count,
-    }));
-  }, [products]);
-
-  const stores = useMemo(() => {
-    const map = new Map<string, { name: string; count: number }>();
-    products.forEach((p) => {
-      const existing = map.get(p.storeId);
-      if (existing) {
-        existing.count++;
-      } else {
-        map.set(p.storeId, { name: p.storeName || "Boutique", count: 1 });
-      }
-    });
-    return Array.from(map.entries()).map(([id, v]) => ({
-      id,
-      name: v.name,
-      productCount: v.count,
-    }));
-  }, [products]);
-
   const hasActiveFilters =
-    filters.minPrice > 0 ||
-    filters.maxPrice < 500 ||
-    filters.categories.length > 0 ||
-    filters.stores.length > 0 ||
-    filters.minRating > 0;
+    !!categoryParam ||
+    !!minPriceParam ||
+    !!maxPriceParam ||
+    !!queryParam;
 
-  if (isLoadingProducts) {
-    return <SkeletonProductGrid />;
+  if (isLoading && products.length === 0) {
+    return (
+      <div className="min-h-screen bg-[var(--agora-bg)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          <div className="mb-8">
+            <h1 className="font-display text-3xl font-bold text-[var(--agora-ink)]">Catalogue</h1>
+            <p className="text-[var(--agora-mid)] mt-1">Découvrez notre sélection de produits artisanaux</p>
+          </div>
+          <SkeletonProductGrid />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -186,14 +168,16 @@ function CatalogueContent() {
           {/* Filter Sidebar - Desktop */}
           <aside className="hidden lg:block w-64 shrink-0">
             <FilterPanel
-              filters={filters}
-              setFilters={setFilters}
+              selectedCategory={categoryParam}
+              onCategoryToggle={handleCategoryToggle}
+              minPrice={minPriceParam}
+              maxPrice={maxPriceParam}
+              onPriceChange={handlePriceChange}
               expandedSections={expandedSections}
               toggleSection={toggleSection}
               resetFilters={resetFilters}
               hasActiveFilters={hasActiveFilters}
               categories={categories}
-              stores={stores}
             />
           </aside>
 
@@ -215,15 +199,15 @@ function CatalogueContent() {
                 </button>
 
                 <span className="text-sm text-[var(--agora-mid)]">
-                  {filteredProducts.length} produit{filteredProducts.length !== 1 ? "s" : ""} trouvé{filteredProducts.length !== 1 ? "s" : ""}
+                  {total} produit{total !== 1 ? "s" : ""} trouvé{total !== 1 ? "s" : ""}
                 </span>
               </div>
 
               <div className="flex items-center gap-3">
                 {/* Sort Dropdown */}
                 <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  value={sortParam}
+                  onChange={(e) => handleSortChange(e.target.value as SortOption)}
                   className="px-3 py-2 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-sm text-[var(--agora-ink)] bg-[var(--agora-surface)] focus:outline-none focus:border-[var(--agora-primary)] cursor-pointer"
                 >
                   {sortOptions.map((option) => (
@@ -264,19 +248,41 @@ function CatalogueContent() {
             </div>
 
             {/* Product Grid */}
-            {filteredProducts.length > 0 ? (
-              <div
+            {isError ? (
+              <EmptyState
+                type="search"
+                title="Erreur de chargement"
+                description="Impossible de charger les produits pour le moment."
+              />
+            ) : isLoading ? (
+              <SkeletonProductGrid
+                count={PRODUCTS_PER_PAGE}
                 className={cn(
-                  "grid gap-6",
                   viewMode === "grid"
-                    ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
-                    : "grid-cols-1"
+                    ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
+                    : "grid-cols-1 gap-6"
                 )}
-              >
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+              />
+            ) : products.length > 0 ? (
+              <>
+                <div
+                  className={cn(
+                    "grid gap-6",
+                    viewMode === "grid"
+                      ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+                      : "grid-cols-1"
+                  )}
+                >
+                  {products.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </>
             ) : (
               <EmptyState
                 type="search"
@@ -313,14 +319,25 @@ function CatalogueContent() {
             </div>
             <div className="p-4">
               <FilterPanel
-                filters={filters}
-                setFilters={setFilters}
+                selectedCategory={categoryParam}
+                onCategoryToggle={(cat) => {
+                  handleCategoryToggle(cat);
+                  setIsFilterOpen(false);
+                }}
+                minPrice={minPriceParam}
+                maxPrice={maxPriceParam}
+                onPriceChange={(min, max) => {
+                  handlePriceChange(min, max);
+                  setIsFilterOpen(false);
+                }}
                 expandedSections={expandedSections}
                 toggleSection={toggleSection}
-                resetFilters={resetFilters}
+                resetFilters={() => {
+                  resetFilters();
+                  setIsFilterOpen(false);
+                }}
                 hasActiveFilters={hasActiveFilters}
                 categories={categories}
-                stores={stores}
               />
             </div>
             <div className="p-4 border-t border-[var(--agora-line)]">
@@ -328,7 +345,7 @@ function CatalogueContent() {
                 onClick={() => setIsFilterOpen(false)}
                 className="w-full py-3 bg-[var(--agora-primary)] text-white rounded-[var(--radius-md)] font-medium hover:bg-[var(--agora-primary-hover)] transition-colors"
               >
-                Voir {filteredProducts.length} résultat{filteredProducts.length !== 1 ? "s" : ""}
+                Voir les résultats
               </button>
             </div>
           </div>
@@ -348,24 +365,47 @@ export default function CataloguePage() {
 
 // Filter Panel Component
 function FilterPanel({
-  filters,
-  setFilters,
+  selectedCategory,
+  onCategoryToggle,
+  minPrice,
+  maxPrice,
+  onPriceChange,
   expandedSections,
   toggleSection,
   resetFilters,
   hasActiveFilters,
   categories,
-  stores,
 }: {
-  filters: FilterState;
-  setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
+  selectedCategory: string;
+  onCategoryToggle: (category: string) => void;
+  minPrice: string;
+  maxPrice: string;
+  onPriceChange: (min: string, max: string) => void;
   expandedSections: Record<string, boolean>;
   toggleSection: (section: string) => void;
   resetFilters: () => void;
   hasActiveFilters: boolean;
   categories: { id: string; name: string; productCount: number }[];
-  stores: { id: string; name: string; productCount: number }[];
 }) {
+  const [localMin, setLocalMin] = useState(minPrice);
+  const [localMax, setLocalMax] = useState(maxPrice);
+
+  // Sync local state with URL params
+  useEffect(() => {
+    setLocalMin(minPrice);
+    setLocalMax(maxPrice);
+  }, [minPrice, maxPrice]);
+
+  // Debounced price application
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localMin !== minPrice || localMax !== maxPrice) {
+        onPriceChange(localMin, localMax);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localMin, localMax, minPrice, maxPrice, onPriceChange]);
+
   return (
     <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] p-4 sticky top-24">
       {/* Header */}
@@ -397,15 +437,11 @@ function FilterPanel({
               </label>
               <input
                 type="number"
-                value={filters.minPrice}
-                onChange={(e) =>
-                  setFilters((f) => ({
-                    ...f,
-                    minPrice: Math.max(0, parseInt(e.target.value) || 0),
-                  }))
-                }
+                value={localMin}
+                onChange={(e) => setLocalMin(e.target.value)}
                 className="w-full px-3 py-2 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-sm"
                 min={0}
+                placeholder="0"
               />
             </div>
             <span className="text-[var(--agora-mid)] mt-5">—</span>
@@ -415,15 +451,11 @@ function FilterPanel({
               </label>
               <input
                 type="number"
-                value={filters.maxPrice}
-                onChange={(e) =>
-                  setFilters((f) => ({
-                    ...f,
-                    maxPrice: Math.max(0, parseInt(e.target.value) || 500),
-                  }))
-                }
+                value={localMax}
+                onChange={(e) => setLocalMax(e.target.value)}
                 className="w-full px-3 py-2 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-sm"
                 min={0}
+                placeholder="10000"
               />
             </div>
           </div>
@@ -443,22 +475,11 @@ function FilterPanel({
               className="flex items-center gap-3 py-1 cursor-pointer group"
             >
               <input
-                type="checkbox"
-                checked={filters.categories.includes(category.name)}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setFilters((f) => ({
-                      ...f,
-                      categories: [...f.categories, category.name],
-                    }));
-                  } else {
-                    setFilters((f) => ({
-                      ...f,
-                      categories: f.categories.filter((c) => c !== category.name),
-                    }));
-                  }
-                }}
-                className="w-4 h-4 rounded border-[var(--agora-line)] text-[var(--agora-primary)] focus:ring-[var(--agora-primary)]"
+                type="radio"
+                name="category"
+                checked={selectedCategory === category.name}
+                onChange={() => onCategoryToggle(category.name)}
+                className="w-4 h-4 border-[var(--agora-line)] text-[var(--agora-primary)] focus:ring-[var(--agora-primary)]"
               />
               <span className="text-sm text-[var(--agora-ink)] group-hover:text-[var(--agora-primary)] transition-colors flex-1">
                 {category.name}
@@ -468,76 +489,9 @@ function FilterPanel({
               </span>
             </label>
           ))}
-        </div>
-      </FilterSection>
-
-      {/* Store Filter */}
-      <FilterSection
-        title="Boutique"
-        isExpanded={expandedSections.store}
-        onToggle={() => toggleSection("store")}
-      >
-        <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-          {stores.map((store) => (
-            <label
-              key={store.id}
-              className="flex items-center gap-3 py-1 cursor-pointer group"
-            >
-              <input
-                type="checkbox"
-                checked={filters.stores.includes(store.id)}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setFilters((f) => ({
-                      ...f,
-                      stores: [...f.stores, store.id],
-                    }));
-                  } else {
-                    setFilters((f) => ({
-                      ...f,
-                      stores: f.stores.filter((s) => s !== store.id),
-                    }));
-                  }
-                }}
-                className="w-4 h-4 rounded border-[var(--agora-line)] text-[var(--agora-primary)] focus:ring-[var(--agora-primary)]"
-              />
-              <span className="text-sm text-[var(--agora-ink)] group-hover:text-[var(--agora-primary)] transition-colors flex-1 truncate">
-                {store.name}
-              </span>
-              <span className="text-xs text-[var(--agora-mid)] bg-[var(--agora-accent)] px-2 py-0.5 rounded-full">
-                {store.productCount}
-              </span>
-            </label>
-          ))}
-        </div>
-      </FilterSection>
-
-      {/* Rating Filter */}
-      <FilterSection
-        title="Note"
-        isExpanded={expandedSections.rating}
-        onToggle={() => toggleSection("rating")}
-      >
-        <div className="space-y-2">
-          {[4, 3, 2, 1].map((rating) => (
-            <label
-              key={rating}
-              className="flex items-center gap-3 py-1 cursor-pointer group"
-            >
-              <input
-                type="radio"
-                name="rating"
-                checked={filters.minRating === rating}
-                onChange={() => setFilters((f) => ({ ...f, minRating: rating }))}
-                className="w-4 h-4 border-[var(--agora-line)] text-[var(--agora-primary)] focus:ring-[var(--agora-primary)]"
-              />
-              <StarRating rating={rating} size="sm" />
-              <span className="text-sm text-[var(--agora-mid)]">et plus</span>
-            </label>
-          ))}
-          {filters.minRating > 0 && (
+          {selectedCategory && (
             <button
-              onClick={() => setFilters((f) => ({ ...f, minRating: 0 }))}
+              onClick={() => onCategoryToggle(selectedCategory)}
               className="text-sm text-[var(--agora-primary)] hover:underline mt-2"
             >
               Effacer

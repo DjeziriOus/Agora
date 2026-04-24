@@ -10,6 +10,10 @@ import {
   sendVerificationEmail,
   sendPasswordResetEmail,
 } from "./services/emailService.js";
+import {
+  cleanupDeletedUserData,
+  getAccountDeletionBlockReason,
+} from "./services/accountDeletionService.js";
 
 // BetterAuth gets its own direct MongoClient connection.
 // This avoids the timing issue where mongoose.connection.getClient() is undefined
@@ -21,6 +25,7 @@ const db = client.db();
 // Derive the email verification policy once so every auth entry point uses the same flag.
 export const requireEmailVerification =
   process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+const isProduction = process.env.NODE_ENV === "production";
 
 console.log("IS EMAIL VERIFICATION REQUIRED?", requireEmailVerification);
 
@@ -36,18 +41,23 @@ export const auth = betterAuth({
     },
   }),
 
-  advanced: {
-    defaultCookieAttributes: {
-      sameSite: "none",
-      secure: true,
-    },
-  },
+  ...(isProduction
+    ? {
+        advanced: {
+          defaultCookieAttributes: {
+            sameSite: "none",
+            secure: true,
+          },
+        },
+      }
+    : {}),
 
   // ── Email + Password ──────────────────────────────────
-  // Set REQUIRE_EMAIL_VERIFICATION=true in .env once SMTP is configured.
+  // NOTE: requireEmailVerification is NOT set here so that unverified users
+  // can still log in and browse. Checkout is blocked by our own middleware
+  // (requireVerifiedEmail) and frontend guards instead.
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification,
     sendResetPassword: async ({ user, url }) => {
       await sendPasswordResetEmail(user.email, url);
     },
@@ -61,7 +71,7 @@ export const auth = betterAuth({
       const modifiedUrl = new URL(url);
       modifiedUrl.searchParams.set(
         "callbackURL",
-        `${process.env.FRONTEND_URL}/login`,
+        `${process.env.FRONTEND_URL}/email-verified`,
       );
       await sendVerificationEmail(user.email, modifiedUrl);
     },
@@ -87,12 +97,39 @@ export const auth = betterAuth({
 
   // ── Extended profile fields on the user document ──────
   user: {
+    changeEmail: {
+      enabled: true,
+      // Keep email-change verification aligned with the global auth policy.
+      updateEmailWithoutVerification: !requireEmailVerification,
+    },
+    deleteUser: {
+      enabled: true,
+      beforeDelete: async (user) => {
+        const blockReason = await getAccountDeletionBlockReason({
+          userId: user.id,
+          role: typeof user.role === "string" ? user.role : "buyer",
+        });
+
+        if (blockReason) {
+          throw new APIError("BAD_REQUEST", {
+            code: blockReason.code,
+            message: blockReason.message,
+          });
+        }
+
+        await cleanupDeletedUserData({
+          userId: user.id,
+          role: typeof user.role === "string" ? user.role : "buyer",
+        });
+      },
+    },
     additionalFields: {
       firstName: { type: "string", input: true, defaultValue: "" },
       lastName: { type: "string", input: true, defaultValue: "" },
       age: { type: "number", input: true, defaultValue: null },
       gender: { type: "string", input: true, defaultValue: "" },
       role: { type: "string", input: true, defaultValue: "unassigned" },
+      imagePublicId: { type: "string", input: true, defaultValue: "" },
     },
   },
 
@@ -121,13 +158,13 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
-          // Always set emailVerified explicitly:
-          // - When verification is required → false (user must confirm via email)
-          // - When verification is disabled → true  (auto-verified for dev convenience)
+          // Google OAuth users arrive with emailVerified already true —
+          // preserve that. Only force false for email/password signups
+          // when verification is required.
           return {
             data: {
               ...user,
-              emailVerified: !requireEmailVerification,
+              emailVerified: user.emailVerified || !requireEmailVerification,
             },
           };
         },

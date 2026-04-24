@@ -150,16 +150,22 @@ jobs:
 
           cd "$SVN_WORK/wc"
 
+          # ── Stage deletions (must come BEFORE svn add) ──
+          svn status | grep '^!' | while IFS= read -r line; do
+            FILE="${line:8}"
+            svn delete --force "$FILE" 2>/dev/null || true
+          done || true
+
           # ── Stage additions ──
           svn add --force . 2>/dev/null || true
 
-          # ── Stage deletions ──
-          svn status | grep '^!' | while IFS= read -r line; do
-            svn delete --force "${line:8}" 2>/dev/null || true
-          done || true
+          # ── Debug: show what SVN sees ──
+          echo "── svn status ──"
+          svn status
+          echo "────────────────"
 
-          # ── Commit if there are changes ──
-          if svn status | grep -qE '^[MADR]'; then
+          # ── Commit if there are ANY changes (modified, added, deleted, replaced, or property changes) ──
+          if svn status | grep -qvE '^\?' | grep -q .; then
             svn commit --username "$SVN_USERNAME" --password "$SVN_PASSWORD" \
               --no-auth-cache --non-interactive -m "$SVN_MSG"
             echo "✅ SVN sync complete: $BRANCH → $SVN_PATH"

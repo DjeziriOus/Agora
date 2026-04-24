@@ -9,6 +9,7 @@ import {
   LogOut,
   Package,
   LayoutDashboard,
+  Settings,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,19 +23,17 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { VerificationBanner } from './VerificationBanner';
+import Image from 'next/image';
 
 function AgoraIcon() {
   return (
-    <svg
-      width="28"
-      height="28"
-      viewBox="0 0 28 28"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path d="M14 3L27 25H1L14 3Z" fill="var(--agora-gold)" />
-      <path d="M14 10L23 25H5L14 10Z" fill="var(--agora-primary)" />
-    </svg>
+    <Image
+      src="/logo.png"
+      alt="Agora"
+      width={45}
+      height={45}
+    />
   );
 }
 
@@ -74,31 +73,35 @@ export function Navbar() {
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
     : "";
+  const authReady = !isLoading;
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-[var(--agora-line)]">
+      <VerificationBanner   />
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-4 h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
+          <Link href="/" className="flex items-center gap-1 shrink-0">
             <AgoraIcon />
-            <span className="font-bold text-[var(--agora-ink)] text-lg leading-none">
+            <span className="font-bold text-[var(--agora-ink)] text-xl leading-none">
               Agora
             </span>
           </Link>
 
           {/* Nav */}
           <nav className="hidden sm:flex items-center gap-4 shrink-0">
-            <Link
-              href="/catalogue"
-              className="text-sm font-medium text-[var(--agora-ink)] hover:text-[var(--agora-primary)] transition-colors"
-            >
-              Catalogue
-            </Link>
-            {isAuthenticated && isSeller && (
+            {authReady && !isSeller && (
+              <Link
+                href="/catalogue"
+                className="text-sm font-medium text-[var(--agora-ink)] hover:text-[var(--agora-primary)] transition-colors"
+              >
+                Catalogue
+              </Link>
+            )}
+            {authReady && isAuthenticated && isSeller && (
               <Link
                 href="/vendeur"
-                className="flex items-center gap-1.5 text-sm font-medium text-[var(--agora-gold)] hover:text-[var(--agora-primary)] transition-colors"
+                className="flex items-center gap-1.5 text-sm font-medium text-[var(--agora-primary)] hover:text-[var(--agora-gold)] transition-colors"
               >
                 <LayoutDashboard className="w-4 h-4" />
                 Tableau de bord
@@ -178,18 +181,20 @@ export function Navbar() {
           {/* Right : panier + auth */}
           <div className="flex items-center gap-1 shrink-0">
             {/* Panier */}
-            <Link
-              href="/panier"
-              className="relative p-2 rounded-lg hover:bg-[var(--agora-accent)] transition-colors"
-              aria-label="Panier"
-            >
-              <ShoppingCart className="w-5 h-5 text-[var(--agora-ink)]" />
-              {itemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-[var(--agora-primary)] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
-                  {itemCount}
-                </span>
-              )}
-            </Link>
+            {authReady && !isSeller && (
+              <Link
+                href="/panier"
+                className="relative p-2 rounded-lg hover:bg-[var(--agora-accent)] transition-colors"
+                aria-label="Panier"
+              >
+                <ShoppingCart className="w-5 h-5 text-[var(--agora-ink)]" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-[var(--agora-primary)] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
+                    {itemCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {/* Auth */}
             {!isLoading &&
@@ -197,8 +202,12 @@ export function Navbar() {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-lg hover:bg-[var(--agora-accent)] transition-colors"
+                    className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-lg hover:bg-[var(--agora-accent)] transition-colors relative"
                   >
+                    {/* Red notification dot for unverified email */}
+                    {user && !user.emailVerified && (
+                      <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white z-10" />
+                    )}
                     {user?.image ? (
                       <img
                         src={user.image}
@@ -228,23 +237,58 @@ export function Navbar() {
                           {user?.email}
                         </p>
                       </div>
+                      {!isSeller && (
+                        <Link
+                          href="/compte"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
+                        >
+                          <User className="w-4 h-4 text-[var(--agora-mid)]" />
+                          Mon compte
+                          {user && !user.emailVerified && (
+                            <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                              1
+                            </span>
+                          )}
+                        </Link>
+                      )}
                       {isSeller && (
                         <Link
                           href="/vendeur"
                           onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-gold)] hover:bg-[var(--agora-accent)] transition-colors"
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-primary)] hover:text-[var(--agora-gold)] transition-colors"
                         >
                           <LayoutDashboard className="w-4 h-4" />
                           Tableau de bord
                         </Link>
                       )}
+                      {!isSeller && (
+                        <>
+                          <Link
+                            href="/compte"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
+                          >
+                            <User className="w-4 h-4 text-[var(--agora-mid)]" />
+                            Mon compte
+                          </Link>
+                          <Link
+                            href="/compte/commandes"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
+                          >
+                            <Package className="w-4 h-4 text-[var(--agora-mid)]" />
+                            Mes commandes
+                          </Link>
+                        </>
+                      )}
                       <Link
-                        href="/compte/commandes"
+                        href={isSeller ? "/vendeur/parametres" : "/compte/parametres"}
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
                       >
-                        <Package className="w-4 h-4 text-[var(--agora-mid)]" />
-                        Mes commandes
+                        <Settings className="w-4 h-4 text-[var(--agora-mid)]" />
+                        Paramètres
                       </Link>
                       <button
                         onClick={() => {

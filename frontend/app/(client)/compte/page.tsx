@@ -18,6 +18,8 @@ export default function AccountPage() {
 
   return (
     <div className="space-y-6">
+
+
       <div>
         <h1 className="text-2xl font-heading font-bold text-foreground">
           Bonjour, {user?.firstName} !
@@ -117,8 +119,8 @@ export default function AccountPage() {
                         order.status === "livree"
                           ? "bg-agora-success/10 text-agora-success"
                           : order.status === "en_livraison"
-                          ? "bg-primary/10 text-primary"
-                          : "bg-agora-warning/10 text-agora-warning"
+                            ? "bg-primary/10 text-primary"
+                            : "bg-agora-warning/10 text-agora-warning"
                       }`}
                     >
                       {order.status === "en_attente" && "En attente"}

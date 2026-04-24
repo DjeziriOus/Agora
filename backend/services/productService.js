@@ -75,6 +75,12 @@ const getSellerShopOrThrow = async (ownerId) => {
 	return shop;
 };
 
+// Public catalogue endpoints should only expose products that still belong
+// to a visible shop. This prevents leaked products when account deletion
+// soft-deletes the shop but a product document somehow remains public.
+const getActivePublicShopIds = async () =>
+	Shop.distinct("_id", { isDeleted: false });
+
 /**
  * Enrich a product document with its variants and computed aggregates.
  * Returns a plain object ready for API response.
@@ -150,8 +156,9 @@ const buildMineFilters = (shopId, query = {}) => {
 };
 
 // Build filters for public catalogue listing.
-const buildPublicFilters = (query = {}) => {
+const buildPublicFilters = (query = {}, activeShopIds = []) => {
 	const filters = {
+		shop: { $in: activeShopIds },
 		isDeleted: false,
 		isActive: true,
 	};
@@ -165,7 +172,28 @@ const buildPublicFilters = (query = {}) => {
 		];
 	}
 
+	// Category filter — exact match (case-insensitive)
+	const category = (query.category || "").trim();
+	if (category) {
+		filters.category = { $regex: `^${escapeRegExp(category)}$`, $options: "i" };
+	}
+
 	return filters;
+};
+
+// Convert the `sort` query param into a Mongoose sort object.
+const buildSortOrder = (sortParam) => {
+	switch (sortParam) {
+		case "price_asc":
+			return { displayPrice: 1, createdAt: -1 };
+		case "price_desc":
+			return { displayPrice: -1, createdAt: -1 };
+		case "rating":
+			return { rating: -1, createdAt: -1 };
+		default:
+			// "relevance" / newest first
+			return { createdAt: -1 };
+	}
 };
 
 // ── Public catalogue listing ─────────────────────────────────────────────────
@@ -174,7 +202,8 @@ const getProducts = async (query = {}) => {
 	const limit = Math.min(toSafeInt(query.limit, DEFAULT_LIMIT), MAX_LIMIT);
 	const skip = (page - 1) * limit;
 
-	const filters = buildPublicFilters(query);
+	const activeShopIds = await getActivePublicShopIds();
+	const filters = buildPublicFilters(query, activeShopIds);
 
 	// If price filtering is requested, find product IDs with matching variant prices first
 	const minPrice = Number(query.minPrice);
@@ -191,10 +220,12 @@ const getProducts = async (query = {}) => {
 		filters._id = { $in: matchingProductIds };
 	}
 
+	const sortOrder = buildSortOrder(query.sort);
+
 	const [products, total] = await Promise.all([
 		Product.find(filters)
-			.populate("shop", "name logo")
-			.sort({ createdAt: -1 })
+			.populate("shop", "name slug logo")
+			.sort(sortOrder)
 			.skip(skip)
 			.limit(limit),
 		Product.countDocuments(filters),
@@ -214,11 +245,13 @@ const getProducts = async (query = {}) => {
 const getProductById = async (productId) => {
 	assertObjectId(productId, "product id");
 
+	const activeShopIds = await getActivePublicShopIds();
 	const product = await Product.findOne({
 		_id: productId,
+		shop: { $in: activeShopIds },
 		isDeleted: false,
 		isActive: true,
-	}).populate("shop", "name logo");
+	}).populate("shop", "name slug logo");
 
 	if (!product) {
 		const error = new Error("Product not found.");
@@ -239,7 +272,7 @@ const getMyProductById = async ({ ownerId, productId }) => {
 		_id: productId,
 		shop: shop._id,
 		isDeleted: false,
-	}).populate("shop", "name logo");
+	}).populate("shop", "name slug logo");
 
 	if (!product) {
 		const error = new Error("Product not found.");

@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,11 +14,27 @@ import {
   Lock,
   Truck,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/context/AuthContext";
+import { useCreateOrder } from "@/hooks/useApi";
+import { addressesApi, shopsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type CheckoutStep = "shipping" | "payment" | "confirmation";
+
+interface Address {
+  _id: string;
+  recipientName: string;
+  phone: string;
+  addressLabel: "home" | "work" | "other";
+  addressLine: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
 
 interface ShippingInfo {
   firstName: string;
@@ -36,13 +53,75 @@ interface PaymentInfo {
 }
 
 export default function CheckoutPage() {
+  // Step state must be declared before any effect using it
+  const [currentStep, setCurrentStep] = useState<CheckoutStep>("shipping");
+  // Address selection state
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [addressesError, setAddressesError] = useState<string | null>(null);
+
+  // Fetch address list from backend
+  useEffect(() => {
+    if (currentStep !== "shipping") return;
+    let isCancelled = false;
+
+    const loadAddresses = async () => {
+      try {
+        setAddressesError(null);
+        const data = (await addressesApi.getAll()) as Address[];
+        if (isCancelled) return;
+
+        setAddresses(data);
+
+        const defaultAddress = data.find((address) => address.isDefault);
+        setSelectedAddressId(
+          defaultAddress?._id ?? data[0]?._id ?? null,
+        );
+      } catch (error) {
+        if (isCancelled) return;
+
+        setAddresses([]);
+        setSelectedAddressId(null);
+        setAddressesError(
+          error instanceof Error
+            ? error.message
+            : "Impossible de charger vos adresses.",
+        );
+      }
+    };
+
+    void loadAddresses();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentStep]);
+
+  // Auto-fill shippingInfo when address is selected
+  useEffect(() => {
+    if (!selectedAddressId) return;
+    const addr = addresses.find((address) => address._id === selectedAddressId);
+    if (addr) {
+      setShippingInfo({
+        firstName: addr.recipientName,
+        lastName: "",
+        address: addr.addressLine,
+        city: addr.city,
+        postalCode: addr.postalCode,
+        phone: addr.phone,
+      });
+    }
+  }, [addresses, selectedAddressId]);
   const router = useRouter();
   const { items, clearCart } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const [isCheckingSellerRedirect, setIsCheckingSellerRedirect] =
+    useState(false);
 
-  const [currentStep, setCurrentStep] = useState<CheckoutStep>("shipping");
+  // (Moved above for correct initialization order)
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const createOrder = useCreateOrder();
 
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     firstName: "",
@@ -60,31 +139,23 @@ export default function CheckoutPage() {
     nameOnCard: "",
   });
 
-  const steps: { key: CheckoutStep; label: string; icon: React.ElementType }[] = [
-    { key: "shipping", label: "Livraison", icon: MapPin },
-    { key: "payment", label: "Paiement", icon: CreditCard },
-    { key: "confirmation", label: "Confirmation", icon: Check },
-  ];
+  const steps: { key: CheckoutStep; label: string; icon: React.ElementType }[] =
+    [
+      { key: "shipping", label: "Livraison", icon: MapPin },
+      { key: "payment", label: "Paiement", icon: CreditCard },
+      { key: "confirmation", label: "Confirmation", icon: Check },
+    ];
 
   const currentStepIndex = steps.findIndex((s) => s.key === currentStep);
 
   const total = useMemo(() => {
-    return items.reduce(
-      (sum, item) => sum + item.unitPrice * item.quantity,
-      0,
-    );
+    return items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
   }, [items]);
 
+  // Shipping step is valid if an address is selected
   const isShippingValid = useMemo(() => {
-    return (
-      shippingInfo.firstName.trim() !== "" &&
-      shippingInfo.lastName.trim() !== "" &&
-      shippingInfo.address.trim() !== "" &&
-      shippingInfo.city.trim() !== "" &&
-      shippingInfo.postalCode.trim() !== "" &&
-      shippingInfo.phone.trim() !== ""
-    );
-  }, [shippingInfo]);
+    return !!selectedAddressId;
+  }, [selectedAddressId]);
 
   const isPaymentValid = useMemo(() => {
     return (
@@ -94,6 +165,89 @@ export default function CheckoutPage() {
       paymentInfo.nameOnCard.trim() !== ""
     );
   }, [paymentInfo]);
+
+  useEffect(() => {
+    if (isAuthLoading) return;
+
+    if (user?.role === "seller") {
+      let isCancelled = false;
+      setIsCheckingSellerRedirect(true);
+
+      shopsApi
+        .getMyStore()
+        .then((shop) => {
+          if (isCancelled) return;
+
+          router.replace(shop ? "/vendeur" : "/vendeur/boutique");
+        })
+        .catch(() => {
+          if (isCancelled) return;
+
+          router.replace("/vendeur/boutique");
+        });
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    setIsCheckingSellerRedirect(false);
+  }, [isAuthLoading, router, user]);
+
+  if (isAuthLoading || isCheckingSellerRedirect) {
+    return (
+      <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center">
+        <span className="w-8 h-8 border-3 border-[var(--agora-line)] border-t-[var(--agora-primary)] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (user?.role === "seller") return null;
+
+  // ── Block unverified users from checkout ──────────────────────────────────
+  if (user && !user.emailVerified) {
+    return (
+      <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-xl)] p-8 text-center shadow-[var(--shadow-md)]">
+          <div className="w-16 h-16 mx-auto rounded-full bg-amber-50 flex items-center justify-center mb-5">
+            <Lock className="w-8 h-8 text-amber-500" />
+          </div>
+          <h2 className="font-display font-bold text-xl text-[var(--agora-ink)] mb-2">
+            Vérifiez votre email
+          </h2>
+          <p className="text-[var(--agora-mid)] text-sm mb-6">
+            Vous devez vérifier votre adresse email avant de pouvoir passer des
+            commandes. Vérifiez votre boîte de réception.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={async () => {
+                if (!user.email) return;
+                try {
+                  const { sendVerificationEmail } =
+                    await import("@/lib/auth-client").then((m) => m.authClient);
+                  await sendVerificationEmail({
+                    email: user.email,
+                    callbackURL: "/checkout",
+                  });
+                } catch {}
+              }}
+              className="w-full py-3 px-4 bg-[var(--agora-primary)] text-white rounded-[var(--radius-md)] font-medium hover:bg-[var(--agora-primary-hover)] transition-colors"
+            >
+              Renvoyer l&apos;email de vérification
+            </button>
+            <Link
+              href="/panier"
+              className="inline-flex items-center justify-center gap-1 text-sm text-[var(--agora-mid)] hover:text-[var(--agora-primary)]"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Retour au panier
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Redirect to cart if empty (except on confirmation)
   if (items.length === 0 && currentStep !== "confirmation") {
@@ -118,14 +272,37 @@ export default function CheckoutPage() {
     if (currentStep === "shipping" && isShippingValid) {
       setCurrentStep("payment");
     } else if (currentStep === "payment" && isPaymentValid) {
-      // Process payment
       setIsProcessing(true);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const newOrderId = `AGO-${Date.now().toString(36).toUpperCase()}`;
-      setOrderId(newOrderId);
-      clearCart();
-      setIsProcessing(false);
-      setCurrentStep("confirmation");
+      try {
+        const selectedAddress = addresses.find(a => a._id === selectedAddressId);
+        if (!selectedAddress) throw new Error("Please select an address");
+        const result = await createOrder.mutateAsync({
+          items: items.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
+          deliveryAddress: {
+            firstName: selectedAddress.recipientName,
+            lastName: "", // Fill if you have lastName
+            addressLine1: selectedAddress.addressLine,
+            city: selectedAddress.city,
+            postalCode: selectedAddress.postalCode,
+            country: selectedAddress.country,
+            phone: selectedAddress.phone,
+          },
+          paymentMethod: "card",
+        });
+        setOrderId(result.id);
+        await clearCart();
+        setCurrentStep("confirmation");
+      } catch (err) {
+        console.error("Order creation error:", err);
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        toast.error(`Error: ${msg}`);
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -154,7 +331,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-[var(--agora-bg)]">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        {/* Back to Cart */}
+        {/* Back to Cart button */}
         {currentStep !== "confirmation" && (
           <Link
             href="/panier"
@@ -165,10 +342,10 @@ export default function CheckoutPage() {
           </Link>
         )}
 
-        {/* Progress Stepper */}
+        {/* Progress Stepper UI */}
         <div className="mb-8">
           <div className="flex items-center justify-between relative">
-            {/* Progress Line */}
+            {/* Progress Line UI */}
             <div className="absolute top-5 left-0 right-0 h-0.5 bg-[var(--agora-line)]">
               <div
                 className="h-full bg-[var(--agora-primary)] transition-all duration-300"
@@ -178,7 +355,7 @@ export default function CheckoutPage() {
               />
             </div>
 
-            {/* Steps */}
+            {/* Step icons and labels */}
             {steps.map((step, index) => {
               const isActive = index === currentStepIndex;
               const isComplete = index < currentStepIndex;
@@ -195,8 +372,8 @@ export default function CheckoutPage() {
                       isComplete
                         ? "bg-[var(--agora-green)] text-white"
                         : isActive
-                        ? "bg-[var(--agora-primary)] text-white"
-                        : "bg-[var(--agora-surface)] border-2 border-[var(--agora-line)] text-[var(--agora-mid)]"
+                          ? "bg-[var(--agora-primary)] text-white"
+                          : "bg-[var(--agora-surface)] border-2 border-[var(--agora-line)] text-[var(--agora-mid)]",
                     )}
                   >
                     {isComplete ? (
@@ -211,8 +388,8 @@ export default function CheckoutPage() {
                       isActive
                         ? "text-[var(--agora-primary)]"
                         : isComplete
-                        ? "text-[var(--agora-green)]"
-                        : "text-[var(--agora-mid)]"
+                          ? "text-[var(--agora-green)]"
+                          : "text-[var(--agora-mid)]",
                     )}
                   >
                     {step.label}
@@ -224,118 +401,54 @@ export default function CheckoutPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
+          {/* Main Content area */}
           <div className="lg:col-span-2">
-            {/* Shipping Step */}
+            {/* Shipping Step: address selection */}
             {currentStep === "shipping" && (
               <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] p-6">
                 <h2 className="font-display font-semibold text-xl text-[var(--agora-ink)] mb-6">
-                  Adresse de livraison
+                    Sélectionnez une adresse de livraison
                 </h2>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Prénom
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.firstName}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({
-                          ...s,
-                          firstName: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="Jean"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Nom
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.lastName}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({
-                          ...s,
-                          lastName: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="Dupont"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Adresse
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.address}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({
-                          ...s,
-                          address: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="123 Rue de la Paix"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Ville
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.city}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({ ...s, city: e.target.value }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="Paris"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Code postal
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.postalCode}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({
-                          ...s,
-                          postalCode: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="75001"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Téléphone
-                    </label>
-                    <input
-                      type="tel"
-                      value={shippingInfo.phone}
-                      onChange={(e) =>
-                        setShippingInfo((s) => ({
-                          ...s,
-                          phone: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-[var(--agora-ink)] focus:outline-none focus:border-[var(--agora-primary)] focus:ring-2 focus:ring-[var(--agora-primary)]/20"
-                      placeholder="06 12 34 56 78"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  {addressesError ? (
+                    <div className="text-[var(--agora-danger)]">
+                      {addressesError}
+                    </div>
+                  ) : null}
+                  {addresses.length === 0 && !addressesError && (
+                      <div className="text-[var(--agora-mid)]">Aucune adresse trouvée. <a href="/compte/adresses" className="text-[var(--agora-primary)] underline">Ajouter une adresse</a></div>
+                  )}
+                  {addresses.map(addr => (
+                    <div
+                      key={addr._id}
+                      onClick={() => setSelectedAddressId(addr._id)}
+                      className={`p-4 border rounded cursor-pointer transition-all ${
+                        addr._id === selectedAddressId
+                          ? "border-[var(--agora-primary)] bg-[var(--agora-primary)]/10"
+                          : addr.isDefault
+                          ? "border-[var(--agora-green)]"
+                          : "border-[var(--agora-line)]"
+                      }`}
+                    >
+                      <div className="font-bold flex items-center">
+                        {addr.recipientName}
+                        {addr.isDefault && (
+                          <span className="text-[var(--agora-green)] ml-2 text-xs">(default)</span>
+                        )}
+                        {addr._id === selectedAddressId && (
+                          <span className="ml-2 text-[var(--agora-primary)] text-xs">(selected)</span>
+                        )}
+                      </div>
+                      <div>{addr.addressLine}, {addr.city}</div>
+                      <div>{addr.phone}</div>
+                    </div>
+                  ))}
                 </div>
-
-                {/* Shipping Method */}
+                <div className="mt-4">
+                  {/* When user clicks, go to addresses page with ?from=checkout for return logic */}
+                    <a href="/compte/adresses?from=checkout" className="text-[var(--agora-primary)] underline">Gérer mes adresses</a>
+                </div>
+                {/* Shipping Method UI */}
                 <div className="mt-6 pt-6 border-t border-[var(--agora-line)]">
                   <h3 className="font-medium text-[var(--agora-ink)] mb-3">
                     Mode de livraison
@@ -346,37 +459,37 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-[var(--agora-ink)]">
-                        Livraison standard
+                          Livraison standard
                       </p>
                       <p className="text-sm text-[var(--agora-mid)]">
-                        3-5 jours ouvrés
+                          3-5 jours ouvrés
                       </p>
                     </div>
                     <span className="font-medium text-[var(--agora-green)]">
-                      Gratuite
+                        Gratuite
                     </span>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Payment Step */}
+            {/* Payment Step: payment form */}
             {currentStep === "payment" && (
               <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="font-display font-semibold text-xl text-[var(--agora-ink)]">
-                    Paiement sécurisé
+                      Paiement sécurisé
                   </h2>
                   <div className="flex items-center gap-1 text-[var(--agora-green)] text-sm">
                     <Lock className="w-4 h-4" />
-                    <span>SSL 256-bit</span>
+                      <span>SSL 256 bits</span>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Numéro de carte
+                        Numéro de carte
                     </label>
                     <input
                       type="text"
@@ -395,7 +508,7 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                        Date d&apos;expiration
+                          Date d'expiration
                       </label>
                       <input
                         type="text"
@@ -413,7 +526,7 @@ export default function CheckoutPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                        CVC
+                          CVC
                       </label>
                       <input
                         type="text"
@@ -432,7 +545,7 @@ export default function CheckoutPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-[var(--agora-ink)] mb-1.5">
-                      Nom sur la carte
+                        Nom sur la carte
                     </label>
                     <input
                       type="text"
@@ -449,7 +562,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Shipping Summary */}
+                {/* Shipping address summary in payment step */}
                 <div className="mt-6 pt-6 border-t border-[var(--agora-line)]">
                   <h3 className="font-medium text-[var(--agora-ink)] mb-3">
                     Adresse de livraison
@@ -472,7 +585,7 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* Confirmation Step */}
+            {/* Confirmation Step: order success */}
             {currentStep === "confirmation" && orderId && (
               <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-lg)] p-8 text-center">
                 <div className="w-20 h-20 mx-auto rounded-full bg-[var(--agora-green)]/10 flex items-center justify-center mb-6">
@@ -514,7 +627,7 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* Navigation Buttons */}
+            {/* Navigation Buttons for stepper */}
             {currentStep !== "confirmation" && (
               <div className="flex items-center justify-between mt-6">
                 {currentStep === "payment" ? (
@@ -538,9 +651,9 @@ export default function CheckoutPage() {
                   className={cn(
                     "inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius-md)] font-medium transition-colors",
                     (currentStep === "shipping" && !isShippingValid) ||
-                    (currentStep === "payment" && !isPaymentValid)
+                      (currentStep === "payment" && !isPaymentValid)
                       ? "bg-[var(--agora-line)] text-[var(--agora-text-disabled)] cursor-not-allowed"
-                      : "bg-[var(--agora-primary)] text-white hover:bg-[var(--agora-primary-hover)]"
+                      : "bg-[var(--agora-primary)] text-white hover:bg-[var(--agora-primary-hover)]",
                   )}
                 >
                   {isProcessing ? (
@@ -572,7 +685,7 @@ export default function CheckoutPage() {
                   Votre commande
                 </h3>
 
-                {/* Items */}
+                {/* Cart items list */}
                 <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
                   {items.map((item) => (
                     <div key={item.productId} className="flex gap-3">
@@ -598,7 +711,8 @@ export default function CheckoutPage() {
                       <p className="text-sm font-medium text-[var(--agora-ink)]">
                         {(item.unitPrice * item.quantity)
                           .toFixed(2)
-                          .replace(".", ",")} €
+                          .replace(".", ",")}{" "}
+                        €
                       </p>
                     </div>
                   ))}
@@ -606,7 +720,7 @@ export default function CheckoutPage() {
 
                 <hr className="my-4 border-[var(--agora-line)]" />
 
-                {/* Totals */}
+                {/* Order totals */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-[var(--agora-mid)]">Sous-total</span>

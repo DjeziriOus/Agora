@@ -1,13 +1,245 @@
-# Agora Repository Overview
+# AGORA
 
-This repository contains the current codebase for **Agora**, a multi-vendor e-commerce project split into two main applications:
+AGORA is a multi-vendor e-commerce platform with separate buyer and seller experiences.
+The repository contains a Next.js frontend and an Express + Better Auth + MongoDB backend.
 
-- `frontend/`: Next.js App Router application for the buyer-facing and seller-facing UI
-- `backend/`: Express + Better Auth + MongoDB backend
+## Project Overview
 
-This README is intended to document the **current maintained repository structure**. It focuses on the source code and main project files. Generated or dependency folders such as `node_modules/` and `frontend/.next/` are intentionally omitted.
+The platform is organized around three main functional blocks:
 
-It also calls out a few files that still exist in the repo but behave more like legacy/reference artifacts than core application structure.
+- `F1` Authentication and access control
+- `F2` Catalogue, boutiques, products, stock, and cart
+- `F3` Client and seller order flows
+
+The current product design intentionally separates buyer and seller behaviors:
+
+- buyer accounts can browse, manage addresses, use the cart, and place orders
+- seller accounts can manage a shop, products, stock, and seller-side orders
+- seller accounts are not allowed to purchase products
+
+## Core Features
+
+### F1. Authentication and access control
+
+- Buyer account registration
+- Seller account registration
+- Email and password login
+- Email verification flow
+- Google authentication
+- Initial role selection for first-time users
+- Session-based frontend/backend auth integration
+- Role-based access control for buyer and seller areas
+
+### F2. Catalogue, boutiques, products, and cart
+
+- Seller shop creation and update
+- Product creation, update, and soft deactivation
+- Stock and variant management
+- Image upload for shops and products
+- Public catalogue and product detail pages
+- Product search and filter flows
+- Shop storefront pages
+- Persistent buyer cart
+- Responsive storefront and dashboard layouts
+
+### F3. Client and seller orders
+
+- Checkout flow from cart to confirmation
+- Client order creation and persistence
+- Client order history and order detail pages
+- Seller order list and order detail pages
+- Seller-side order status update
+- Order splitting by boutique / sub-order
+- Frontend/backend integration for the order flow
+
+## Tech Stack
+
+- Frontend: `Next.js`, `React`, `TypeScript`, `React Query`, `Tailwind CSS`
+- Backend: `Node.js`, `Express`, `Better Auth`, `Mongoose`
+- Database: `MongoDB`
+- Optional integrations: `Cloudinary`, `Google OAuth`, email sending
+
+## Quick Start
+
+### Prerequisites
+
+Make sure the following tools and services are available locally:
+
+- `Node.js`
+- `npm`
+- `MongoDB`
+- optional: `Cloudinary` credentials for image upload
+- optional: `Google OAuth` credentials for Google sign-in
+- optional: SMTP / mailbox credentials for verification and reset emails
+
+### 1. Install backend dependencies
+
+```bash
+cd backend
+npm install
+```
+
+### 2. Configure the backend
+
+Copy the example file and fill in your local values:
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+Minimum local values:
+
+```env
+NODE_ENV=development
+PORT=5001
+MONGO_URI=mongodb://localhost:27017/agora
+BETTER_AUTH_SECRET=your_generated_secret
+BETTER_AUTH_URL=http://localhost:5001
+FRONTEND_URL=http://localhost:3000
+REQUIRE_EMAIL_VERIFICATION=false
+```
+
+### 3. Install frontend dependencies
+
+```bash
+cd frontend
+npm install
+```
+
+### 4. Configure the frontend
+
+Create `frontend/.env.local` with:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5001
+```
+
+If the variable is missing, the frontend falls back to `http://localhost:5001`
+through `frontend/src/config.ts`.
+
+### 5. Start the backend
+
+```bash
+cd backend
+npm run dev
+```
+
+Backend default URL:
+
+```text
+http://localhost:5001
+```
+
+### 6. Start the frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+Frontend default URL:
+
+```text
+http://localhost:3000
+```
+
+### 7. Optional seed data
+
+If you want development/demo data:
+
+```bash
+cd backend
+node scripts/seed.js
+```
+
+## Environment Variables
+
+### Backend
+
+The example file is:
+
+- `backend/.env.example`
+
+Key variables used by the running backend:
+
+- `NODE_ENV`
+- `PORT`
+- `MONGO_URI`
+- `BETTER_AUTH_SECRET`
+- `BETTER_AUTH_URL`
+- `FRONTEND_URL`
+- `REQUIRE_EMAIL_VERIFICATION`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REFRESH_TOKEN`
+- `EMAIL_APP_PASSWORD`
+- `EMAIL_FROM`
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+
+### Frontend
+
+The frontend currently relies on:
+
+- `NEXT_PUBLIC_API_URL`
+
+Recommended local file:
+
+- `frontend/.env.local`
+
+## Role-Based Access Rules
+
+The repository currently enforces the buyer/seller split in both the frontend and the backend.
+
+### Buyer-only backend routes
+
+- `backend/routes/cartRoutes.js`
+- `backend/routes/clientAddressRoutes.js`
+- buyer endpoints inside `backend/routes/orderRoutes.js`
+
+### Seller-only backend routes
+
+- `backend/routes/shopRoutes.js`
+- `backend/routes/productRoutes.js`
+- seller endpoints inside `backend/routes/orderRoutes.js`
+
+### Frontend behavior
+
+- seller accounts are redirected away from buyer purchase flows such as cart and checkout
+- seller accounts are redirected away from the buyer account area
+- buyer accounts do not access seller dashboard management flows
+
+## API and Postman
+
+The maintained Postman collection is:
+
+- `backend/postman/Agora API — BetterAuth.postman_collection.json`
+
+Notes:
+
+- it reflects the current Express route structure
+- it injects `Origin: http://localhost:3000` automatically at collection level
+- it is the only maintained Postman collection in the repository
+
+## Useful Commands
+
+### Backend
+
+```bash
+cd backend
+npm run dev
+npm test
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm run dev
+npm run build
+```
 
 ## Repository Layout
 
@@ -16,318 +248,110 @@ It also calls out a few files that still exist in the repo but behave more like 
 ├── backend/
 │   ├── auth.js
 │   ├── server.js
-│   ├── package.json
-│   ├── package-lock.json
 │   ├── config/
-│   │   ├── cloudinary.js
-│   │   └── db.js
 │   ├── controllers/
-│   │   ├── authController.js
-│   │   ├── cartController.js
-│   │   ├── productController.js
-│   │   └── shopController.js
 │   ├── data/
-│   │   └── mockData.js
 │   ├── middleware/
-│   │   ├── auth.js
-│   │   └── upload.js
 │   ├── models/
-│   │   ├── Cart.js
-│   │   ├── Order.js
-│   │   ├── Product.js
-│   │   ├── Shop.js
-│   │   ├── User.js
-│   │   ├── Variant.js
-│   │   ├── createStore.json
-│   │   └── getStore.json
 │   ├── postman/
-│   │   ├── Agora API — BetterAuth.postman_collection.json
-│   │   ├── collection copy.json
-│   │   └── collection.json
+│   │   └── Agora API — BetterAuth.postman_collection.json
 │   ├── routes/
-│   │   ├── authRoutes.js
-│   │   ├── cartRoutes.js
-│   │   ├── orderRoutes.js
-│   │   ├── productRoutes.js
-│   │   └── shopRoutes.js
 │   ├── scripts/
-│   │   ├── migrate-to-variants.js
-│   │   └── seed.js
-│   ├── services/
-│   │   ├── authService.js
-│   │   ├── cartService.js
-│   │   ├── emailService.js
-│   │   ├── productService.js
-│   │   ├── shopService.js
-│   │   └── variantService.js
-│   ├── test-email.mjs
-│   └── startup.log
+│   └── services/
 ├── frontend/
 │   ├── app/
-│   │   ├── (auth)/
-│   │   │   ├── choose-role/
-│   │   │   ├── login/
-│   │   │   ├── oauth-callback/
-│   │   │   ├── register/
-│   │   │   └── verify-email/
-│   │   ├── (client)/
-│   │   │   ├── boutique/
-│   │   │   │   └── [id]/
-│   │   │   ├── catalogue/
-│   │   │   ├── checkout/
-│   │   │   ├── compte/
-│   │   │   │   ├── adresses/
-│   │   │   │   ├── commandes/
-│   │   │   │   │   └── [id]/
-│   │   │   │   ├── parametres/
-│   │   │   │   ├── AccountLayoutClient.tsx
-│   │   │   │   ├── layout.tsx
-│   │   │   │   └── page.tsx
-│   │   │   ├── confirmation/
-│   │   │   │   └── [orderId]/
-│   │   │   ├── layout.tsx
-│   │   │   ├── panier/
-│   │   │   ├── produit/
-│   │   │   │   └── [id]/
-│   │   │   └── recherche/
-│   │   ├── vendeur/
-│   │   │   ├── boutique/
-│   │   │   ├── commandes/
-│   │   │   │   └── [id]/
-│   │   │   ├── layout.tsx
-│   │   │   ├── page.tsx
-│   │   │   ├── parametres/
-│   │   │   ├── produits/
-│   │   │   │   ├── [id]/
-│   │   │   │   └── nouveau/
-│   │   │   ├── stock/
-│   │   │   └── VendorLayoutClient.tsx
-│   │   ├── global-error.tsx
-│   │   ├── globals.css
-│   │   ├── icon.jpg
-│   │   ├── layout.tsx
-│   │   ├── not-found.tsx
-│   │   └── page.tsx
 │   ├── hooks/
-│   │   ├── use-mobile.ts
-│   │   └── use-toast.ts
 │   ├── public/
-│   │   └── logo.png
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── ui/
-│   │   │   ├── AgoraBadge.tsx
-│   │   │   ├── EmptyState.tsx
-│   │   │   ├── Footer.tsx
-│   │   │   ├── Navbar.tsx
-│   │   │   ├── OrderStepBar.tsx
-│   │   │   ├── ProductCard.tsx
-│   │   │   ├── SkeletonCard.tsx
-│   │   │   ├── StarRating.tsx
-│   │   │   └── VendorSidebar.tsx
-│   │   ├── context/
-│   │   │   ├── AuthContext.tsx
-│   │   │   └── CartContext.tsx
-│   │   ├── hooks/
-│   │   │   ├── useApi.ts
-│   │   │   └── useCart.ts
-│   │   ├── lib/
-│   │   │   ├── api.ts
-│   │   │   ├── auth-client.ts
-│   │   │   ├── mockData.ts
-│   │   │   ├── productCategories.ts
-│   │   │   ├── queryClient.tsx
-│   │   │   └── utils.ts
-│   │   └── types/
-│   │       └── index.ts
-│   ├── components.json
-│   ├── findHooks.js
-│   ├── next.config.mjs
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── postcss.config.mjs
-│   └── tsconfig.json
-├── PR.md
-├── README.md
-└── TODO.md
+│   └── src/
+│       ├── components/
+│       ├── context/
+│       ├── hooks/
+│       ├── lib/
+│       └── types/
+└── README.md
 ```
 
 ## Backend Notes
 
 - `backend/server.js`
-  Main backend entry point. It loads environment variables, connects to MongoDB, mounts Better Auth, applies JSON parsing, and mounts the main API route groups.
+  Main backend entry point. It loads environment variables, connects to MongoDB,
+  mounts Better Auth, applies middleware, and mounts the API routes.
 
 - `backend/auth.js`
-  Better Auth configuration. This is the active authentication integration used by the running backend.
+  Better Auth configuration used by the running backend.
 
 - `backend/routes/`
-  Main Express route declarations currently used by the app:
-  - `shopRoutes.js`
-  - `productRoutes.js`
+  Main mounted route groups:
+  - `accountDeletionRoutes.js`
   - `cartRoutes.js`
+  - `clientAddressRoutes.js`
   - `orderRoutes.js`
-
-- `backend/controllers/`
-  Request handlers for the mounted route groups. These coordinate validation, service calls, and HTTP responses.
+  - `productRoutes.js`
+  - `shopRoutes.js`
 
 - `backend/services/`
-  Business logic layer. This is where the main application behavior lives:
-  - `productService.js` for public/seller product flows
-  - `shopService.js` for shop storefront and seller shop flows
-  - `cartService.js` for cart management
-  - `variantService.js` for the separate variant model
-  - `emailService.js` for mail-related helpers
-
-- `backend/models/`
-  Mongoose models for the domain:
-  - `User.js`
-  - `Shop.js`
-  - `Product.js`
-  - `Variant.js`
-  - `Cart.js`
-  - `Order.js`
-
-- `backend/models/createStore.json` and `backend/models/getStore.json`
-  These are JSON payload examples, not executable models.
-
-- `backend/scripts/`
-  Maintenance and development scripts:
-  - `seed.js` for populating development data
-  - `migrate-to-variants.js` for the product variant migration
-
-- `backend/postman/`
-  Backend API collections. The Better Auth collection is the most relevant current collection for team testing, while the other JSON files remain as alternate or older collections.
+  Main business logic modules:
+  - `accountDeletionService.js`
+  - `cartService.js`
+  - `clientAddressService.js`
+  - `emailService.js`
+  - `orderService.js`
+  - `productService.js`
+  - `shopService.js`
+  - `variantService.js`
 
 ## Frontend Notes
 
-- `frontend/app/`
-  Next.js App Router entrypoint and route tree.
-
 - `frontend/app/(auth)/`
-  Authentication-related flows:
-  - login
-  - register
-  - verify email
-  - choose role
-  - OAuth callback
+  Login, register, choose-role, verify-email, and OAuth callback flows.
 
 - `frontend/app/(client)/`
-  Buyer-facing application pages:
-  - catalogue
-  - search
-  - boutique storefront
-  - product detail
-  - cart
-  - checkout
-  - order confirmation
-  - account area (`compte`)
+  Buyer storefront, product detail, cart, checkout, confirmation, and account pages.
 
 - `frontend/app/vendeur/`
-  Seller-facing dashboard pages:
-  - dashboard home
-  - boutique management
-  - product management
-  - stock management
-  - seller orders
-  - seller settings
+  Seller dashboard, shop management, products, stock, seller orders, and settings.
 
-- `frontend/app/layout.tsx`
-  Root frontend layout. It currently wraps the application with shared providers such as React Query and authentication context.
-
-- `frontend/src/components/`
-  Shared reusable UI components for the product, storefront, account, and seller dashboard flows.
-
-- `frontend/src/components/ui/`
-  Lower-level reusable UI primitives and design-system style components.
+- `frontend/src/lib/api.ts`
+  Centralized frontend API wrappers and response mapping.
 
 - `frontend/src/context/`
-  Shared React context modules. The repo currently contains:
-  - `AuthContext.tsx`
-  - `CartContext.tsx`
+  Shared application state modules including auth and cart behavior.
 
-- `frontend/src/hooks/`
-  Application-specific hooks:
-  - `useApi.ts` for React Query wrappers around backend endpoints
-  - `useCart.ts` for cart actions and cart-facing UI behavior
-
-- `frontend/src/lib/`
-  Shared frontend utilities and integration modules:
-  - `api.ts` for backend API wrappers and response mapping
-  - `auth-client.ts` for Better Auth client integration
-  - `productCategories.ts` for fixed category definitions
-  - `queryClient.tsx` for React Query setup
-  - `mockData.ts` for mock/demo data still used in some flows
-  - `utils.ts` for general utility helpers
-
-- `frontend/hooks/`
-  Root-level helper hooks used by some generated UI components. These are distinct from the app-specific hooks inside `frontend/src/hooks/`.
+- `frontend/src/lib/mockData.ts`
+  Legacy/reference helper. The main storefront and product detail pages now use backend product data.
 
 ## Authentication Routing Status
 
-The repository currently contains both:
+The running backend uses Better Auth through:
 
-- Better Auth runtime integration through:
-  - `backend/auth.js`
-  - `backend/server.js` with `app.all("/api/auth/*splat", toNodeHandler(auth))`
+- `backend/auth.js`
+- `backend/server.js` with `app.all("/api/auth/*splat", toNodeHandler(auth))`
 
-- Legacy custom auth route files:
-  - `backend/routes/authRoutes.js`
-  - `backend/controllers/authController.js`
-  - `backend/services/authService.js`
+The repository still contains legacy custom auth files:
 
-The running backend currently uses the **Better Auth catch-all route**. The legacy custom auth files still exist in the repository, but they are not the active auth path mounted by `server.js`.
+- `backend/routes/authRoutes.js`
+- `backend/controllers/authController.js`
+- `backend/services/authService.js`
+
+These files remain in the repository, but they are not the active auth path mounted by `server.js`.
 
 ## Variants and Product Shape
 
-Products are no longer just a flat `price + stock` model.
+Products are no longer a flat `price + stock` model.
 
 - `backend/models/Variant.js` stores per-product variants
-- `backend/services/variantService.js` contains variant helpers and aggregate calculations
-- `backend/services/productService.js` and `backend/services/shopService.js` enrich product responses with storefront-friendly fields such as:
+- `backend/services/variantService.js` handles variant aggregation helpers
+- storefront-facing product responses expose fields such as:
   - `variants`
   - `totalStock`
   - `displayPrice`
   - `hasMultiplePrices`
 
-This is important when reading both the public storefront pages and the seller product management flows.
+This is important when reading both the public storefront code and the seller product-management code.
 
-## Useful Commands
+## Known Limitations
 
-### Backend
-
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## Legacy and Reference Files Still Present
-
-A few files in the repository are useful as references or leftovers from earlier iterations, but they are not the main maintained structure:
-
-- `backend/postman/collection.json`
-- `backend/postman/collection copy.json`
-- some duplicate UI files such as `frontend/src/components/ui/* copy.tsx`
-- `frontend/lib/utils copy.ts`
-- `frontend/styles/globals.css`
-- temporary or environment-specific files such as `backend/startup.log`
-
-These files are still part of the repo today, but the primary architecture is centered around the directories documented above.
-
-## Current Architectural Split
-
-- **Frontend**: Next.js App Router, React, Tailwind-based UI, React Query, shared state/context modules
-- **Backend**: Express, Better Auth, MongoDB/Mongoose, Cloudinary upload support, email helpers
-- **Communication**: frontend API access is centralized in `frontend/src/lib/api.ts`
-- **Authentication**: Better Auth client/server integration is split between `frontend/src/lib/auth-client.ts` and `backend/auth.js`
-- **Data Model**: products, shops, carts, orders, and product variants are separated across dedicated models and service layers
-
-This README reflects the current code organization as it exists in the repository now.
+- Google sign-in depends on valid OAuth configuration.
+- Email verification and password reset depend on valid email credentials.
+- Image upload depends on valid Cloudinary configuration.
+- Some legacy/reference files remain in the repository from earlier iterations.

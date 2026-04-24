@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { AgoraBadge } from "./AgoraBadge";
 import { StarRating } from "./StarRating";
 import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/context/AuthContext";
 import type { Product } from "@/types";
 
 interface ProductCardProps {
@@ -20,6 +21,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const router = useRouter();
+  const { isSeller } = useAuth();
   const { addToCart, isAdding } = useCart();
   const productId =
     product.id || ((product as unknown as { _id?: string })._id ?? "");
@@ -136,7 +138,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
         {/* Store Link */}
         <Link
-          href={`/boutique/${product.storeId}`}
+          href={`/boutique/${product.storeSlug}`}
           onClick={(e) => e.stopPropagation()}
           className="text-xs text-[var(--agora-primary)] hover:underline mb-3 block"
         >
@@ -153,33 +155,34 @@ export function ProductCard({ product, className }: ProductCardProps) {
           {product.displayPrice.toFixed(2).replace(".", ",")} €
         </p>
 
-        {/* Add to Cart Button */}
-        <button
-          onClick={handleAddToCart}
-          disabled={isOutOfStock || isAdding}
-          className={cn(
-            "w-full py-2.5 px-4 rounded-[var(--radius-md)] font-medium text-sm transition-all flex items-center justify-center gap-2",
-            isOutOfStock
-              ? "bg-[var(--agora-line)] text-[var(--agora-mid)] cursor-not-allowed"
-              : justAdded
-                ? "bg-[var(--agora-green)] text-white"
-                : "bg-[var(--agora-primary)] text-white hover:bg-[var(--agora-primary-hover)] active:scale-[0.98]",
-          )}
-        >
-          {justAdded ? (
-            <>
-              <Check className="w-4 h-4 animate-checkmark" />
-              Ajouté
-            </>
-          ) : isAdding ? (
-            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <>
-              <ShoppingCart className="w-4 h-4" />
-              Ajouter au panier
-            </>
-          )}
-        </button>
+        {!isSeller && (
+          <button
+            onClick={handleAddToCart}
+            disabled={isOutOfStock || isAdding}
+            className={cn(
+              "w-full py-2.5 px-4 rounded-[var(--radius-md)] font-medium text-sm transition-all flex items-center justify-center gap-2",
+              isOutOfStock
+                ? "bg-[var(--agora-line)] text-[var(--agora-mid)] cursor-not-allowed"
+                : justAdded
+                  ? "bg-[var(--agora-green)] text-white"
+                  : "bg-[var(--agora-primary)] text-white hover:bg-[var(--agora-primary-hover)] active:scale-[0.98]",
+            )}
+          >
+            {justAdded ? (
+              <>
+                <Check className="w-4 h-4 animate-checkmark" />
+                Ajouté
+              </>
+            ) : isAdding ? (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <ShoppingCart className="w-4 h-4" />
+                Ajouter au panier
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

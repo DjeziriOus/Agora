@@ -10,8 +10,6 @@ export const verifyToken = async (req, res, next) => {
     const session = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
     });
-    console.log("req.headers:", req.headers);
-    console.log("session :", session);
 
     if (!session || !session.user) {
       return res.status(401).json({ message: "Unauthorized. Please log in." });
