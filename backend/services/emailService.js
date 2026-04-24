@@ -24,11 +24,6 @@ const createTransporter = () =>
       refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
     },
   });
-  await gmail.users.messages.send({
-    userId: "me",
-    requestBody: { raw },
-  });
-}
 
 export const sendVerificationEmail = async (email, url) => {
   await sendMail({
