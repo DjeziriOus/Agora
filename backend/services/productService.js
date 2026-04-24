@@ -220,22 +220,44 @@ const getProducts = async (query = {}) => {
 		filters._id = { $in: matchingProductIds };
 	}
 
-	const sortOrder = buildSortOrder(query.sort);
+	const sortParam = query.sort || "relevance";
 
-	const [products, total] = await Promise.all([
-		Product.find(filters)
-			.populate("shop", "name slug logo")
-			.sort(sortOrder)
-			.skip(skip)
-			.limit(limit),
-		Product.countDocuments(filters),
-	]);
+	// If sorting by relevance, we can do it natively in DB
+	if (sortParam === "relevance") {
+		const [products, total] = await Promise.all([
+			Product.find(filters)
+				.populate("shop", "name slug logo")
+				.sort({ createdAt: -1 })
+				.skip(skip)
+				.limit(limit),
+			Product.countDocuments(filters),
+		]);
 
-	const enriched = await enrichProductsWithVariants(products);
+		const enriched = await enrichProductsWithVariants(products);
+
+		return {
+			products: enriched,
+			total,
+			page,
+			limit,
+		};
+	}
+
+	// For price_asc, price_desc, rating: we MUST fetch all matching, enrich, sort in memory, then paginate
+	const allProducts = await Product.find(filters).populate("shop", "name slug logo");
+	let enriched = await enrichProductsWithVariants(allProducts);
+
+	if (sortParam === "price_asc") {
+		enriched.sort((a, b) => (a.displayPrice || 0) - (b.displayPrice || 0) || new Date(b.createdAt) - new Date(a.createdAt));
+	} else if (sortParam === "price_desc") {
+		enriched.sort((a, b) => (b.displayPrice || 0) - (a.displayPrice || 0) || new Date(b.createdAt) - new Date(a.createdAt));
+	} else if (sortParam === "rating") {
+		enriched.sort((a, b) => (b.rating || 0) - (a.rating || 0) || new Date(b.createdAt) - new Date(a.createdAt));
+	}
 
 	return {
-		products: enriched,
-		total,
+		products: enriched.slice(skip, skip + limit),
+		total: enriched.length,
 		page,
 		limit,
 	};
