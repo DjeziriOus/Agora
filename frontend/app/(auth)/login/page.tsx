@@ -240,7 +240,7 @@ function LoginContent() {
           </p>
 
           {/* Demo Credentials */}
-          <div className="mt-6 p-3 rounded-[var(--radius-md)] bg-[var(--agora-accent)] border border-[var(--agora-line)]">
+          {/* <div className="mt-6 p-3 rounded-[var(--radius-md)] bg-[var(--agora-accent)] border border-[var(--agora-line)]">
             <p className="text-xs text-[var(--agora-mid)] font-medium mb-2">
               Comptes de démonstration :
             </p>
@@ -253,7 +253,7 @@ function LoginContent() {
                 password123
               </p>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

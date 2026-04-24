@@ -23,18 +23,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { VerificationBanner } from './VerificationBanner';
-import Image from 'next/image';
+import { VerificationBanner } from "./VerificationBanner";
+import Image from "next/image";
 
 function AgoraIcon() {
-  return (
-    <Image
-      src="/logo.png"
-      alt="Agora"
-      width={45}
-      height={45}
-    />
-  );
+  return <Image src="/logo.png" alt="Agora" width={45} height={45} />;
 }
 
 export function Navbar() {
@@ -77,7 +70,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-[var(--agora-line)]">
-      <VerificationBanner   />
+      <VerificationBanner />
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-4 h-16">
           {/* Logo */}
@@ -238,19 +231,30 @@ export function Navbar() {
                         </p>
                       </div>
                       {!isSeller && (
-                        <Link
-                          href="/compte"
-                          onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
-                        >
-                          <User className="w-4 h-4 text-[var(--agora-mid)]" />
-                          Mon compte
-                          {user && !user.emailVerified && (
-                            <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-red-500 rounded-full">
-                              1
-                            </span>
-                          )}
-                        </Link>
+                        <>
+                          <Link
+                            href="/compte"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
+                          >
+                            <User className="w-4 h-4 text-[var(--agora-mid)]" />
+                            Mon compte
+                            {user && !user.emailVerified && (
+                              <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                                1
+                              </span>
+                            )}
+                          </Link>
+
+                          <Link
+                            href="/compte/commandes"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
+                          >
+                            <Package className="w-4 h-4 text-[var(--agora-mid)]" />
+                            Mes commandes
+                          </Link>
+                        </>
                       )}
                       {isSeller && (
                         <Link
@@ -262,7 +266,7 @@ export function Navbar() {
                           Tableau de bord
                         </Link>
                       )}
-                      {!isSeller && (
+                      {/* {!isSeller && (
                         <>
                           <Link
                             href="/compte"
@@ -281,9 +285,13 @@ export function Navbar() {
                             Mes commandes
                           </Link>
                         </>
-                      )}
+                      )} */}
                       <Link
-                        href={isSeller ? "/vendeur/parametres" : "/compte/parametres"}
+                        href={
+                          isSeller
+                            ? "/vendeur/parametres"
+                            : "/compte/parametres"
+                        }
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--agora-ink)] hover:bg-[var(--agora-accent)] transition-colors"
                       >
