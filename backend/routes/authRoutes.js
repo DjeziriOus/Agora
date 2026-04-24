@@ -4,12 +4,19 @@ import { auth } from "../auth.js";
 import {
   getProfile,
   resendVerificationEmail,
+  updateProfilePicture,
+  deleteProfilePicture,
 } from "../controllers/authController.js";
 import { verifyToken } from "../middleware/auth.js";
+import { uploadAvatar } from "../middleware/upload.js";
 import { resendLimiter } from "../middleware/rateLimiter.js";
 import { getAccountDeletionBlockReason } from "../services/accountDeletionService.js";
 const router = express.Router();
 router.get("/me", verifyToken, getProfile);
+
+// ── Profile Picture ──────────────────────────────────────────────────────────
+router.put("/profile-picture", verifyToken, uploadAvatar, updateProfilePicture);
+router.delete("/profile-picture", verifyToken, deleteProfilePicture);
 
 router.post(
   "/resend-verification",

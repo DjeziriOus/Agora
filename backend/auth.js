@@ -129,6 +129,7 @@ export const auth = betterAuth({
       age: { type: "number", input: true, defaultValue: null },
       gender: { type: "string", input: true, defaultValue: "" },
       role: { type: "string", input: true, defaultValue: "unassigned" },
+      imagePublicId: { type: "string", input: true, defaultValue: "" },
     },
   },
 

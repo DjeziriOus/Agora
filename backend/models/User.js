@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema(
     lastName: { type: String, default: "" },
     name: { type: String, default: "" }, // kept for BetterAuth compat
     image: { type: String, default: "" },
+    imagePublicId: { type: String, default: "" },
     age: { type: Number, default: null },
     gender: { type: String, default: "" },
     role: {

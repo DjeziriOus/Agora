@@ -1,5 +1,6 @@
 "use client";
 
+import { AccountProfilePictureCard } from "@/components/AccountProfilePictureCard";
 import { AccountProfileSettingsCard } from "@/components/AccountProfileSettingsCard";
 import { AccountPasswordSettingsCard } from "@/components/AccountPasswordSettingsCard";
 import { AccountDangerZoneCard } from "@/components/AccountDangerZoneCard";
@@ -32,6 +33,8 @@ export default function VendorSettingsPage() {
           Gérez votre compte et vos préférences
         </p>
       </div>
+
+      <AccountProfilePictureCard />
 
       <AccountProfileSettingsCard />
 
