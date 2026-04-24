@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 /**
- * Thin Mongoose User model — mirrors BetterAuth's `users` collection.
+ * Thin Mongoose User model — mirrors BetterAuth's `user` collection.
  * BetterAuth owns all writes; this model is used only for `.populate()` in
  * Shop / Product / Order refs.
  *
- * IMPORTANT: the collection name is explicitly set to 'users' so it aligns
- * with BetterAuth's collectionNames config (which also uses 'users').
+ * IMPORTANT: the collection name is explicitly set to 'user' so it aligns
+ * with BetterAuth's collectionNames config (which also uses 'user').
  */
 const userSchema = new mongoose.Schema(
   {

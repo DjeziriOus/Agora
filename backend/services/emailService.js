@@ -1,7 +1,10 @@
-import nodemailer from "nodemailer";
+import { google } from "googleapis";
 
 /**
- * Gmail OAuth2 transporter for noreply.agora.marketplace@gmail.com
+ * Gmail HTTP API transport for noreply.agora.marketplace@gmail.com
+ *
+ * Uses the Gmail REST API (HTTPS, port 443) instead of SMTP (port 465/587),
+ * so it works on hosting providers that block outbound SMTP traffic.
  *
  * Required .env vars:
  *   EMAIL_FROM            — noreply.agora.marketplace@gmail.com
@@ -21,11 +24,14 @@ const createTransporter = () =>
       refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
     },
   });
+  await gmail.users.messages.send({
+    userId: "me",
+    requestBody: { raw },
+  });
+}
 
 export const sendVerificationEmail = async (email, url) => {
-  const transporter = createTransporter();
-  await transporter.sendMail({
-    from: `"Agora Marketplace" <${process.env.EMAIL_FROM}>`,
+  await sendMail({
     to: email,
     subject: "Vérifiez votre adresse e-mail — Agora",
     html: `
@@ -47,9 +53,7 @@ export const sendVerificationEmail = async (email, url) => {
 };
 
 export const sendPasswordResetEmail = async (email, url) => {
-  const transporter = createTransporter();
-  await transporter.sendMail({
-    from: `"Agora Marketplace" <${process.env.EMAIL_FROM}>`,
+  await sendMail({
     to: email,
     subject: "Réinitialisation de votre mot de passe — Agora",
     html: `

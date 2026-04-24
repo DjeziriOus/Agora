@@ -7,6 +7,7 @@ import {
   deleteFromCloudinary,
 } from "../config/cloudinary.js";
 import { computeAggregatesFromArray } from "./variantService.js";
+import { requireEmailVerification } from "../auth.js";
 
 // Validate a public shop identifier before it reaches the Mongoose query layer.
 const assertObjectId = (value, label) => {
@@ -44,9 +45,11 @@ const enrichProductsWithVariants = async (products) => {
   if (products.length === 0) return [];
 
   const productIds = products.map((product) => product._id);
-  const allVariants = await Variant.find({ product: { $in: productIds } }).sort({
-    createdAt: 1,
-  });
+  const allVariants = await Variant.find({ product: { $in: productIds } }).sort(
+    {
+      createdAt: 1,
+    },
+  );
 
   const variantsByProduct = new Map();
   for (const variant of allVariants) {
@@ -114,7 +117,7 @@ const createShop = async ({
   status,
   files = {},
 }) => {
-  if (process.env.REQUIRE_EMAIL_VERIFICATION === "true" && !emailVerified) {
+  if (requireEmailVerification && !emailVerified) {
     const error = new Error("Email must be verified before creating a shop.");
     error.statusCode = 403;
     throw error;

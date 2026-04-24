@@ -177,6 +177,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // if the user doesnt have an account
+    // OR
+    // if the user's data is still loading,
+    // OR
+    // if the user is at the choose role, login, verify or oauth-cb
+    //
+    // dont redirect them to choose role page
     if (isLoading || !user) return;
     if (user.role !== "unassigned") return;
 
