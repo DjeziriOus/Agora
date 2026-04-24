@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useMyStore, useSellerProducts, useStockStats } from "@/hooks/useApi";
@@ -155,14 +155,29 @@ export default function VendorStockPage() {
   } = useMyStore();
   const hasStore = Boolean(store);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset to first page on new search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const { data, isLoading, error } = useSellerProducts(
-    { page: String(page), limit: String(PRODUCTS_PER_PAGE) },
+    { 
+      page: String(page), 
+      limit: String(PRODUCTS_PER_PAGE),
+      ...(debouncedSearch ? { q: debouncedSearch } : {}) 
+    },
     { enabled: hasStore },
   );
   const { data: stockStats, isLoading: isStatsLoading } = useStockStats({
     enabled: hasStore,
   });
-  const [search, setSearch] = useState("");
+
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
   const products: Product[] = useMemo(() => {

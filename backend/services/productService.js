@@ -134,7 +134,7 @@ const enrichProductsWithVariants = async (products) => {
 };
 
 // Build Mongo filters for seller inventory listing (search, stock, status).
-const buildMineFilters = (shopId, query = {}) => {
+const buildMineFilters = async (shopId, query = {}) => {
 	const filters = {
 		shop: shopId,
 		isDeleted: false,
@@ -143,9 +143,18 @@ const buildMineFilters = (shopId, query = {}) => {
 	const q = (query.q || query.search || "").trim();
 	if (q) {
 		const safeQ = escapeRegExp(q);
+		
+		const matchingVariantProductIds = await Variant.distinct("product", {
+			$or: [
+				{ sku: { $regex: safeQ, $options: "i" } },
+				{ name: { $regex: safeQ, $options: "i" } },
+			],
+		});
+
 		filters.$or = [
 			{ name: { $regex: safeQ, $options: "i" } },
 			{ description: { $regex: safeQ, $options: "i" } },
+			{ _id: { $in: matchingVariantProductIds } },
 		];
 	}
 
@@ -313,7 +322,7 @@ const getMyProducts = async ({ ownerId, query = {} }) => {
 	const limit = Math.min(toSafeInt(query.limit, DEFAULT_LIMIT), MAX_LIMIT);
 	const skip = (page - 1) * limit;
 
-	const filters = buildMineFilters(shop._id, query);
+	const filters = await buildMineFilters(shop._id, query);
 
 	if (query.lowStock === "true") {
 		// Fetch all products matching filters without limit

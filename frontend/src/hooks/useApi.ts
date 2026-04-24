@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   productsApi,
   shopsApi,
@@ -91,6 +91,7 @@ export function useSellerProducts(params?: ProductQuery, options?: { enabled?: b
     queryKey: [...queryKeys.products.seller, params] as const,
     queryFn: () => productsApi.getMine(params),
     enabled: options?.enabled ?? true,
+    placeholderData: keepPreviousData,
   });
 }
 

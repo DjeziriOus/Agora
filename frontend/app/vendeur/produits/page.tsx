@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -70,14 +70,29 @@ function VendorProductsContent() {
   } = useMyStore();
   const hasStore = Boolean(store);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset to first page on new search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const { data, isLoading, error } = useSellerProducts(
-    { page: String(page), limit: String(PRODUCTS_PER_PAGE) },
+    { 
+      page: String(page), 
+      limit: String(PRODUCTS_PER_PAGE),
+      ...(debouncedSearch ? { q: debouncedSearch } : {}) 
+    },
     { enabled: hasStore },
   );
   const toggleActive = useToggleProductActive();
   const deleteProduct = useDeleteProduct();
 
-  const [search, setSearch] = useState("");
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
@@ -87,10 +102,7 @@ function VendorProductsContent() {
   const total = (data && !Array.isArray(data)) ? data.total ?? 0 : products.length;
   const totalPages = Math.ceil(total / PRODUCTS_PER_PAGE);
 
-  // Filter products (client-side search within current page)
-  let filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
+  let filteredProducts = products;
 
   if (filterLowStock) {
     filteredProducts = filteredProducts.filter((p) => p.totalStock <= (p.stockThreshold ?? 5));
