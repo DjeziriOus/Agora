@@ -12,6 +12,7 @@ const shopSchema = new mongoose.Schema(
     },
     slug: {
       type: String,
+      required: [true, "Shop slug is required"],
       lowercase: true,
       trim: true,
       // Removed unique: true here; handled by partial index below
@@ -100,8 +101,8 @@ shopSchema.index(
   },
 );
 
-// Auto-generate and verify unique slug from name before saving
-shopSchema.pre("save", async function () {
+// Auto-generate and verify unique slug from name before validation
+shopSchema.pre("validate", async function () {
   if (this.isModified("name")) {
     const baseSlug = this.name
       .toLowerCase()

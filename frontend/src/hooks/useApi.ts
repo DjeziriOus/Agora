@@ -86,15 +86,15 @@ export function useSellerProduct(id: string) {
   });
 }
 
-export function useSellerProducts(options?: { enabled?: boolean }) {
+export function useSellerProducts(params?: ProductQuery, options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: queryKeys.products.seller,
-    queryFn: () => productsApi.getMine(),
+    queryKey: [...queryKeys.products.seller, params] as const,
+    queryFn: () => productsApi.getMine(params),
     enabled: options?.enabled ?? true,
   });
 }
 
-export function useLowStockProducts() {
+export function useLowStockProducts(options?: { enabled?: boolean }) {
   return useQuery<Product[]>({
     queryKey: queryKeys.products.lowStock,
     queryFn: async () => {
@@ -103,6 +103,7 @@ export function useLowStockProducts() {
         (product) => product.totalStock <= product.stockThreshold,
       );
     },
+    enabled: options?.enabled,
   });
 }
 

@@ -30,11 +30,11 @@ const isProduction = process.env.NODE_ENV === "production";
 console.log("IS EMAIL VERIFICATION REQUIRED?", requireEmailVerification);
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
   database: mongodbAdapter(db, {
-    baseURL: process.env.BETTER_AUTH_URL,
-    // Keep plural collection names consistent with Mongoose defaults
+    // Collection names must match Mongoose schema collection options
     collectionNames: {
-      user: "users",
+      user: "user",
       session: "sessions",
       account: "accounts",
       verification: "verifications",
@@ -53,10 +53,11 @@ export const auth = betterAuth({
     : {}),
 
   // ── Email + Password ──────────────────────────────────
-  // Set REQUIRE_EMAIL_VERIFICATION=true in .env once SMTP is configured.
+  // NOTE: requireEmailVerification is NOT set here so that unverified users
+  // can still log in and browse. Checkout is blocked by our own middleware
+  // (requireVerifiedEmail) and frontend guards instead.
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification,
     sendResetPassword: async ({ user, url }) => {
       await sendPasswordResetEmail(user.email, url);
     },
@@ -70,7 +71,7 @@ export const auth = betterAuth({
       const modifiedUrl = new URL(url);
       modifiedUrl.searchParams.set(
         "callbackURL",
-        `${process.env.FRONTEND_URL}/login`,
+        `${process.env.FRONTEND_URL}/email-verified`,
       );
       await sendVerificationEmail(user.email, modifiedUrl);
     },
@@ -85,9 +86,10 @@ export const auth = betterAuth({
         console.log(profile);
         return {
           // Map Google's response to your custom fields
+          // Note: Better Auth's built-in 'image' field is automatically
+          // populated from profile.picture, so we don't set it here.
           firstName: profile.given_name || "",
           lastName: profile.family_name || "",
-          photo: profile.picture || "",
         };
       },
     },
@@ -126,8 +128,8 @@ export const auth = betterAuth({
       lastName: { type: "string", input: true, defaultValue: "" },
       age: { type: "number", input: true, defaultValue: null },
       gender: { type: "string", input: true, defaultValue: "" },
-      photo: { type: "string", input: true, defaultValue: "" },
       role: { type: "string", input: true, defaultValue: "unassigned" },
+      imagePublicId: { type: "string", input: true, defaultValue: "" },
     },
   },
 
@@ -150,6 +152,23 @@ export const auth = betterAuth({
           });
         }
       }
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          // Google OAuth users arrive with emailVerified already true —
+          // preserve that. Only force false for email/password signups
+          // when verification is required.
+          return {
+            data: {
+              ...user,
+              emailVerified: user.emailVerified || !requireEmailVerification,
+            },
+          };
+        },
+      },
     },
   },
 });

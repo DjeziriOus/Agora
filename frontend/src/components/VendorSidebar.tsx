@@ -76,7 +76,7 @@ const vendorNavItems = [
     icon: Store,
   },
   {
-    label: "Paramètres",
+    label: "Paramètres du Compte",
     href: "/vendeur/parametres",
     icon: Settings,
   },
@@ -88,7 +88,8 @@ export function VendorSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const isSeller = user?.role === "seller";
   const { data: store } = useMyStore({ enabled: isSeller });
-  const { data: lowStockProducts } = useLowStockProducts();
+  const hasStore = !!store;
+  const { data: lowStockProducts } = useLowStockProducts({ enabled: hasStore });
 
   const lowStockCount = lowStockProducts?.length || 0;
   const shopName = getShopName(store);
@@ -145,39 +146,49 @@ export function VendorSidebar() {
           </div>
 
           <nav className="flex-1 p-4 space-y-1">
-            {vendorNavItems.map((item) => {
-              const isActive = item.exact
-                ? pathname === item.href
-                : pathname.startsWith(item.href);
-              const Icon = item.icon;
+            {vendorNavItems
+              .filter((item) => {
+                if (!hasStore) {
+                  return (
+                    item.href === "/vendeur/boutique" ||
+                    item.href === "/vendeur/parametres"
+                  );
+                }
+                return true;
+              })
+              .map((item) => {
+                const isActive = item.exact
+                  ? pathname === item.href
+                  : pathname.startsWith(item.href);
+                const Icon = item.icon;
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    collapsed && "justify-center px-2",
-                  )}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
-
-                  {!collapsed &&
-                    item.href === "/vendeur/produits" &&
-                    lowStockCount > 0 && (
-                      <span className="ml-auto flex items-center gap-1 text-xs text-agora-warning">
-                        <AlertTriangle className="h-3 w-3" />
-                        {lowStockCount}
-                      </span>
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      collapsed && "justify-center px-2",
                     )}
-                </Link>
-              );
-            })}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <Icon className="h-5 w-5 shrink-0" />
+                    {!collapsed && <span>{item.label}</span>}
+
+                    {!collapsed &&
+                      item.href === "/vendeur/produits" &&
+                      lowStockCount > 0 && (
+                        <span className="ml-auto flex items-center gap-1 text-xs text-agora-warning">
+                          <AlertTriangle className="h-3 w-3" />
+                          {lowStockCount}
+                        </span>
+                      )}
+                  </Link>
+                );
+              })}
           </nav>
 
           <div className="p-4 border-t">
@@ -191,7 +202,7 @@ export function VendorSidebar() {
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="w-10 h-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
                     <span className="font-semibold text-primary">
                       {user?.firstName?.charAt(0)}
                       {user?.lastName?.charAt(0)}

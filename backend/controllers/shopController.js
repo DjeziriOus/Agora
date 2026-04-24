@@ -65,11 +65,11 @@ export const updateShop = async (req, res) => {
   }
 };
 /**
- * GET /api/shops/:id
+ * GET /api/shops/:slug
  */
 export const getShopById = async (req, res) => {
   try {
-    const shop = await shopService.getShopById(req.params.id);
+    const shop = await shopService.getShopBySlug(req.params.slug);
     res.status(200).json(shop);
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message });
@@ -77,12 +77,12 @@ export const getShopById = async (req, res) => {
 };
 
 /**
- * GET /api/shops/:id/products
+ * GET /api/shops/:slug/products
  */
 export const getShopProducts = async (req, res) => {
   try {
-    const products = await shopService.getShopProducts(req.params.id);
-    res.status(200).json(products);
+    const result = await shopService.getShopProductsBySlug(req.params.slug, req.query);
+    res.status(200).json(result);
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message });
   }
@@ -93,9 +93,11 @@ export const getShopProducts = async (req, res) => {
  */
 export const getMyShop = async (req, res) => {
   try {
+    console.log("req.user.id", req.user.id);
     const shop = await shopService.getMyShop(req.user.id);
     res.status(200).json(shop);
   } catch (error) {
+    console.error("getMyShop error:", error.message);
     res.status(error.statusCode || 500).json({ message: error.message });
   }
 };

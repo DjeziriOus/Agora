@@ -172,7 +172,28 @@ const buildPublicFilters = (query = {}, activeShopIds = []) => {
 		];
 	}
 
+	// Category filter — exact match (case-insensitive)
+	const category = (query.category || "").trim();
+	if (category) {
+		filters.category = { $regex: `^${escapeRegExp(category)}$`, $options: "i" };
+	}
+
 	return filters;
+};
+
+// Convert the `sort` query param into a Mongoose sort object.
+const buildSortOrder = (sortParam) => {
+	switch (sortParam) {
+		case "price_asc":
+			return { displayPrice: 1, createdAt: -1 };
+		case "price_desc":
+			return { displayPrice: -1, createdAt: -1 };
+		case "rating":
+			return { rating: -1, createdAt: -1 };
+		default:
+			// "relevance" / newest first
+			return { createdAt: -1 };
+	}
 };
 
 // ── Public catalogue listing ─────────────────────────────────────────────────
@@ -199,10 +220,12 @@ const getProducts = async (query = {}) => {
 		filters._id = { $in: matchingProductIds };
 	}
 
+	const sortOrder = buildSortOrder(query.sort);
+
 	const [products, total] = await Promise.all([
 		Product.find(filters)
-			.populate("shop", "name logo")
-			.sort({ createdAt: -1 })
+			.populate("shop", "name slug logo")
+			.sort(sortOrder)
 			.skip(skip)
 			.limit(limit),
 		Product.countDocuments(filters),
@@ -228,7 +251,7 @@ const getProductById = async (productId) => {
 		shop: { $in: activeShopIds },
 		isDeleted: false,
 		isActive: true,
-	}).populate("shop", "name logo");
+	}).populate("shop", "name slug logo");
 
 	if (!product) {
 		const error = new Error("Product not found.");
@@ -249,7 +272,7 @@ const getMyProductById = async ({ ownerId, productId }) => {
 		_id: productId,
 		shop: shop._id,
 		isDeleted: false,
-	}).populate("shop", "name logo");
+	}).populate("shop", "name slug logo");
 
 	if (!product) {
 		const error = new Error("Product not found.");

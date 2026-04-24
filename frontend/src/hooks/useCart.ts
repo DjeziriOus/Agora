@@ -262,7 +262,7 @@ export function useCart() {
     variantId?: string | null,
   ) => {
     if (isSeller) {
-      toast.error("Les comptes vendeurs ne peuvent pas passer commande");
+      toast.error("Les comptes vendeurs ne peuvent pas passer de commande");
       return;
     }
 

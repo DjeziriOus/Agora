@@ -167,12 +167,10 @@ const createShop = async ({
 };
 
 /**
- * GET /api/shops/:id
+ * GET /api/shops/:slug
  */
-const getShopById = async (shopId) => {
-  assertObjectId(shopId, "shop id");
-
-  const shop = await Shop.findOne({ _id: shopId, isDeleted: false }).populate(
+const getShopBySlug = async (slug) => {
+  const shop = await Shop.findOne({ slug, isDeleted: false }).populate(
     "owner",
     "name email firstName lastName",
   );
@@ -184,28 +182,53 @@ const getShopById = async (shopId) => {
   return serializePublicShop(shop);
 };
 
-/**
- * GET /api/shops/:id/products
- */
-const getShopProducts = async (shopId) => {
-  assertObjectId(shopId, "shop id");
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 12;
+const MAX_LIMIT = 100;
 
-  const shop = await Shop.findOne({ _id: shopId, isDeleted: false });
+const toSafeInt = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+/**
+ * GET /api/shops/:slug/products
+ */
+const getShopProductsBySlug = async (slug, query = {}) => {
+  const shop = await Shop.findOne({ slug, isDeleted: false });
   if (!shop) {
     const error = new Error("Shop not found.");
     error.statusCode = 404;
     throw error;
   }
 
-  const products = await Product.find({
+  const page = toSafeInt(query.page, DEFAULT_PAGE);
+  const limit = Math.min(toSafeInt(query.limit, DEFAULT_LIMIT), MAX_LIMIT);
+  const skip = (page - 1) * limit;
+
+  const filters = {
     shop: shop._id,
     isDeleted: false,
     isActive: true,
-  })
-    .populate("shop", "name")
-    .sort({ createdAt: -1 });
+  };
 
-  return enrichProductsWithVariants(products);
+  const [products, total] = await Promise.all([
+    Product.find(filters)
+      .populate("shop", "name slug logo")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Product.countDocuments(filters),
+  ]);
+
+  const enriched = await enrichProductsWithVariants(products);
+
+  return {
+    products: enriched,
+    total,
+    page,
+    limit,
+  };
 };
 
 /**
@@ -260,14 +283,7 @@ const getMyShop = async (ownerId) => {
     "owner",
     "name email firstName lastName",
   );
-  if (!shop) {
-    const error = new Error(
-      "Vous n'avez pas encore de boutique, créez-en une pour commencer à vendre !",
-    );
-    error.statusCode = 404;
-    throw error;
-  }
   return shop;
 };
 
-export default { createShop, getShopById, getShopProducts, updateShop, getMyShop };
+export default { createShop, getShopBySlug, getShopProductsBySlug, updateShop, getMyShop };

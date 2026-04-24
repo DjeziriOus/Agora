@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMyStore, useUpdateStore, useCreateStore } from "@/hooks/useApi";
+import { useAuth } from "@/context/AuthContext";
 import {
   Card,
   CardContent,
@@ -39,6 +40,7 @@ const storeSchema = z.object({
 type StoreFormData = z.infer<typeof storeSchema>;
 
 export default function VendorStorePage() {
+  const { user } = useAuth();
   const { data: store, isLoading, error } = useMyStore();
   const updateStore = useUpdateStore();
   const createStore = useCreateStore();
@@ -111,7 +113,7 @@ export default function VendorStorePage() {
         </div>
         {hasStore && (
           <Button variant="outline" asChild>
-            <Link href={`/boutique/${store._id}`} target="_blank">
+            <Link href={`/boutique/${store.slug}`} target="_blank">
               <ExternalLink className="mr-2 h-4 w-4" />
               Voir ma boutique
             </Link>
@@ -119,7 +121,20 @@ export default function VendorStorePage() {
         )}
       </div>
 
-      <Form {...form}>
+      {!user?.emailVerified ? (
+        <Card className="border-amber-300 bg-amber-50">
+          <CardHeader>
+            <CardTitle className="text-amber-800 flex items-center gap-2">
+              <Store className="h-5 w-5" />
+              Vérification requise
+            </CardTitle>
+            <CardDescription className="text-amber-700">
+              Vérifiez votre adresse email pour pouvoir {hasStore ? "gérer" : "créer"} votre boutique.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : (
+        <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Store Info */}
           <Card>
@@ -360,6 +375,7 @@ export default function VendorStorePage() {
           </div>
         </form>
       </Form>
+      )}
     </div>
   );
 }

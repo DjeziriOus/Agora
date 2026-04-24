@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { toNodeHandler } from "better-auth/node";
 
-
 // Load .env first — before importing auth (which needs env vars)
 dotenv.config();
 
@@ -16,7 +15,8 @@ import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import clientAddressRoutes from "./routes/clientAddressRoutes.js";
-import accountRoutes from "./routes/accountDeletionRoutes.js";
+import accountRoutes from "./routes/authRoutes.js";
+// import accountRoutes from "./routes/accountDeletionRoutes.js";
 
 const app = express();
 app.set("trust proxy", 1);

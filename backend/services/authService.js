@@ -1,69 +1,8 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import User from '../models/User.js';
+import { auth } from "../auth.js";
 
-/**
- * Register a new user.
- * @param {Object} data - { name, email, password, role }
- * @returns {Object} - { user, token }
- */
-const register = async ({ name, email, password, role }) => {
-  // Check if user already exists
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    const error = new Error('A user with this email already exists.');
-    error.statusCode = 400;
-    throw error;
-  }
-  // Create new user
-  const user = await User.create({ name, email, password, role });
 
-  const token = generateToken(user._id);
 
-  return {
-    user: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-    token,
-  };
-};
-
-/**
- * Login an existing user.
- * @param {Object} data - { email, password }
- * @returns {Object} - { user, token }
- */
-
-const login = async ({ email, password }) => {
-  //step one: find user by email
-  const user = await User.findOne({ email });
-  if (!user) {
-    const error = new Error('Invalid email or password.');
-    error.statusCode = 401;
-    throw error;
-  }
-  //step two: compare password
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch) {
-    const error = new Error('Invalid email or password.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const token = generateToken(user._id);
-
-  return {
-    user: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-    token,
-  };
-};
 
 /**
  * Get the profile of the currently authenticated user.
@@ -71,6 +10,7 @@ const login = async ({ email, password }) => {
  * @returns {Object} - user object (without password)
  */
 const getProfile = async (userId) => {
+  console.log("calling Get Profile with id : ", userId);
   const user = await User.findById(userId).select('-password');
   if (!user) {
     const error = new Error('User not found.');
@@ -80,9 +20,27 @@ const getProfile = async (userId) => {
   return user;
 };
 
-// ── Helper ──────────────────────────────────────────────
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+/**
+ * Resend verification email to the user.
+ * @param {string} userId
+ * @returns {void}
+ */
+const resendVerificationEmail = async (userId) => {
+  const user = await User.findById(userId).select("email emailVerified");
+  if (!user) {
+    const error = new Error("Utilisateur introuvable.");
+    error.statusCode = 404;
+    throw error;
+  }
+  if (user.emailVerified) {
+    const error = new Error("Email déjà vérifié.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  await auth.api.sendVerificationEmail({
+    body: { email: user.email, callbackURL: "/email-verified" },
+  });
 };
 
-module.exports = { register, login, getProfile };
+export { resendVerificationEmail, getProfile };
