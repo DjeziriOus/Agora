@@ -38,3 +38,13 @@ export const uploadShopImages = shopUpload.fields([
   { name: "logo", maxCount: 1 },
   { name: "banner", maxCount: 1 },
 ]);
+
+// ── Avatar (profile picture) ────────────────────────────────────────────────
+// Single file on the "avatar" field, max 5 MB.
+const avatarUpload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+});
+
+export const uploadAvatar = avatarUpload.single("avatar");

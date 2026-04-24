@@ -36,6 +36,12 @@ const UPLOAD_PRESETS = {
 			{ width: 1600, height: 500, crop: "limit", quality: "auto:good", format: "webp" },
 		],
 	},
+	avatar: {
+		folder: "agora/avatars",
+		transformation: [
+			{ width: 400, height: 400, crop: "fill", gravity: "face", quality: "auto:good", format: "webp" },
+		],
+	},
 };
 
 /**
