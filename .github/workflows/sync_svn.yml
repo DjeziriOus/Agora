@@ -165,7 +165,7 @@ jobs:
           echo "────────────────"
 
           # ── Commit if there are ANY changes (modified, added, deleted, replaced, or property changes) ──
-          if svn status | grep -qvE '^\?' | grep -q .; then
+          if svn status | grep -vE '^\?' | grep -q .; then
             svn commit --username "$SVN_USERNAME" --password "$SVN_PASSWORD" \
               --no-auth-cache --non-interactive -m "$SVN_MSG"
             echo "✅ SVN sync complete: $BRANCH → $SVN_PATH"
