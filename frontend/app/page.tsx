@@ -126,7 +126,7 @@ export default function HomePage() {
 
             {/* Title */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-white">
-              Bienvenu sur{" "}
+              Bienvenue sur{" "}
               <span className="relative inline-block">
                 Agora
                 <span
