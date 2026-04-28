@@ -20,7 +20,7 @@ interface ProductCardProps {
 
 export function ProductCard({
   product,
-  viewMode,
+  viewMode = "grid",
   className,
 }: ProductCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
