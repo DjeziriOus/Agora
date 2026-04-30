@@ -75,7 +75,8 @@ export default function HomePage() {
   // Buyers should NOT see it — they already have an account.
   // Sellers with a shop don't need it — they use the navbar dashboard link.
   const authReady = !isAuthLoading;
-  const isCheckingShop = authReady && isAuthenticated && isSeller && hasShop === null;
+  const isCheckingShop =
+    authReady && isAuthenticated && isSeller && hasShop === null;
   const showBoutiqueButton =
     authReady &&
     !isCheckingShop &&
@@ -300,8 +301,8 @@ export default function HomePage() {
                 Vous êtes artisan ou créateur ?
               </h2>
               <p className="text-white/80 mb-8 leading-relaxed">
-                Rejoignez Agora et vendez vos créations à des milliers de clients.
-                Inscription gratuite, commissions réduites.
+                Rejoignez Agora et vendez vos créations à des milliers de
+                clients. Inscription gratuite, commissions réduites.
               </p>
               <Link
                 href={boutiqueHref}

@@ -2,7 +2,14 @@
 
 import { useState, useMemo, Suspense, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { SlidersHorizontal, Grid3X3, List, X, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  SlidersHorizontal,
+  Grid3X3,
+  List,
+  X,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { SkeletonProductGrid } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
@@ -35,7 +42,9 @@ function CatalogueContent() {
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+  const [expandedSections, setExpandedSections] = useState<
+    Record<string, boolean>
+  >({
     price: true,
     category: true,
     rating: true,
@@ -53,13 +62,16 @@ function CatalogueContent() {
     if (minPriceParam) q.minPrice = minPriceParam;
     if (maxPriceParam) q.maxPrice = maxPriceParam;
     return q;
-  }, [pageParam, queryParam, categoryParam, sortParam, minPriceParam, maxPriceParam]);
+  }, [
+    pageParam,
+    queryParam,
+    categoryParam,
+    sortParam,
+    minPriceParam,
+    maxPriceParam,
+  ]);
 
-  const {
-    data: productsResponse,
-    isLoading,
-    isError,
-  } = useProducts(apiQuery);
+  const { data: productsResponse, isLoading, isError } = useProducts(apiQuery);
 
   // Fetch all products once (no filters) to extract available categories
   const { data: allProductsResponse } = useProducts({ limit: "100" });
@@ -73,7 +85,9 @@ function CatalogueContent() {
   // Build categories dynamically from ALL products (not just current page)
   const categories = useMemo(() => {
     const map = new Map<string, number>();
-    allProducts.forEach((p) => map.set(p.category, (map.get(p.category) ?? 0) + 1));
+    allProducts.forEach((p) =>
+      map.set(p.category, (map.get(p.category) ?? 0) + 1),
+    );
     return Array.from(map.entries()).map(([name, count], i) => ({
       id: `${i}`,
       name,
@@ -98,7 +112,7 @@ function CatalogueContent() {
       }
       router.push(`/catalogue?${params.toString()}`);
     },
-    [searchParams, router]
+    [searchParams, router],
   );
 
   const handlePageChange = (page: number) => {
@@ -132,18 +146,19 @@ function CatalogueContent() {
   };
 
   const hasActiveFilters =
-    !!categoryParam ||
-    !!minPriceParam ||
-    !!maxPriceParam ||
-    !!queryParam;
+    !!categoryParam || !!minPriceParam || !!maxPriceParam || !!queryParam;
 
   if (isLoading && products.length === 0) {
     return (
       <div className="min-h-screen bg-[var(--agora-bg)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
           <div className="mb-8">
-            <h1 className="font-display text-3xl font-bold text-[var(--agora-ink)]">Catalogue</h1>
-            <p className="text-[var(--agora-mid)] mt-1">Découvrez notre sélection de produits artisanaux</p>
+            <h1 className="font-display text-3xl font-bold text-[var(--agora-ink)]">
+              Catalogue
+            </h1>
+            <p className="text-[var(--agora-mid)] mt-1">
+              Découvrez notre sélection de produits artisanaux
+            </p>
           </div>
           <SkeletonProductGrid />
         </div>
@@ -199,7 +214,8 @@ function CatalogueContent() {
                 </button>
 
                 <span className="text-sm text-[var(--agora-mid)]">
-                  {total} produit{total !== 1 ? "s" : ""} trouvé{total !== 1 ? "s" : ""}
+                  {total} produit{total !== 1 ? "s" : ""} trouvé
+                  {total !== 1 ? "s" : ""}
                 </span>
               </div>
 
@@ -207,7 +223,9 @@ function CatalogueContent() {
                 {/* Sort Dropdown */}
                 <select
                   value={sortParam}
-                  onChange={(e) => handleSortChange(e.target.value as SortOption)}
+                  onChange={(e) =>
+                    handleSortChange(e.target.value as SortOption)
+                  }
                   className="px-3 py-2 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-sm text-[var(--agora-ink)] bg-[var(--agora-surface)] focus:outline-none focus:border-[var(--agora-primary)] cursor-pointer"
                 >
                   {sortOptions.map((option) => (
@@ -225,7 +243,7 @@ function CatalogueContent() {
                       "p-2 transition-colors",
                       viewMode === "grid"
                         ? "bg-[var(--agora-primary)] text-white"
-                        : "text-[var(--agora-mid)] hover:text-[var(--agora-ink)]"
+                        : "text-[var(--agora-mid)] hover:text-[var(--agora-ink)]",
                     )}
                     aria-label="Vue grille"
                   >
@@ -237,7 +255,7 @@ function CatalogueContent() {
                       "p-2 transition-colors",
                       viewMode === "list"
                         ? "bg-[var(--agora-primary)] text-white"
-                        : "text-[var(--agora-mid)] hover:text-[var(--agora-ink)]"
+                        : "text-[var(--agora-mid)] hover:text-[var(--agora-ink)]",
                     )}
                     aria-label="Vue liste"
                   >
@@ -260,7 +278,7 @@ function CatalogueContent() {
                 className={cn(
                   viewMode === "grid"
                     ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
-                    : "grid-cols-1 gap-6"
+                    : "grid-cols-1 gap-6",
                 )}
               />
             ) : products.length > 0 ? (
@@ -270,11 +288,15 @@ function CatalogueContent() {
                     "grid gap-6",
                     viewMode === "grid"
                       ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
-                      : "grid-cols-1"
+                      : "grid-cols-1",
                   )}
                 >
                   {products.map((product) => (
-                    <ProductCard key={product.id} product={product} />
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      viewMode={viewMode}
+                    />
                   ))}
                 </div>
                 <Pagination
@@ -357,7 +379,13 @@ function CatalogueContent() {
 
 export default function CataloguePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center p-8"><div className="w-8 h-8 border-4 border-[var(--agora-primary)] border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center p-8">
+          <div className="w-8 h-8 border-4 border-[var(--agora-primary)] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
       <CatalogueContent />
     </Suspense>
   );
