@@ -241,12 +241,10 @@ export default function HomePage() {
 
                 {/* Title */}
                 <h1 className="font-display text-4xl sm:text-5xl lg:text-[64px] font-bold mb-6 leading-[1.05] text-white">
-                  Vendez partout.
+                  Trouvez ce que vous cherchez
                   <br />
                   <span className="relative inline-block">
-                    <span className="agora-gradient-text">
-                      Grandissez sans limites.
-                    </span>
+                    <span className="agora-gradient-text">Avec AGORA</span>
                     {/* <span
                       className="absolute left-0 -bottom-1 h-1 w-full rounded-full agora-underline-draw"
                       style={{ background: "var(--agora-gold)" }}
@@ -255,10 +253,10 @@ export default function HomePage() {
                 </h1>
 
                 <p className="text-lg sm:text-xl text-white/75 max-w-xl lg:max-w-2xl mx-auto lg:mx-0 mb-10 leading-relaxed">
-                  Agora connecte les vendeurs de toutes tailles avec de nombreux
-                  clients. Explorez des boutiques uniques et trouvez votre
-                  bonheur. Lancez votre boutique en ligne en quelques minutes,
-                  gérez vos ventes simplement.
+                  Agora connecte les boutiques de toutes tailles avec de
+                  nombreux clients. Explorez des boutiques uniques et trouvez
+                  votre bonheur ou bien lancez votre boutique en ligne en
+                  quelques minutes, gérez vos ventes simplement.
                 </p>
 
                 {/* CTAs */}
