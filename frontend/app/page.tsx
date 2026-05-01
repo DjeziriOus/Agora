@@ -631,7 +631,6 @@ export default function HomePage() {
               <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--agora-ink)]">
                 Ils en parlent mieux que nous
               </h2>
-<<<<<<< f2-landing-page-revamped
             </Reveal>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -844,19 +843,6 @@ export default function HomePage() {
                   </div>
                 </div>
               </Reveal>
-=======
-              <p className="text-white/80 mb-8 leading-relaxed">
-                Rejoignez Agora et vendez vos créations à des milliers de
-                clients. Inscription gratuite, commissions réduites.
-              </p>
-              <Link
-                href={boutiqueHref}
-                className="inline-flex items-center gap-2 border border-white/60 hover:border-white text-white px-6 py-3 rounded-lg font-medium transition-colors"
-              >
-                {boutiqueLabel}
-                <ArrowRight className="w-4 h-4" />
-              </Link>
->>>>>>> dev
             </div>
           </section>
         )}
