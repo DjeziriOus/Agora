@@ -55,7 +55,13 @@ type BackendVariant = {
   name?: string;
   sku?: string;
   price?: number;
+  // Public payloads omit `stock` and provide these instead. Seller payloads
+  // still include `stock` and `maxPerOrder` for the inventory pages.
   stock?: number;
+  maxPerOrder?: number;
+  maxPurchasable?: number;
+  inStock?: boolean;
+  lowStock?: boolean;
   attributes?: Record<string, string>;
   isActive?: boolean;
 };
@@ -72,6 +78,8 @@ type BackendProduct = {
   images?: BackendProductImage[];
   variants?: BackendVariant[];
   totalStock?: number;
+  inStock?: boolean;
+  lowStock?: boolean;
   displayPrice?: number;
   hasMultiplePrices?: boolean;
   isActive?: boolean;
@@ -105,16 +113,35 @@ type CheckoutSummaryResponse = {
   itemCount: number;
 };
 
-const mapVariant = (variant: BackendVariant): ProductVariant => ({
-  id: variant.id ?? variant._id ?? "",
-  code: variant.code ?? "",
-  name: variant.name ?? "",
-  sku: variant.sku ?? "",
-  price: Number(variant.price ?? 0),
-  stock: variant.stock ?? 0,
-  attributes: variant.attributes ?? {},
-  isActive: variant.isActive ?? true,
-});
+const mapVariant = (variant: BackendVariant): ProductVariant => {
+  const stock = variant.stock;
+  const maxPerOrder = Number(variant.maxPerOrder ?? 10);
+  // For public payloads `stock` is omitted and the backend computes
+  // maxPurchasable / inStock / lowStock for us. For seller payloads we
+  // still receive `stock` and derive the same fields locally so the rest
+  // of the UI can rely on a single shape.
+  const fallbackMaxPurchasable =
+    typeof stock === "number"
+      ? Math.max(0, Math.min(stock, maxPerOrder))
+      : maxPerOrder;
+  const fallbackInStock = typeof stock === "number" ? stock > 0 : true;
+  const fallbackLowStock = typeof stock === "number" ? stock > 0 && stock <= 5 : false;
+
+  return {
+    id: variant.id ?? variant._id ?? "",
+    code: variant.code ?? "",
+    name: variant.name ?? "",
+    sku: variant.sku ?? "",
+    price: Number(variant.price ?? 0),
+    maxPerOrder,
+    maxPurchasable: variant.maxPurchasable ?? fallbackMaxPurchasable,
+    inStock: variant.inStock ?? fallbackInStock,
+    lowStock: variant.lowStock ?? fallbackLowStock,
+    stock: typeof stock === "number" ? stock : undefined,
+    attributes: variant.attributes ?? {},
+    isActive: variant.isActive ?? true,
+  };
+};
 
 const mapProduct = (product: BackendProduct): Product => {
   const id = product.id ?? product._id;
@@ -143,7 +170,6 @@ const mapProduct = (product: BackendProduct): Product => {
 
   // Compute aggregates from variants if not provided by backend
   const activeVariants = variants.filter((v) => v.isActive);
-  const fallbackTotalStock = activeVariants.reduce((s, v) => s + v.stock, 0);
   const fallbackDisplayPrice =
     activeVariants.length > 0
       ? Math.min(...activeVariants.map((v) => v.price))
@@ -151,6 +177,9 @@ const mapProduct = (product: BackendProduct): Product => {
   const fallbackHasMultiplePrices =
     activeVariants.length > 1 &&
     new Set(activeVariants.map((v) => v.price)).size > 1;
+  const fallbackInStock = activeVariants.some((v) => v.inStock);
+  const fallbackLowStock =
+    activeVariants.length > 0 && activeVariants.every((v) => v.lowStock || !v.inStock);
 
   return {
     id,
@@ -168,7 +197,9 @@ const mapProduct = (product: BackendProduct): Product => {
       typeof image === "string" ? image : (image.url ?? ""),
     ),
     variants,
-    totalStock: product.totalStock ?? fallbackTotalStock,
+    inStock: product.inStock ?? fallbackInStock,
+    lowStock: product.lowStock ?? fallbackLowStock,
+    totalStock: product.totalStock,
     displayPrice: product.displayPrice ?? fallbackDisplayPrice,
     hasMultiplePrices: product.hasMultiplePrices ?? fallbackHasMultiplePrices,
     isActive: product.isActive ?? true,
@@ -207,7 +238,10 @@ const mapCartItem = (item: BackendCartItem): CartItem => {
         code: "default",
         name: "Standard",
         price: product.displayPrice,
-        stock: 0,
+        maxPerOrder: 10,
+        maxPurchasable: 0,
+        inStock: false,
+        lowStock: false,
         isActive: true,
       });
 
@@ -268,12 +302,24 @@ const mapCart = (cart: BackendCart): Cart => {
 };
 
 export class ApiError extends Error {
+  body: Record<string, unknown> | null;
+  code?: string;
+  maxAllowed?: number;
+  productId?: string;
+
   constructor(
     public status: number,
     message: string,
+    body: Record<string, unknown> | null = null,
   ) {
     super(message);
     this.name = "ApiError";
+    this.body = body;
+    if (body && typeof body.code === "string") this.code = body.code;
+    if (body && typeof body.maxAllowed === "number")
+      this.maxAllowed = body.maxAllowed;
+    if (body && typeof body.productId === "string")
+      this.productId = body.productId;
   }
 }
 
@@ -297,15 +343,16 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
+    let body: Record<string, unknown> | null = null;
     try {
-      const body = await res.json();
-      message = body?.message ?? body?.error ?? message;
+      body = (await res.json()) as Record<string, unknown>;
+      const m = body?.message ?? body?.error;
+      if (typeof m === "string") message = m;
     } catch {
       /* non-JSON error body */
     }
-    // console.log("message", message);
     toast.error(message);
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, message, body);
   }
 
   // 204 No Content

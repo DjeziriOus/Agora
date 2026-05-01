@@ -38,6 +38,15 @@ const variantSchema = new mongoose.Schema(
 				message: "Variant stock must be an integer",
 			},
 		},
+		maxPerOrder: {
+			type: Number,
+			default: 10,
+			min: [1, "maxPerOrder must be at least 1"],
+			validate: {
+				validator: Number.isInteger,
+				message: "maxPerOrder must be an integer",
+			},
+		},
 		attributes: {
 			type: Map,
 			of: String,

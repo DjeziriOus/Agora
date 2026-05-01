@@ -49,6 +49,7 @@ type VariantForm = {
   sku: string;
   price: string;
   stock: number;
+  maxPerOrder: number;
   isActive: boolean;
 };
 
@@ -58,6 +59,7 @@ const createEmptyVariant = (index: number): VariantForm => ({
   sku: "",
   price: "",
   stock: 0,
+  maxPerOrder: 10,
   isActive: true,
 });
 
@@ -73,6 +75,7 @@ export default function NewProductPage() {
   const [hasMultipleOptions, setHasMultipleOptions] = useState(false);
   const [globalPrice, setGlobalPrice] = useState("");
   const [globalStock, setGlobalStock] = useState("0");
+  const [globalMaxPerOrder, setGlobalMaxPerOrder] = useState("10");
 
   // Ghost Memory: variant data persists when toggling
   const [variants, setVariants] = useState<VariantForm[]>([createEmptyVariant(0)]);
@@ -108,6 +111,7 @@ export default function NewProductPage() {
           sku: v.sku.trim(),
           price: Number(v.price),
           stock: Number(v.stock),
+          maxPerOrder: Number(v.maxPerOrder),
           isActive: v.isActive,
         }))
         .filter((v) => v.code.length > 0 || v.name.length > 0);
@@ -126,21 +130,31 @@ export default function NewProductPage() {
           toast.error("Chaque variant doit avoir un prix valide");
           return;
         }
+        if (!Number.isInteger(v.maxPerOrder) || v.maxPerOrder < 1) {
+          toast.error("La quantité max par commande doit être un entier ≥ 1");
+          return;
+        }
       }
 
       formData.append("variants", JSON.stringify(normalizedVariants));
     } else {
-      // Simple product mode: send price/stock as a default variant
+      // Simple product mode: send price/stock/maxPerOrder as a default variant
       const price = Number(globalPrice);
       const stock = Number(globalStock);
+      const maxPerOrder = Number(globalMaxPerOrder);
 
       if (!Number.isFinite(price) || price <= 0) {
         toast.error("Le prix doit être supérieur à 0");
         return;
       }
+      if (!Number.isInteger(maxPerOrder) || maxPerOrder < 1) {
+        toast.error("La quantité max par commande doit être un entier ≥ 1");
+        return;
+      }
 
       formData.append("price", String(price));
       formData.append("stock", String(stock));
+      formData.append("maxPerOrder", String(maxPerOrder));
       // Backend will auto-create a "default" variant
     }
 
@@ -463,6 +477,24 @@ export default function NewProductPage() {
                                 }
                               />
                             </div>
+                            <div>
+                              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                Quantité max par commande
+                              </label>
+                              <Input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={variant.maxPerOrder}
+                                onChange={(e) =>
+                                  updateVariant(
+                                    index,
+                                    "maxPerOrder",
+                                    parseInt(e.target.value) || 1,
+                                  )
+                                }
+                              />
+                            </div>
                             <div className="flex items-end gap-2 pb-1">
                               <label className="block text-xs font-medium text-muted-foreground mb-1">
                                 Actif
@@ -583,6 +615,21 @@ export default function NewProductPage() {
                         value={globalStock}
                         onChange={(e) => setGlobalStock(e.target.value)}
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">
+                        Quantité max par commande
+                      </label>
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={globalMaxPerOrder}
+                        onChange={(e) => setGlobalMaxPerOrder(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Limite combien d&apos;unités un client peut commander en une fois.
+                      </p>
                     </div>
                   </CardContent>
                 </Card>

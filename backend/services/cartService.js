@@ -3,8 +3,52 @@ import Product from "../models/Product.js";
 import Variant from "../models/Variant.js";
 
 /**
+ * Strip raw variant stock from a populated cart item so the client never
+ * sees the exact inventory count. Returns a plain object exposing only
+ * inStock / lowStock / maxPurchasable.
+ */
+const sanitizeCartVariant = (variantDoc, productThreshold) => {
+  if (!variantDoc) return null;
+  const variant = variantDoc.toJSON ? variantDoc.toJSON() : variantDoc;
+  const stock = Number(variant.stock ?? 0);
+  const maxPerOrder = Number(variant.maxPerOrder ?? 10);
+  const threshold = Number(productThreshold ?? 5);
+
+  return {
+    _id: variant._id ?? variant.id,
+    id: variant.id ?? variant._id?.toString?.() ?? "",
+    code: variant.code,
+    name: variant.name,
+    sku: variant.sku ?? "",
+    price: variant.price,
+    attributes: variant.attributes ?? {},
+    isActive: variant.isActive !== false,
+    maxPerOrder,
+    maxPurchasable: Math.max(0, Math.min(stock, maxPerOrder)),
+    inStock: stock > 0,
+    lowStock: stock > 0 && stock <= threshold,
+  };
+};
+
+const sanitizeCart = (cart) => {
+  if (!cart) return cart;
+  const cartObj = cart.toJSON ? cart.toJSON() : cart;
+  const items = (cartObj.items ?? []).map((item) => {
+    const product = item.productId;
+    const threshold =
+      product && typeof product === "object" ? product.stockThreshold : 5;
+    return {
+      ...item,
+      variantId: sanitizeCartVariant(item.variantId, threshold),
+    };
+  });
+  return { ...cartObj, items };
+};
+
+/**
  * Fetches a user's cart, or creates an empty one if it does not exist.
  * Populates product, variant, and shop data so the frontend receives full item details.
+ * Raw stock is stripped before returning to the client.
  */
 export const getCart = async (userId) => {
   let cart = await Cart.findOne({ userId })
@@ -15,14 +59,14 @@ export const getCart = async (userId) => {
     })
     .populate({
       path: "items.variantId",
-      select: "code name sku price stock attributes isActive",
+      select: "code name sku price stock maxPerOrder attributes isActive",
     });
 
   if (!cart) {
     cart = await Cart.create({ userId, items: [] });
   }
 
-  return cart;
+  return sanitizeCart(cart);
 };
 
 /**
@@ -97,18 +141,42 @@ export const addItem = async (
       item.variantId.toString() === variant._id.toString(),
   );
 
+  const maxPerOrder = Number(variant.maxPerOrder ?? 10);
+
   if (existingItem) {
     const newQty = existingItem.quantity + quantity;
-    if (newQty > variant.stock) {
-      const err = new Error(`Insufficient stock (${variant.stock} available)`);
+    if (newQty > maxPerOrder) {
+      const err = new Error(`La limite d'achat pour ce produit est de ${maxPerOrder}`);
       err.statusCode = 400;
+      err.code = "MAX_PER_ORDER";
+      err.maxAllowed = maxPerOrder;
+      throw err;
+    }
+    if (newQty > variant.stock) {
+      const err = new Error(
+        `Désolé, la quantité demandée n'est plus disponible (${variant.stock} restants)`,
+      );
+      err.statusCode = 400;
+      err.code = "INSUFFICIENT_STOCK";
+      err.maxAllowed = variant.stock;
       throw err;
     }
     existingItem.quantity = newQty;
   } else {
-    if (quantity > variant.stock) {
-      const err = new Error(`Insufficient stock (${variant.stock} available)`);
+    if (quantity > maxPerOrder) {
+      const err = new Error(`La limite d'achat pour ce produit est de ${maxPerOrder}`);
       err.statusCode = 400;
+      err.code = "MAX_PER_ORDER";
+      err.maxAllowed = maxPerOrder;
+      throw err;
+    }
+    if (quantity > variant.stock) {
+      const err = new Error(
+        `Désolé, la quantité demandée n'est plus disponible (${variant.stock} restants)`,
+      );
+      err.statusCode = 400;
+      err.code = "INSUFFICIENT_STOCK";
+      err.maxAllowed = variant.stock;
       throw err;
     }
     cart.items.push({
@@ -147,9 +215,22 @@ export const updateQuantity = async (
     throw err;
   }
 
-  if (quantity > variant.stock) {
-    const err = new Error(`Insufficient stock (${variant.stock} available)`);
+  const maxPerOrder = Number(variant.maxPerOrder ?? 10);
+
+  if (quantity > maxPerOrder) {
+    const err = new Error(`La limite d'achat pour ce produit est de ${maxPerOrder}`);
     err.statusCode = 400;
+    err.code = "MAX_PER_ORDER";
+    err.maxAllowed = maxPerOrder;
+    throw err;
+  }
+  if (quantity > variant.stock) {
+    const err = new Error(
+      `Désolé, la quantité demandée n'est plus disponible (${variant.stock} restants)`,
+    );
+    err.statusCode = 400;
+    err.code = "INSUFFICIENT_STOCK";
+    err.maxAllowed = variant.stock;
     throw err;
   }
 

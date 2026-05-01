@@ -3,6 +3,14 @@ import Variant from "../models/Variant.js";
 /**
  * Create multiple variants for a product in bulk.
  */
+const sanitizeMaxPerOrder = (value) => {
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 1) {
+		return 10;
+	}
+	return parsed;
+};
+
 export const createVariantsForProduct = async (productId, variantsArray) => {
 	const docs = variantsArray.map((v) => ({
 		product: productId,
@@ -11,6 +19,7 @@ export const createVariantsForProduct = async (productId, variantsArray) => {
 		sku: v.sku || "",
 		price: Number(v.price),
 		stock: Number.isInteger(Number(v.stock)) ? Number(v.stock) : 0,
+		maxPerOrder: sanitizeMaxPerOrder(v.maxPerOrder),
 		attributes: v.attributes || {},
 		isActive: v.isActive !== false,
 	}));
@@ -52,6 +61,7 @@ export const updateVariantsForProduct = async (productId, variantsArray) => {
 						sku: v.sku || "",
 						price: Number(v.price),
 						stock: Number.isInteger(Number(v.stock)) ? Number(v.stock) : 0,
+						maxPerOrder: sanitizeMaxPerOrder(v.maxPerOrder),
 						attributes: v.attributes || {},
 						isActive: v.isActive !== false,
 					},
@@ -68,6 +78,7 @@ export const updateVariantsForProduct = async (productId, variantsArray) => {
 					sku: v.sku || "",
 					price: Number(v.price),
 					stock: Number.isInteger(Number(v.stock)) ? Number(v.stock) : 0,
+					maxPerOrder: sanitizeMaxPerOrder(v.maxPerOrder),
 					attributes: v.attributes || {},
 					isActive: v.isActive !== false,
 				}),

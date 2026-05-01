@@ -320,8 +320,13 @@ function CartItemRow({
               {item.quantity}
             </span>
             <button
-              onClick={() => onUpdateQuantity(item.quantity + 1)}
-              className="p-2 text-[var(--agora-mid)] hover:text-[var(--agora-ink)]"
+              onClick={() =>
+                onUpdateQuantity(
+                  Math.min(item.variant.maxPurchasable, item.quantity + 1),
+                )
+              }
+              disabled={item.quantity >= item.variant.maxPurchasable}
+              className="p-2 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="w-3 h-3" />
             </button>
@@ -336,6 +341,13 @@ function CartItemRow({
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
+        {item.quantity >= item.variant.maxPurchasable && (
+          <p className="text-xs text-[var(--agora-mid)] mt-2">
+            {item.variant.inStock
+              ? `Limite atteinte (max ${item.variant.maxPerOrder} par commande).`
+              : "Cet article n'est plus disponible."}
+          </p>
+        )}
       </div>
 
       {/* Item Total */}

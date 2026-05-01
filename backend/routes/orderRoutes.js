@@ -24,7 +24,11 @@ router.post('/', verifyToken, isBuyer, async (req, res) => {
     const order = await createOrder(req.user.id, { items, deliveryAddress, paymentMethod });
     res.status(201).json(order);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    const payload = { message: error.message };
+    if (error.code) payload.code = error.code;
+    if (error.maxAllowed !== undefined) payload.maxAllowed = error.maxAllowed;
+    if (error.productId) payload.productId = error.productId;
+    res.status(error.statusCode || 500).json(payload);
   }
 });
 

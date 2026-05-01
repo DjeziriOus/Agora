@@ -43,9 +43,9 @@ const statusLabels: Record<string, string> = {
 
 const statusColors: Record<string, string> = {
   en_attente: "bg-agora-warning/10 text-agora-warning",
-  en_preparation: "bg-primary/10 text-primary",
-  en_livraison: "bg-agora-accent/10 text-agora-accent",
-  livree: "bg-agora-success/10 text-agora-success",
+  en_preparation: "bg-muted/10 text-card-foreground",
+  en_livraison: "bg-agora-primary/10 text-agora-primary",
+  livree: "bg-agora-green/10 text-agora-green",
 };
 
 const statusOptions = [
@@ -62,7 +62,11 @@ export default function VendorOrdersPage() {
     error: storeError,
   } = useMyStore();
   const hasStore = Boolean(store);
-  const { data: orders, isLoading, error } = useSellerOrders({
+  const {
+    data: orders,
+    isLoading,
+    error,
+  } = useSellerOrders({
     enabled: hasStore,
   });
   const updateStatus = useUpdateOrderStatus();
@@ -176,6 +180,9 @@ export default function VendorOrdersPage() {
       {/* Orders Table */}
       {filteredOrders.length > 0 ? (
         <Card>
+          <CardHeader>
+            <CardTitle>Liste des Commandes</CardTitle>
+          </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -209,7 +216,13 @@ export default function VendorOrdersPage() {
                         (acc, item) => acc + item.quantity,
                         0,
                       ) || 0}{" "}
-                      article(s)
+                      article
+                      {order.items?.reduce(
+                        (acc, item) => acc + item.quantity,
+                        0,
+                      ) > 1
+                        ? "s"
+                        : ""}
                     </TableCell>
                     <TableCell className="font-semibold">
                       {order.total?.toFixed(2) || "0.00"} €
