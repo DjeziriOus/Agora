@@ -60,7 +60,10 @@ const generateChartData = () => {
   }));
 };
 
-const statusConfig: Record<string, { label: string; icon: typeof Clock; color: string; bg: string }> = {
+const statusConfig: Record<
+  string,
+  { label: string; icon: typeof Clock; color: string; bg: string }
+> = {
   en_attente: {
     label: "En attente",
     icon: Clock,
@@ -119,16 +122,21 @@ function StatCard({
   href,
 }: StatCardProps) {
   const content = (
-    <Card className={cn(
-      "relative overflow-hidden transition-all duration-300 hover:shadow-md",
-      href && "cursor-pointer hover:border-[var(--agora-primary)]/50"
-    )}>
+    <Card
+      className={cn(
+        "relative overflow-hidden transition-all duration-300 hover:shadow-md",
+        href && "cursor-pointer hover:border-[var(--agora-primary)]/50",
+      )}
+    >
       {/* Subtle gradient overlay */}
       <div
         aria-hidden
-        className={cn("absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10", iconBg)}
+        className={cn(
+          "absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10",
+          iconBg,
+        )}
       />
-      
+
       <CardContent className="pt-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
@@ -140,7 +148,9 @@ function StatCard({
               </>
             ) : (
               <>
-                <p className="text-3xl font-bold text-foreground tracking-tight">{value}</p>
+                <p className="text-3xl font-bold text-foreground tracking-tight">
+                  {value}
+                </p>
                 {subtitle && (
                   <p className="text-sm text-muted-foreground">{subtitle}</p>
                 )}
@@ -151,7 +161,7 @@ function StatCard({
             <Icon className={cn("h-6 w-6", iconColor)} />
           </div>
         </div>
-        
+
         {!loading && trend !== undefined && (
           <div className="mt-4 flex items-center gap-2">
             <div
@@ -159,7 +169,7 @@ function StatCard({
                 "flex items-center gap-1 text-sm font-medium px-2 py-0.5 rounded-full",
                 trend >= 0
                   ? "text-green-600 bg-green-500/10"
-                  : "text-red-600 bg-red-500/10"
+                  : "text-red-600 bg-red-500/10",
               )}
             >
               {trend >= 0 ? (
@@ -167,10 +177,13 @@ function StatCard({
               ) : (
                 <TrendingDown className="h-3.5 w-3.5" />
               )}
-              {trend >= 0 ? "+" : ""}{trend}%
+              {trend >= 0 ? "+" : ""}
+              {trend}%
             </div>
             {trendLabel && (
-              <span className="text-xs text-muted-foreground">{trendLabel}</span>
+              <span className="text-xs text-muted-foreground">
+                {trendLabel}
+              </span>
             )}
           </div>
         )}
@@ -190,8 +203,11 @@ export default function VendorDashboardPage() {
   const { data: orders, isLoading: ordersLoading } = useSellerOrders();
   const { data: store } = useMyStore();
   const hasStore = !!store;
-  const { data: stockStats, isLoading: stockStatsLoading } = useStockStats({ enabled: hasStore });
-  const { data: lowStockProducts, isLoading: lowStockLoading } = useLowStockProducts({ enabled: hasStore });
+  const { data: stockStats, isLoading: stockStatsLoading } = useStockStats({
+    enabled: hasStore,
+  });
+  const { data: lowStockProducts, isLoading: lowStockLoading } =
+    useLowStockProducts({ enabled: hasStore });
 
   const chartData = useMemo(() => generateChartData(), []);
   const recentOrders = orders?.slice(0, 6) || [];
@@ -200,10 +216,13 @@ export default function VendorDashboardPage() {
   // Calculate order status distribution
   const orderStatusCounts = useMemo(() => {
     if (!orders) return {};
-    return orders.reduce((acc, order) => {
-      acc[order.status] = (acc[order.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    return orders.reduce(
+      (acc, order) => {
+        acc[order.status] = (acc[order.status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
   }, [orders]);
 
   const greeting = useMemo(() => {
@@ -225,7 +244,7 @@ export default function VendorDashboardPage() {
             <Sparkles className="h-6 w-6 text-[var(--agora-gold)]" />
           </div>
           <p className="text-muted-foreground">
-            Voici un apercu de votre activite. Continuez comme ca !
+            Voici un aperçu de votre activité.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -235,7 +254,10 @@ export default function VendorDashboardPage() {
               Mes produits
             </Link>
           </Button>
-          <Button asChild className="bg-[var(--agora-primary)] hover:bg-[var(--agora-primary-hover)]">
+          <Button
+            asChild
+            className="bg-[var(--agora-primary)] hover:bg-[var(--agora-primary-hover)]"
+          >
             <Link href="/vendeur/produits/nouveau">
               <Plus className="mr-2 h-4 w-4" />
               Nouveau produit
@@ -259,7 +281,11 @@ export default function VendorDashboardPage() {
         <StatCard
           title="Commandes"
           value={stats?.totalOrders || 0}
-          subtitle={stats?.pendingOrders ? `${stats.pendingOrders} en attente` : undefined}
+          subtitle={
+            stats?.pendingOrders
+              ? `${stats.pendingOrders} en attente`
+              : undefined
+          }
           icon={ShoppingCart}
           iconColor="text-[var(--agora-primary)]"
           iconBg="bg-[var(--agora-primary)]/10"
@@ -269,7 +295,9 @@ export default function VendorDashboardPage() {
         <StatCard
           title="Produits"
           value={stats?.totalProducts || 0}
-          subtitle={stats?.activeProducts ? `${stats.activeProducts} actifs` : undefined}
+          subtitle={
+            stats?.activeProducts ? `${stats.activeProducts} actifs` : undefined
+          }
           icon={Package}
           iconColor="text-[var(--agora-ink)]"
           iconBg="bg-[var(--agora-ink)]/10"
@@ -279,7 +307,9 @@ export default function VendorDashboardPage() {
         <StatCard
           title="Stock faible"
           value={lowStockCount}
-          subtitle={lowStockCount > 0 ? "Produits a reapprovisionner" : "Tout va bien"}
+          subtitle={
+            lowStockCount > 0 ? "Produits a reapprovisionner" : "Tout va bien"
+          }
           icon={AlertTriangle}
           iconColor={lowStockCount > 0 ? "text-amber-600" : "text-green-600"}
           iconBg={lowStockCount > 0 ? "bg-amber-500/10" : "bg-green-500/10"}
@@ -289,8 +319,8 @@ export default function VendorDashboardPage() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sales Chart */}
+      {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
@@ -355,11 +385,14 @@ export default function VendorDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Order Status Distribution */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">Statut des commandes</CardTitle>
-            <p className="text-sm text-muted-foreground">Repartition actuelle</p>
+            <CardTitle className="text-base font-semibold">
+              Statut des commandes
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Repartition actuelle
+            </p>
           </CardHeader>
           <CardContent>
             {ordersLoading ? (
@@ -371,10 +404,13 @@ export default function VendorDashboardPage() {
             ) : Object.keys(orderStatusCounts).length > 0 ? (
               <div className="space-y-3">
                 {Object.entries(orderStatusCounts).map(([status, count]) => {
-                  const config = statusConfig[status] || statusConfig.en_attente;
+                  const config =
+                    statusConfig[status] || statusConfig.en_attente;
                   const Icon = config.icon;
-                  const percentage = Math.round((count / (orders?.length || 1)) * 100);
-                  
+                  const percentage = Math.round(
+                    (count / (orders?.length || 1)) * 100,
+                  );
+
                   return (
                     <div key={status} className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -382,16 +418,23 @@ export default function VendorDashboardPage() {
                           <div className={cn("p-1.5 rounded-lg", config.bg)}>
                             <Icon className={cn("h-4 w-4", config.color)} />
                           </div>
-                          <span className="text-sm font-medium">{config.label}</span>
+                          <span className="text-sm font-medium">
+                            {config.label}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold">{count}</span>
-                          <span className="text-xs text-muted-foreground">({percentage}%)</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({percentage}%)
+                          </span>
                         </div>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                          className={cn("h-full rounded-full transition-all duration-500", config.bg.replace("/10", ""))}
+                          className={cn(
+                            "h-full rounded-full transition-all duration-500",
+                            config.bg.replace("/10", ""),
+                          )}
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
@@ -402,12 +445,14 @@ export default function VendorDashboardPage() {
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <ShoppingCart className="h-10 w-10 text-muted-foreground/50 mb-3" />
-                <p className="text-sm text-muted-foreground">Aucune commande pour le moment</p>
+                <p className="text-sm text-muted-foreground">
+                  Aucune commande pour le moment
+                </p>
               </div>
             )}
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* Recent Orders & Low Stock */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -415,12 +460,20 @@ export default function VendorDashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
-              <CardTitle className="text-base font-semibold">Commandes recentes</CardTitle>
+              <CardTitle className="text-base font-semibold">
+                Commandes recentes
+              </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                {orders?.length || 0} commande{(orders?.length || 0) !== 1 ? "s" : ""} au total
+                {orders?.length || 0} commande
+                {(orders?.length || 0) !== 1 ? "s" : ""} au total
               </p>
             </div>
-            <Button variant="ghost" size="sm" asChild className="text-[var(--agora-primary)]">
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="text-[var(--agora-primary)]"
+            >
               <Link href="/vendeur/commandes">
                 Voir tout
                 <ChevronRight className="ml-1 h-4 w-4" />
@@ -437,9 +490,10 @@ export default function VendorDashboardPage() {
             ) : recentOrders.length > 0 ? (
               <div className="space-y-2">
                 {recentOrders.map((order) => {
-                  const config = statusConfig[order.status] || statusConfig.en_attente;
+                  const config =
+                    statusConfig[order.status] || statusConfig.en_attente;
                   const StatusIcon = config.icon;
-                  
+
                   return (
                     <Link
                       key={order.id}
@@ -447,7 +501,9 @@ export default function VendorDashboardPage() {
                       className="group flex items-center justify-between p-4 rounded-xl border border-border hover:border-[var(--agora-primary)]/30 hover:bg-muted/50 transition-all"
                     >
                       <div className="flex items-center gap-4 min-w-0">
-                        <div className={cn("p-2 rounded-lg shrink-0", config.bg)}>
+                        <div
+                          className={cn("p-2 rounded-lg shrink-0", config.bg)}
+                        >
                           <StatusIcon className={cn("h-4 w-4", config.color)} />
                         </div>
                         <div className="min-w-0">
@@ -455,19 +511,21 @@ export default function VendorDashboardPage() {
                             Commande #{order.id.slice(0, 8)}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(order.createdAt), { 
+                            {formatDistanceToNow(new Date(order.createdAt), {
                               addSuffix: true,
-                              locale: fr 
+                              locale: fr,
                             })}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
-                        <span className={cn(
-                          "text-xs font-medium px-2.5 py-1 rounded-full",
-                          config.bg,
-                          config.color
-                        )}>
+                        <span
+                          className={cn(
+                            "text-xs font-medium px-2.5 py-1 rounded-full",
+                            config.bg,
+                            config.color,
+                          )}
+                        >
                           {config.label}
                         </span>
                         <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -481,7 +539,9 @@ export default function VendorDashboardPage() {
                 <div className="p-4 rounded-full bg-muted mb-4">
                   <ShoppingCart className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <p className="font-medium text-foreground mb-1">Aucune commande</p>
+                <p className="font-medium text-foreground mb-1">
+                  Aucune commande
+                </p>
                 <p className="text-sm text-muted-foreground">
                   Vos premieres commandes apparaitront ici
                 </p>
@@ -491,10 +551,12 @@ export default function VendorDashboardPage() {
         </Card>
 
         {/* Low Stock Alert */}
-        <Card className={cn(
-          "transition-all",
-          lowStockCount > 0 && "border-amber-500/30"
-        )}>
+        <Card
+          className={cn(
+            "transition-all",
+            lowStockCount > 0 && "border-amber-500/30",
+          )}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
               <div className="flex items-center gap-2">
@@ -511,7 +573,12 @@ export default function VendorDashboardPage() {
                 Produits a reapprovisionner
               </p>
             </div>
-            <Button variant="ghost" size="sm" asChild className="text-[var(--agora-primary)]">
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="text-[var(--agora-primary)]"
+            >
               <Link href="/vendeur/stock">
                 Gerer le stock
                 <ChevronRight className="ml-1 h-4 w-4" />
@@ -564,7 +631,9 @@ export default function VendorDashboardPage() {
                 <div className="p-4 rounded-full bg-green-500/10 mb-4">
                   <CheckCircle2 className="h-8 w-8 text-green-600" />
                 </div>
-                <p className="font-medium text-foreground mb-1">Stocks a jour</p>
+                <p className="font-medium text-foreground mb-1">
+                  Stocks a jour
+                </p>
                 <p className="text-sm text-muted-foreground">
                   Tous vos produits ont un stock suffisant
                 </p>
@@ -577,7 +646,9 @@ export default function VendorDashboardPage() {
       {/* Quick Actions */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold">Actions rapides</CardTitle>
+          <CardTitle className="text-base font-semibold">
+            Actions rapides
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -588,7 +659,9 @@ export default function VendorDashboardPage() {
               <div className="p-3 rounded-xl bg-[var(--agora-primary)]/10 mb-3 group-hover:bg-[var(--agora-primary)]/20 transition-colors">
                 <Plus className="h-6 w-6 text-[var(--agora-primary)]" />
               </div>
-              <span className="text-sm font-medium text-center">Ajouter un produit</span>
+              <span className="text-sm font-medium text-center">
+                Ajouter un produit
+              </span>
             </Link>
             <Link
               href="/vendeur/commandes"
@@ -597,7 +670,9 @@ export default function VendorDashboardPage() {
               <div className="p-3 rounded-xl bg-[var(--agora-gold)]/10 mb-3 group-hover:bg-[var(--agora-gold)]/20 transition-colors">
                 <ShoppingCart className="h-6 w-6 text-[var(--agora-gold)]" />
               </div>
-              <span className="text-sm font-medium text-center">Voir les commandes</span>
+              <span className="text-sm font-medium text-center">
+                Voir les commandes
+              </span>
             </Link>
             <Link
               href="/vendeur/stock"
@@ -606,7 +681,9 @@ export default function VendorDashboardPage() {
               <div className="p-3 rounded-xl bg-[var(--agora-green)]/10 mb-3 group-hover:bg-[var(--agora-green)]/20 transition-colors">
                 <BarChart3 className="h-6 w-6 text-[var(--agora-green)]" />
               </div>
-              <span className="text-sm font-medium text-center">Gerer le stock</span>
+              <span className="text-sm font-medium text-center">
+                Gerer le stock
+              </span>
             </Link>
             <Link
               href="/vendeur/boutique"
@@ -615,7 +692,9 @@ export default function VendorDashboardPage() {
               <div className="p-3 rounded-xl bg-[var(--agora-ink)]/10 mb-3 group-hover:bg-[var(--agora-ink)]/20 transition-colors">
                 <Users className="h-6 w-6 text-[var(--agora-ink)]" />
               </div>
-              <span className="text-sm font-medium text-center">Ma boutique</span>
+              <span className="text-sm font-medium text-center">
+                Ma boutique
+              </span>
             </Link>
           </div>
         </CardContent>
