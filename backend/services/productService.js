@@ -82,14 +82,58 @@ const getActivePublicShopIds = async () =>
 	Shop.distinct("_id", { isDeleted: false });
 
 /**
- * Enrich a product document with its variants and computed aggregates.
- * Returns a plain object ready for API response.
+ * Strip raw stock from a variant so the public catalogue does not leak
+ * exact inventory counts. Replaces `stock` with `inStock`, `lowStock`,
+ * and `maxPurchasable = min(stock, maxPerOrder)` so the UI can still
+ * cap selectors without revealing the real count.
  */
-const enrichProductWithVariants = async (product) => {
+const toPublicVariant = (variantDoc, productThreshold) => {
+	const variant = variantDoc.toJSON ? variantDoc.toJSON() : variantDoc;
+	const stock = Number(variant.stock ?? 0);
+	const maxPerOrder = Number(variant.maxPerOrder ?? 10);
+	const threshold = Number(productThreshold ?? 5);
+
+	return {
+		id: variant.id ?? variant._id?.toString?.() ?? "",
+		code: variant.code,
+		name: variant.name,
+		sku: variant.sku ?? "",
+		price: variant.price,
+		attributes: variant.attributes ?? {},
+		isActive: variant.isActive !== false,
+		maxPerOrder,
+		maxPurchasable: Math.max(0, Math.min(stock, maxPerOrder)),
+		inStock: stock > 0,
+		lowStock: stock > 0 && stock <= threshold,
+	};
+};
+
+/**
+ * Enrich a product document with its variants and computed aggregates.
+ * `mode` controls how the stock data is exposed.
+ *   - "seller": include raw `stock`, `totalStock`, `maxPerOrder` (full visibility)
+ *   - "public": strip raw stock; expose only inStock/lowStock/maxPurchasable
+ */
+const enrichProductWithVariants = async (product, { mode = "seller" } = {}) => {
 	const variants = await getVariantsByProduct(product._id);
 	const aggregates = computeAggregatesFromArray(variants);
 
 	const productObj = product.toJSON ? product.toJSON() : product;
+	const threshold = productObj.stockThreshold ?? 5;
+
+	if (mode === "public") {
+		const publicVariants = variants.map((v) => toPublicVariant(v, threshold));
+		const totalStock = aggregates.totalStock;
+		return {
+			...productObj,
+			variants: publicVariants,
+			displayPrice: aggregates.displayPrice,
+			hasMultiplePrices: aggregates.hasMultiplePrices,
+			inStock: totalStock > 0,
+			lowStock: totalStock > 0 && totalStock <= threshold,
+		};
+	}
+
 	return {
 		...productObj,
 		variants,
@@ -102,7 +146,7 @@ const enrichProductWithVariants = async (product) => {
 /**
  * Enrich multiple products with their variants and computed aggregates.
  */
-const enrichProductsWithVariants = async (products) => {
+const enrichProductsWithVariants = async (products, { mode = "seller" } = {}) => {
 	if (products.length === 0) return [];
 
 	const productIds = products.map((p) => p._id);
@@ -122,6 +166,20 @@ const enrichProductsWithVariants = async (products) => {
 		const productObj = product.toJSON ? product.toJSON() : product;
 		const variants = variantsByProduct.get(product._id.toString()) || [];
 		const aggregates = computeAggregatesFromArray(variants);
+		const threshold = productObj.stockThreshold ?? 5;
+
+		if (mode === "public") {
+			const publicVariants = variants.map((v) => toPublicVariant(v, threshold));
+			const totalStock = aggregates.totalStock;
+			return {
+				...productObj,
+				variants: publicVariants,
+				displayPrice: aggregates.displayPrice,
+				hasMultiplePrices: aggregates.hasMultiplePrices,
+				inStock: totalStock > 0,
+				lowStock: totalStock > 0 && totalStock <= threshold,
+			};
+		}
 
 		return {
 			...productObj,
@@ -132,6 +190,8 @@ const enrichProductsWithVariants = async (products) => {
 		};
 	});
 };
+
+export { toPublicVariant };
 
 // Build Mongo filters for seller inventory listing (search, stock, status).
 const buildMineFilters = async (shopId, query = {}) => {
@@ -242,7 +302,7 @@ const getProducts = async (query = {}) => {
 			Product.countDocuments(filters),
 		]);
 
-		const enriched = await enrichProductsWithVariants(products);
+		const enriched = await enrichProductsWithVariants(products, { mode: "public" });
 
 		return {
 			products: enriched,
@@ -254,7 +314,7 @@ const getProducts = async (query = {}) => {
 
 	// For price_asc, price_desc, rating: we MUST fetch all matching, enrich, sort in memory, then paginate
 	const allProducts = await Product.find(filters).populate("shop", "name slug logo");
-	let enriched = await enrichProductsWithVariants(allProducts);
+	let enriched = await enrichProductsWithVariants(allProducts, { mode: "public" });
 
 	if (sortParam === "price_asc") {
 		enriched.sort((a, b) => (a.displayPrice || 0) - (b.displayPrice || 0) || new Date(b.createdAt) - new Date(a.createdAt));
@@ -290,7 +350,7 @@ const getProductById = async (productId) => {
 		throw error;
 	}
 
-	return enrichProductWithVariants(product);
+	return enrichProductWithVariants(product, { mode: "public" });
 };
 
 // ── Seller product detail ───────────────────────────────────────────────────
@@ -374,6 +434,7 @@ const createProduct = async ({ ownerId, body, files = [] }) => {
 	if (variants.length === 0) {
 		const price = Number(body.price);
 		const stock = Number(body.stock ?? 0);
+		const maxPerOrder = body.maxPerOrder !== undefined ? body.maxPerOrder : 10;
 
 		if (!Number.isFinite(price) || price < 0) {
 			const error = new Error("Le prix est requis pour un produit simple.");
@@ -388,6 +449,7 @@ const createProduct = async ({ ownerId, body, files = [] }) => {
 				sku: "",
 				price,
 				stock: Number.isInteger(stock) ? stock : 0,
+				maxPerOrder,
 				isActive: true,
 			},
 		];
@@ -466,6 +528,7 @@ const updateProduct = async ({ ownerId, productId, body, files = [] }) => {
 		if (variants.length === 0) {
 			const price = Number(body.price);
 			const stock = Number(body.stock ?? 0);
+			const maxPerOrder = body.maxPerOrder !== undefined ? body.maxPerOrder : 10;
 
 			if (!Number.isFinite(price) || price < 0) {
 				const error = new Error("Le prix est requis pour un produit simple.");
@@ -480,6 +543,7 @@ const updateProduct = async ({ ownerId, productId, body, files = [] }) => {
 					sku: "",
 					price,
 					stock: Number.isInteger(stock) ? stock : 0,
+					maxPerOrder,
 					isActive: true,
 				},
 			];

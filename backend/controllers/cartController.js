@@ -14,9 +14,10 @@ export const getMyCart = async (req, res) => {
     const cart = await getCart(req.user.id);
     return res.status(200).json(cart);
   } catch (error) {
-    return res
-      .status(error.statusCode || 500)
-      .json({ message: error.message || "Internal server error." });
+    const payload = { message: error.message || "Internal server error." };
+    if (error.code) payload.code = error.code;
+    if (error.maxAllowed !== undefined) payload.maxAllowed = error.maxAllowed;
+    return res.status(error.statusCode || 500).json(payload);
   }
 };
 
@@ -35,9 +36,10 @@ export const addToCart = async (req, res) => {
       cart,
     });
   } catch (error) {
-    return res
-      .status(error.statusCode || 500)
-      .json({ message: error.message || "Internal server error." });
+    const payload = { message: error.message || "Internal server error." };
+    if (error.code) payload.code = error.code;
+    if (error.maxAllowed !== undefined) payload.maxAllowed = error.maxAllowed;
+    return res.status(error.statusCode || 500).json(payload);
   }
 };
 
@@ -63,9 +65,10 @@ export const updateCartItemQuantity = async (req, res) => {
       cart,
     });
   } catch (error) {
-    return res
-      .status(error.statusCode || 500)
-      .json({ message: error.message || "Internal server error." });
+    const payload = { message: error.message || "Internal server error." };
+    if (error.code) payload.code = error.code;
+    if (error.maxAllowed !== undefined) payload.maxAllowed = error.maxAllowed;
+    return res.status(error.statusCode || 500).json(payload);
   }
 };
 
@@ -84,9 +87,10 @@ export const removeFromCart = async (req, res) => {
       cart,
     });
   } catch (error) {
-    return res
-      .status(error.statusCode || 500)
-      .json({ message: error.message || "Internal server error." });
+    const payload = { message: error.message || "Internal server error." };
+    if (error.code) payload.code = error.code;
+    if (error.maxAllowed !== undefined) payload.maxAllowed = error.maxAllowed;
+    return res.status(error.statusCode || 500).json(payload);
   }
 };
 
@@ -105,9 +109,10 @@ export const toggleCartItemSelected = async (req, res) => {
       cart,
     });
   } catch (error) {
-    return res
-      .status(error.statusCode || 500)
-      .json({ message: error.message || "Internal server error." });
+    const payload = { message: error.message || "Internal server error." };
+    if (error.code) payload.code = error.code;
+    if (error.maxAllowed !== undefined) payload.maxAllowed = error.maxAllowed;
+    return res.status(error.statusCode || 500).json(payload);
   }
 };
 
@@ -117,9 +122,10 @@ export const getCartCheckoutSummary = async (req, res) => {
     const summary = await getCheckoutSummary(req.user.id);
     return res.status(200).json(summary);
   } catch (error) {
-    return res
-      .status(error.statusCode || 500)
-      .json({ message: error.message || "Internal server error." });
+    const payload = { message: error.message || "Internal server error." };
+    if (error.code) payload.code = error.code;
+    if (error.maxAllowed !== undefined) payload.maxAllowed = error.maxAllowed;
+    return res.status(error.statusCode || 500).json(payload);
   }
 };
 
@@ -129,8 +135,9 @@ export const clearMyCart = async (req, res) => {
     await clearCart(req.user.id);
     return res.status(200).json({ message: "Cart cleared successfully." });
   } catch (error) {
-    return res
-      .status(error.statusCode || 500)
-      .json({ message: error.message || "Internal server error." });
+    const payload = { message: error.message || "Internal server error." };
+    if (error.code) payload.code = error.code;
+    if (error.maxAllowed !== undefined) payload.maxAllowed = error.maxAllowed;
+    return res.status(error.statusCode || 500).json(payload);
   }
 };

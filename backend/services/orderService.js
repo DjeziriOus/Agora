@@ -77,16 +77,32 @@ async function serializeSubOrderForDetail(order, sub) {
   };
 }
 
+// Build an error with the structured fields the controller passes through.
+const stockError = (message, { statusCode = 400, code, maxAllowed, productId } = {}) => {
+  const err = new Error(message);
+  err.statusCode = statusCode;
+  if (code) err.code = code;
+  if (maxAllowed !== undefined) err.maxAllowed = maxAllowed;
+  if (productId) err.productId = productId;
+  return err;
+};
+
 export async function createOrder(userId, { items, deliveryAddress }) {
   const itemsWithData = await Promise.all(
     items.map(async ({ productId, variantId, quantity }) => {
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        throw stockError(`Quantité invalide pour le produit: ${productId}`, { productId });
+      }
       const product = await Product.findById(productId).populate('shop').lean();
       if (!product || product.isDeleted) {
-        throw new Error(`Produit introuvable: ${productId}`);
+        throw stockError(`Produit introuvable: ${productId}`, { statusCode: 404, productId });
       }
       const shop = product.shop;
       if (!shop) {
-        throw new Error(`Boutique introuvable pour le produit: ${productId}`);
+        throw stockError(`Boutique introuvable pour le produit: ${productId}`, {
+          statusCode: 404,
+          productId,
+        });
       }
 
       let variant = null;
@@ -97,7 +113,19 @@ export async function createOrder(userId, { items, deliveryAddress }) {
         variant = await Variant.findOne({ product: productId, isActive: true }).lean();
       }
       if (!variant) {
-        throw new Error(`Variante introuvable pour le produit: ${productId}`);
+        throw stockError(`Variante introuvable pour le produit: ${productId}`, {
+          statusCode: 404,
+          productId,
+        });
+      }
+
+      const maxPerOrder = Number(variant.maxPerOrder ?? 10);
+      if (quantity > maxPerOrder) {
+        throw stockError(`La limite d'achat pour ce produit est de ${maxPerOrder}`, {
+          code: 'MAX_PER_ORDER',
+          maxAllowed: maxPerOrder,
+          productId,
+        });
       }
 
       const firstImage = product.images?.[0];
@@ -153,6 +181,43 @@ export async function createOrder(userId, { items, deliveryAddress }) {
 
   const totalPrice = subOrders.reduce((sum, sub) => sum + sub.total, 0);
 
+  // ── Atomic stock deduction ──────────────────────────────────────────────
+  // We transition stock from the variant the moment the order is "en_attente"
+  // (paid + confirmed). Each $inc is conditional on the current stock being
+  // at least the requested quantity, so two concurrent buyers cannot oversell
+  // the same item. If any decrement fails we rebuild the previous state.
+  const decremented = [];
+  try {
+    for (const item of itemsWithData) {
+      const updated = await Variant.findOneAndUpdate(
+        { _id: item.variantId, stock: { $gte: item.quantity } },
+        { $inc: { stock: -item.quantity } },
+        { new: true }
+      );
+      if (!updated) {
+        const current = await Variant.findById(item.variantId).lean();
+        const remaining = Math.max(0, Number(current?.stock ?? 0));
+        throw stockError(
+          `Désolé, la quantité demandée n'est plus disponible (${remaining} restants pour ${item.productName})`,
+          {
+            code: 'INSUFFICIENT_STOCK',
+            maxAllowed: remaining,
+            productId: item.productId.toString(),
+          }
+        );
+      }
+      decremented.push(item);
+    }
+  } catch (err) {
+    // Roll back any stock decrements we already applied.
+    await Promise.all(
+      decremented.map((d) =>
+        Variant.findByIdAndUpdate(d.variantId, { $inc: { stock: d.quantity } })
+      )
+    );
+    throw err;
+  }
+
   const order = new Order({
     userId,
     status: 'en_attente',
@@ -169,7 +234,18 @@ export async function createOrder(userId, { items, deliveryAddress }) {
     subOrders,
   });
 
-  await order.save();
+  try {
+    await order.save();
+  } catch (err) {
+    // If saving the order fails after stock was decremented, restore stock
+    // so the inventory stays consistent.
+    await Promise.all(
+      itemsWithData.map((d) =>
+        Variant.findByIdAndUpdate(d.variantId, { $inc: { stock: d.quantity } })
+      )
+    );
+    throw err;
+  }
   return serializeOrderForClient(order);
 }
 
@@ -220,7 +296,23 @@ export async function updateSubOrderStatus(sellerId, subOrderId, status) {
   if (!sub) return null;
   if (sub.sellerId?.toString() !== sellerId.toString()) return null;
 
+  const wasCancelled = sub.status === 'annulee';
   sub.status = status;
+
+  // Idempotent restock: if the sub-order is being cancelled (and we have not
+  // already restored its stock), put each item's quantity back into the
+  // matching variant. The flag on the sub-order prevents double-restocking
+  // if a seller toggles the status repeatedly.
+  if (status === 'annulee' && !wasCancelled && !sub.stockRestored) {
+    await Promise.all(
+      (sub.items || []).map((item) =>
+        item.variantId
+          ? Variant.findByIdAndUpdate(item.variantId, { $inc: { stock: item.quantity } })
+          : Promise.resolve()
+      )
+    );
+    sub.stockRestored = true;
+  }
 
   const allStatuses = order.subOrders.map((s) => s.status);
   if (allStatuses.every((s) => s === 'livree')) {
