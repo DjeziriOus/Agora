@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Diamond } from "lucide-react";
+import Image from "next/image";
 
 export function Footer() {
   return (
@@ -11,7 +12,7 @@ export function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <Diamond className="w-6 h-6 text-[var(--agora-gold)]" />
+              <Image src="/logo.png" alt="Agora Logo" width={32} height={32} />
               <span className="font-display text-xl font-bold">Agora</span>
             </Link>
             <p className="text-white/60 text-sm leading-relaxed">

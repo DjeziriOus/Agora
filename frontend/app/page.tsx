@@ -303,14 +303,14 @@ export default function HomePage() {
                       Produits
                     </div>
                   </div>
-                  <div>
+                  {/* <div>
                     <div className="font-display text-3xl font-bold text-white">
                       <CountUp end={98} suffix="%" />
                     </div>
                     <div className="text-xs uppercase tracking-wider text-white/60 mt-1">
                       Satisfaction
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
@@ -340,7 +340,7 @@ export default function HomePage() {
         {/* ============================================ */}
         {/* VALUE PROPS — marquee                         */}
         {/* ============================================ */}
-        <section className="bg-white border-b border-[var(--agora-line)] py-6 overflow-hidden">
+        {/* <section className="bg-white border-b border-[var(--agora-line)] py-6 overflow-hidden">
           <div className="agora-marquee-track gap-12">
             {[...valueProps, ...valueProps].map((vp, i) => {
               const Icon = vp.icon;
@@ -360,7 +360,7 @@ export default function HomePage() {
               );
             })}
           </div>
-        </section>
+        </section> */}
 
         {/* ============================================ */}
         {/* CATEGORIES — Lucide icons, no emoji          */}
