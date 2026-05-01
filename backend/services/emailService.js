@@ -24,6 +24,7 @@ const createTransporter = () =>
       refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
     },
   });
+
 export const sendVerificationEmail = async (email, url) => {
   await sendMail({
     to: email,

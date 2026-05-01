@@ -90,9 +90,13 @@ export default function OrdersPage() {
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(order.createdAt), "d MMMM yyyy 'à' HH:mm", {
-                      locale: fr,
-                    })}
+                    {format(
+                      new Date(order.createdAt),
+                      "d MMMM yyyy 'à' HH:mm",
+                      {
+                        locale: fr,
+                      },
+                    )}
                   </p>
                 </div>
               </CardHeader>
@@ -103,9 +107,16 @@ export default function OrdersPage() {
                       {order.subOrders?.reduce(
                         (acc, sub) =>
                           acc + sub.items.reduce((a, i) => a + i.quantity, 0),
-                        0
+                        0,
                       ) || 0}{" "}
-                      article(s)
+                      article
+                      {order.subOrders?.reduce(
+                        (acc, sub) =>
+                          acc + sub.items.reduce((a, i) => a + i.quantity, 0),
+                        0,
+                      ) > 1
+                        ? "s"
+                        : ""}
                     </p>
                     <p className="font-semibold text-lg">
                       {order.total.toFixed(2)} €
