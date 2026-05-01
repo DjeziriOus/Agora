@@ -255,9 +255,10 @@ export default function HomePage() {
                 </h1>
 
                 <p className="text-lg sm:text-xl text-white/75 max-w-xl lg:max-w-2xl mx-auto lg:mx-0 mb-10 leading-relaxed">
-                  Agora connecte les vendeurs de toutes tailles avec des
-                  millions d'acheteurs. Lancez votre boutique en ligne en
-                  quelques minutes, gerez vos ventes simplement.
+                  Agora connecte les vendeurs de toutes tailles avec de nombreux
+                  clients. Explorez des boutiques uniques et trouvez votre
+                  bonheur. Lancez votre boutique en ligne en quelques minutes,
+                  gérez vos ventes simplement.
                 </p>
 
                 {/* CTAs */}
@@ -303,14 +304,14 @@ export default function HomePage() {
                       Produits
                     </div>
                   </div>
-                  {/* <div>
+                  <div>
                     <div className="font-display text-3xl font-bold text-white">
-                      <CountUp end={98} suffix="%" />
+                      <CountUp end={76000} suffix="+" />
                     </div>
                     <div className="text-xs uppercase tracking-wider text-white/60 mt-1">
-                      Satisfaction
+                      Clients
                     </div>
-                  </div> */}
+                  </div>
                 </div>
               </div>
 
@@ -727,12 +728,12 @@ export default function HomePage() {
                         </span>
                       </div>
                       <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4 leading-tight">
-                        Vous êtes artisan ou créateur ?
+                        Pret a rejoindre la marketplace ?
                       </h2>
                       <p className="text-white/80 mb-8 leading-relaxed text-lg">
-                        Rejoignez Agora et faites rayonner vos créations auprès
-                        de milliers de clients passionnés. Inscription gratuite,
-                        commissions réduites, support dédié.
+                        Des milliers de vendeurs ont deja fait le choix d'Agora.{" "}
+                        <br />
+                        Rejoignez-les et commencez a vendre des aujourd'hui.
                       </p>
                       <div className="flex flex-col sm:flex-row gap-3">
                         <Link
