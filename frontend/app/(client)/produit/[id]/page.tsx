@@ -94,6 +94,24 @@ export default function ProductDetailPage({
     setSelectedImage(0);
   }, [product?.id]);
 
+  // Compute maxPurchasable safely BEFORE early returns so the clamping
+  // useEffect never violates React's Rules of Hooks.
+  const currentMaxPurchasable = useMemo(() => {
+    if (!product?.variants?.length) return 0;
+    const active = product.variants.filter((v) => v.isActive);
+    const selected = active.find((v) => v.code === selectedVariantCode);
+    return selected?.maxPurchasable ?? 0;
+  }, [product, selectedVariantCode]);
+
+  // Re-clamp the typed quantity whenever the selected variant changes.
+  useEffect(() => {
+    if (currentMaxPurchasable === 0) {
+      setQuantity(1);
+      return;
+    }
+    setQuantity((current) => Math.min(Math.max(1, current), currentMaxPurchasable));
+  }, [currentMaxPurchasable]);
+
   // Show a loading state while the detail request is still resolving.
   if (isLoading && !product) {
     return (
@@ -159,13 +177,22 @@ export default function ProductDetailPage({
     (variant) => variant.code === selectedVariantCode,
   );
   const displayPrice = selectedVariant?.price ?? product.displayPrice;
-  const displayStock = selectedVariant?.stock ?? product.totalStock;
+  // The backend caps purchasable to min(stock, maxPerOrder) and never exposes
+  // the exact stock count to the public catalogue, so the UI uses these
+  // booleans + maxPurchasable to enforce limits without leaking inventory.
+  const isOutOfStock = selectedVariant
+    ? !selectedVariant.inStock
+    : !product.inStock;
+  const isLowStock = selectedVariant
+    ? selectedVariant.lowStock
+    : product.lowStock;
+  const maxPurchasable = selectedVariant?.maxPurchasable ?? 0;
+  const maxPerOrder = selectedVariant?.maxPerOrder ?? 10;
 
   const handleAddToCart = async () => {
     if (isSeller) return;
 
-    // Block the add-to-cart action when the selected product option is out of stock.
-    if (displayStock === 0) return;
+    if (isOutOfStock) return;
 
     // Force the user to pick a variant before adding products with multiple options.
     if (hasMultipleVariants && !selectedVariant) {
@@ -177,13 +204,12 @@ export default function ProductDetailPage({
     // Abort if no valid variant identifier can be resolved for the cart payload.
     if (!variantId) return;
 
-    addToCart(product, quantity, variantId);
+    const safeQuantity = Math.min(Math.max(1, quantity), maxPurchasable || 1);
+
+    addToCart(product, safeQuantity, variantId);
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 2000);
   };
-
-  const isOutOfStock = displayStock === 0;
-  const isLowStock = displayStock > 0 && displayStock <= product.stockThreshold;
 
   return (
     <div className="min-h-screen bg-[var(--agora-bg)]">
@@ -309,7 +335,9 @@ export default function ProductDetailPage({
                   className="w-full text-left px-4 py-3 border border-[var(--agora-line)] rounded-[var(--radius-md)] hover:border-[var(--agora-primary)] transition-colors"
                 >
                   {selectedVariant
-                    ? `${selectedVariant.name} (${selectedVariant.stock} en stock)`
+                    ? `${selectedVariant.name} ${
+                        selectedVariant.inStock ? "" : "(Rupture)"
+                      }`.trim()
                     : "Choisir une option"}
                 </button>
               </div>
@@ -325,7 +353,7 @@ export default function ProductDetailPage({
                   <div className="inline-flex items-center border border-[var(--agora-line)] rounded-[var(--radius-md)]">
                     <button
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      disabled={quantity <= 1}
+                      disabled={quantity <= 1 || isOutOfStock}
                       className="p-3 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Minus className="w-4 h-4" />
@@ -335,14 +363,23 @@ export default function ProductDetailPage({
                     </span>
                     <button
                       onClick={() =>
-                        setQuantity((q) => Math.min(displayStock, q + 1))
+                        setQuantity((q) => Math.min(maxPurchasable, q + 1))
                       }
-                      disabled={quantity >= displayStock}
+                      disabled={isOutOfStock || quantity >= maxPurchasable}
                       className="p-3 text-[var(--agora-mid)] hover:text-[var(--agora-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
+                  {!isOutOfStock && quantity >= maxPurchasable && (
+                    <p className="text-xs text-[var(--agora-mid)] mt-2">
+                      Limite atteinte pour ce produit
+                      {maxPurchasable === maxPerOrder
+                        ? ` (max ${maxPerOrder} par commande)`
+                        : ""}
+                      .
+                    </p>
+                  )}
                 </div>
 
                 {/* Add to Cart Button */}
@@ -448,7 +485,7 @@ export default function ProductDetailPage({
               </div>
             </div>
 
-            {/* Stock Indicator */}
+            {/* Stock Indicator — exact stock count is intentionally not shown */}
             <div className="mt-6 flex items-center gap-2">
               {isOutOfStock ? (
                 <>
@@ -461,14 +498,14 @@ export default function ProductDetailPage({
                 <>
                   <span className="w-2 h-2 rounded-full bg-[var(--agora-warning)]" />
                   <span className="text-sm text-[var(--agora-warning)]">
-                    Stock faible ({displayStock} restants)
+                    Stock faible
                   </span>
                 </>
               ) : (
                 <>
                   <span className="w-2 h-2 rounded-full bg-[var(--agora-green)]" />
                   <span className="text-sm text-[var(--agora-green)]">
-                    En stock ({displayStock} disponibles)
+                    En stock
                   </span>
                 </>
               )}
@@ -606,7 +643,13 @@ export default function ProductDetailPage({
                 >
                   <p className="font-medium text-[var(--agora-ink)]">{variant.name}</p>
                   <p className="text-sm text-[var(--agora-mid)]">
-                    {variant.price.toFixed(2).replace(".", ",")} € · {variant.stock} en stock
+                    {variant.price.toFixed(2).replace(".", ",")} €
+                    {" · "}
+                    {variant.inStock
+                      ? variant.lowStock
+                        ? "Stock faible"
+                        : "En stock"
+                      : "Rupture de stock"}
                   </p>
                 </button>
               );
