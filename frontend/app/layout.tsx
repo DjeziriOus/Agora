@@ -31,22 +31,22 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "Agora | La marketplace multi-boutiques française",
+  title: "Agora | La marketplace pour tous les vendeurs",
   description:
-    "Découvrez Agora, la marketplace française qui connecte artisans et clients. Trouvez des produits uniques et soutenez les créateurs locaux.",
+    "Agora connecte vendeurs de toutes tailles et acheteurs. Lancez votre boutique en ligne en quelques minutes, vendez vos produits facilement.",
   keywords: [
     "marketplace",
-    "artisanat",
-    "français",
-    "boutique",
     "e-commerce",
-    "fait main",
+    "boutique en ligne",
+    "vendre en ligne",
+    "multi-vendeurs",
+    "plateforme vente",
   ],
   authors: [{ name: "Agora" }],
   openGraph: {
-    title: "Agora | La marketplace multi-boutiques française",
+    title: "Agora | La marketplace pour tous les vendeurs",
     description:
-      "Découvrez des produits uniques créés par des artisans français.",
+      "Vendez partout, grandissez sans limites. Lancez votre boutique en ligne facilement.",
     type: "website",
     locale: "fr_FR",
   },
