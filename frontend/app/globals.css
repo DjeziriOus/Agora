@@ -262,3 +262,167 @@
 .animate-fade-in {
   animation: fade-in 0.3s ease-out forwards;
 }
+
+/* ============================================ */
+/* Landing page animations & illustrations      */
+/* ============================================ */
+
+/* Slow vertical float — used by hero ornaments */
+@keyframes agora-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-14px) rotate(2deg); }
+}
+.agora-float-slow  { animation: agora-float 7s ease-in-out infinite; }
+.agora-float-mid   { animation: agora-float 5s ease-in-out infinite; }
+.agora-float-fast  { animation: agora-float 3.6s ease-in-out infinite; }
+
+/* Gentle drift in random direction */
+@keyframes agora-drift-x {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  50%      { transform: translateX(10px) translateY(-6px); }
+}
+.agora-drift { animation: agora-drift-x 9s ease-in-out infinite; }
+
+/* Mesh blob morph — slow color/scale shift behind hero */
+@keyframes agora-blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(30px, -20px) scale(1.08); }
+  66%      { transform: translate(-20px, 25px) scale(0.95); }
+}
+.agora-blob { animation: agora-blob 18s ease-in-out infinite; }
+
+/* Continuous shine sweep across a surface */
+@keyframes agora-shine {
+  0%   { transform: translateX(-150%) skewX(-12deg); }
+  100% { transform: translateX(250%) skewX(-12deg); }
+}
+.agora-shine::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 100%
+  );
+  transform: translateX(-150%) skewX(-12deg);
+  animation: agora-shine 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Pulsing glow for accent dots */
+@keyframes agora-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 167, 38, 0.6); }
+  50%      { box-shadow: 0 0 0 14px rgba(255, 167, 38, 0); }
+}
+.agora-pulse-glow { animation: agora-pulse-glow 2.4s ease-out infinite; }
+
+/* Scroll reveal — fade up with translate */
+@keyframes agora-rise {
+  0%   { opacity: 0; transform: translateY(28px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.agora-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.agora-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Marquee — continuous horizontal scroll */
+@keyframes agora-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.agora-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: agora-marquee 32s linear infinite;
+}
+.agora-marquee-track:hover { animation-play-state: paused; }
+
+/* Animated dashed connector line drawing */
+@keyframes agora-draw {
+  0%   { stroke-dashoffset: 400; }
+  100% { stroke-dashoffset: 0; }
+}
+.agora-draw-line {
+  stroke-dasharray: 6 8;
+  stroke-dashoffset: 400;
+  animation: agora-draw 3s ease-out forwards;
+}
+
+/* Sparkle twinkle */
+@keyframes agora-twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+.agora-twinkle { animation: agora-twinkle 2.6s ease-in-out infinite; }
+
+/* Gradient text shift */
+@keyframes agora-gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.agora-gradient-text {
+  background: linear-gradient(
+    90deg,
+    var(--agora-gold) 0%,
+    #ffd166 25%,
+    var(--agora-gold) 50%,
+    #ffd166 75%,
+    var(--agora-gold) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: agora-gradient-shift 4s ease-in-out infinite;
+}
+
+/* Magnetic underline — used on hero word */
+@keyframes agora-underline {
+  0%   { transform: scaleX(0); transform-origin: left; }
+  100% { transform: scaleX(1); transform-origin: left; }
+}
+.agora-underline-draw {
+  animation: agora-underline 0.8s 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform: scaleX(0);
+}
+
+/* Card lift on hover */
+.agora-lift {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.35s ease,
+              border-color 0.2s ease;
+}
+.agora-lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px -12px rgba(26, 26, 46, 0.18);
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .agora-float-slow,
+  .agora-float-mid,
+  .agora-float-fast,
+  .agora-drift,
+  .agora-blob,
+  .agora-pulse-glow,
+  .agora-marquee-track,
+  .agora-twinkle,
+  .agora-gradient-text {
+    animation: none !important;
+  }
+  .agora-shine::before { display: none; }
+  .agora-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
