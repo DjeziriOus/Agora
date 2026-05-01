@@ -105,7 +105,9 @@ function VendorProductsContent() {
   let filteredProducts = products;
 
   if (filterLowStock) {
-    filteredProducts = filteredProducts.filter((p) => p.totalStock <= (p.stockThreshold ?? 5));
+    filteredProducts = filteredProducts.filter(
+      (p) => (p.totalStock ?? 0) <= (p.stockThreshold ?? 5),
+    );
   }
 
   const handleToggleActive = async (
@@ -277,20 +279,28 @@ function VendorProductsContent() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span
-                        className={`font-medium ${
-                          product.totalStock <= (product.stockThreshold ?? 5)
-                            ? "text-agora-warning"
-                            : product.totalStock <= 0
-                            ? "text-destructive"
-                            : ""
-                        }`}
-                      >
-                        {product.totalStock}
-                      </span>
-                      {product.totalStock <= (product.stockThreshold ?? 5) && product.totalStock > 0 && (
-                        <AlertTriangle className="inline-block ml-1 h-3 w-3 text-agora-warning" />
-                      )}
+                      {(() => {
+                        const totalStock = product.totalStock ?? 0;
+                        const threshold = product.stockThreshold ?? 5;
+                        return (
+                          <>
+                            <span
+                              className={`font-medium ${
+                                totalStock <= threshold
+                                  ? "text-agora-warning"
+                                  : totalStock <= 0
+                                  ? "text-destructive"
+                                  : ""
+                              }`}
+                            >
+                              {totalStock}
+                            </span>
+                            {totalStock <= threshold && totalStock > 0 && (
+                              <AlertTriangle className="inline-block ml-1 h-3 w-3 text-agora-warning" />
+                            )}
+                          </>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <span

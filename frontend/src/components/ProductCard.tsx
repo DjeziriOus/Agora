@@ -36,7 +36,7 @@ export function ProductCard({
       ? product.images[0]
       : "/placeholder-product.png";
 
-  const isOutOfStock = product.totalStock === 0;
+  const isOutOfStock = !product.inStock;
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();

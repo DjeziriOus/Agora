@@ -42,7 +42,7 @@ const serializePublicShop = async (shop) => {
 // frontend/app/(client)/boutique/[id]/page.tsx
 // Each item is rendered through ProductCard, which requires variant data and aggregate
 // fields such as displayPrice, totalStock, and hasMultiplePrices.
-const enrichProductsWithVariants = async (products) => {
+const enrichProductsWithVariants = async (products, { mode = "seller" } = {}) => {
   if (products.length === 0) return [];
 
   const productIds = products.map((product) => product._id);
@@ -65,6 +65,37 @@ const enrichProductsWithVariants = async (products) => {
     const productObj = product.toJSON ? product.toJSON() : product;
     const variants = variantsByProduct.get(product._id.toString()) || [];
     const aggregates = computeAggregatesFromArray(variants);
+    const threshold = productObj.stockThreshold ?? 5;
+
+    if (mode === "public") {
+      const publicVariants = variants.map((v) => {
+        const variant = v.toJSON ? v.toJSON() : v;
+        const stock = Number(variant.stock ?? 0);
+        const maxPerOrder = Number(variant.maxPerOrder ?? 10);
+        return {
+          id: variant.id ?? variant._id?.toString?.() ?? "",
+          code: variant.code,
+          name: variant.name,
+          sku: variant.sku ?? "",
+          price: variant.price,
+          attributes: variant.attributes ?? {},
+          isActive: variant.isActive !== false,
+          maxPerOrder,
+          maxPurchasable: Math.max(0, Math.min(stock, maxPerOrder)),
+          inStock: stock > 0,
+          lowStock: stock > 0 && stock <= threshold,
+        };
+      });
+      const totalStock = aggregates.totalStock;
+      return {
+        ...productObj,
+        variants: publicVariants,
+        displayPrice: aggregates.displayPrice,
+        hasMultiplePrices: aggregates.hasMultiplePrices,
+        inStock: totalStock > 0,
+        lowStock: totalStock > 0 && totalStock <= threshold,
+      };
+    }
 
     return {
       ...productObj,
@@ -225,7 +256,7 @@ const getShopProductsBySlug = async (slug, query = {}) => {
     Product.countDocuments(filters),
   ]);
 
-  const enriched = await enrichProductsWithVariants(products);
+  const enriched = await enrichProductsWithVariants(products, { mode: "public" });
 
   return {
     products: enriched,

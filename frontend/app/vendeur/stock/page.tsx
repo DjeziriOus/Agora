@@ -90,16 +90,16 @@ const buildStockGroups = (products: Product[]): ProductStockGroup[] => {
     const variants: VariantStockLine[] = (product.variants ?? []).map((variant) => ({
       key: `${product.id}-${variant.code}`,
       sku: variant.sku || variant.code,
-      stock: variant.stock,
+      stock: variant.stock ?? 0,
       threshold: product.stockThreshold ?? 5,
-      price: variant.price ?? product.price,
+      price: variant.price ?? 0,
       variantName: variant.name,
     }));
 
     const totalStock =
       variants.length > 0
         ? variants.reduce((sum, variant) => sum + variant.stock, 0)
-        : product.stock;
+        : product.totalStock ?? 0;
 
     return {
       productId: product.id,
@@ -108,7 +108,7 @@ const buildStockGroups = (products: Product[]): ProductStockGroup[] => {
       category: product.category || "Sans categorie",
       stock: totalStock,
       threshold: product.stockThreshold ?? 5,
-      price: product.price,
+      price: product.displayPrice ?? 0,
       variants,
     };
   });

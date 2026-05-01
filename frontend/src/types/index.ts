@@ -42,7 +42,12 @@ export interface Product {
   storeLogo?: string;
   images: string[];
   variants: ProductVariant[];
-  totalStock: number;
+  // Public payloads no longer expose the exact total stock; these flags
+  // come from the backend and are enough to render UI states.
+  inStock: boolean;
+  lowStock: boolean;
+  // Seller-only: present on /products/mine endpoints.
+  totalStock?: number;
   displayPrice: number;
   hasMultiplePrices: boolean;
   isActive: boolean;
@@ -55,7 +60,14 @@ export interface ProductVariant {
   name: string;
   sku?: string;
   price: number;
-  stock: number;
+  // Maximum quantity the buyer can put in a single order for this variant.
+  maxPerOrder: number;
+  // min(stock, maxPerOrder) — the cap the UI should enforce on quantity inputs.
+  maxPurchasable: number;
+  inStock: boolean;
+  lowStock: boolean;
+  // Seller-only: present on /products/mine endpoints.
+  stock?: number;
   attributes?: Record<string, string>;
   isActive: boolean;
 }

@@ -24,6 +24,7 @@ const subOrderSchema = new mongoose.Schema(
     },
     total: { type: Number, required: true },
     items: [subOrderItemSchema],
+    stockRestored: { type: Boolean, default: false },
   },
   { _id: true }
 );

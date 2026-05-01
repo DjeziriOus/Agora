@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/context/AuthContext";
 import { useCreateOrder } from "@/hooks/useApi";
-import { addressesApi, shopsApi } from "@/lib/api";
+import { addressesApi, shopsApi, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type CheckoutStep = "shipping" | "payment" | "confirmation";
@@ -113,7 +113,7 @@ export default function CheckoutPage() {
     }
   }, [addresses, selectedAddressId]);
   const router = useRouter();
-  const { items, clearCart } = useCart();
+  const { items, clearCart, updateQuantity } = useCart();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [isCheckingSellerRedirect, setIsCheckingSellerRedirect] =
     useState(false);
@@ -298,6 +298,47 @@ export default function CheckoutPage() {
         setCurrentStep("confirmation");
       } catch (err) {
         console.error("Order creation error:", err);
+
+        // Reactive validation: if the backend rejected the order because the
+        // requested quantity is no longer available (or exceeds the per-order
+        // limit), block the payment, surface a clear message, and offer to
+        // reduce the offending cart line to the maximum the backend allows.
+        if (
+          err instanceof ApiError &&
+          (err.code === "INSUFFICIENT_STOCK" || err.code === "MAX_PER_ORDER") &&
+          err.productId &&
+          typeof err.maxAllowed === "number"
+        ) {
+          const offending = items.find((it) => it.productId === err.productId);
+          const maxAllowed = err.maxAllowed;
+          const baseMessage =
+            err.code === "INSUFFICIENT_STOCK"
+              ? "Désolé, la quantité demandée n'est plus disponible"
+              : err.message;
+
+          if (offending && maxAllowed > 0) {
+            toast.message(baseMessage, {
+              description: `Réduire la quantité à ${maxAllowed} pour « ${offending.product.name} » ?`,
+              action: {
+                label: `Réduire à ${maxAllowed}`,
+                onClick: () =>
+                  updateQuantity(
+                    offending.productId,
+                    maxAllowed,
+                    offending.variantId,
+                  ),
+              },
+              duration: 10000,
+            });
+          } else if (offending) {
+            // Stock dropped to 0 — the only safe action is to remove the line.
+            toast.error(`${baseMessage}. Cet article n'est plus disponible.`);
+          } else {
+            toast.error(baseMessage);
+          }
+          return;
+        }
+
         const msg = err instanceof Error ? err.message : "Unknown error";
         toast.error(`Error: ${msg}`);
       } finally {
