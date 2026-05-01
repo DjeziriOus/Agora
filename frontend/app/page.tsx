@@ -54,18 +54,18 @@ interface CategoryStyle {
 // Map known category names to a real Lucide icon and a brand-aligned tone.
 // Falls back to a generic shopping bag for anything unexpected.
 const categoryStyles: Record<string, CategoryStyle> = {
-  Papeterie:    { icon: PenTool,         bg: "#e8eaf6", fg: "#5c6bc0" },
-  Maison:       { icon: Home,            bg: "#FFF3E0", fg: "#E65100" },
-  Mode:         { icon: Shirt,           bg: "#FCE4EC", fg: "#C2185B" },
-  Bijoux:       { icon: Gem,             bg: "#E0F7FA", fg: "#00838F" },
-  Art:          { icon: Palette,         bg: "#FFF8E1", fg: "#F57F17" },
+  Papeterie: { icon: PenTool, bg: "#e8eaf6", fg: "#5c6bc0" },
+  Maison: { icon: Home, bg: "#FFF3E0", fg: "#E65100" },
+  Mode: { icon: Shirt, bg: "#FCE4EC", fg: "#C2185B" },
+  Bijoux: { icon: Gem, bg: "#E0F7FA", fg: "#00838F" },
+  Art: { icon: Palette, bg: "#FFF8E1", fg: "#F57F17" },
   Alimentation: { icon: UtensilsCrossed, bg: "#FFEBEE", fg: "#C62828" },
-  Beauté:       { icon: Flower2,         bg: "#F3E5F5", fg: "#7B1FA2" },
-  Jouets:       { icon: Puzzle,          bg: "#E0F2F1", fg: "#00796B" },
-  Livres:       { icon: BookOpen,        bg: "#E3F2FD", fg: "#1565C0" },
-  Musique:      { icon: Music,           bg: "#EDE7F6", fg: "#4527A0" },
-  Photo:        { icon: Camera,          bg: "#ECEFF1", fg: "#37474F" },
-  "Café & Thé": { icon: Coffee,          bg: "#EFEBE9", fg: "#5D4037" },
+  Beauté: { icon: Flower2, bg: "#F3E5F5", fg: "#7B1FA2" },
+  Jouets: { icon: Puzzle, bg: "#E0F2F1", fg: "#00796B" },
+  Livres: { icon: BookOpen, bg: "#E3F2FD", fg: "#1565C0" },
+  Musique: { icon: Music, bg: "#EDE7F6", fg: "#4527A0" },
+  Photo: { icon: Camera, bg: "#ECEFF1", fg: "#37474F" },
+  "Café & Thé": { icon: Coffee, bg: "#EFEBE9", fg: "#5D4037" },
 };
 
 const fallbackCategoryStyle: CategoryStyle = {
@@ -75,12 +75,12 @@ const fallbackCategoryStyle: CategoryStyle = {
 };
 
 const valueProps = [
-  { icon: Truck,          label: "Livraison rapide" },
-  { icon: Shield,         label: "Paiement sécurisé" },
+  { icon: Truck, label: "Livraison rapide" },
+  { icon: Shield, label: "Paiement sécurisé" },
   { icon: HeartHandshake, label: "Service client 7j/7" },
-  { icon: Sparkles,       label: "Fait main en France" },
-  { icon: Leaf,           label: "Éco-responsable" },
-  { icon: Award,          label: "Qualité vérifiée" },
+  // { icon: Sparkles, label: "Fait main en France" },
+  { icon: Leaf, label: "Éco-responsable" },
+  { icon: Award, label: "Qualité vérifiée" },
 ];
 
 const testimonials = [
@@ -156,7 +156,8 @@ export default function HomePage() {
   );
 
   const authReady = !isAuthLoading;
-  const isCheckingShop = authReady && isAuthenticated && isSeller && hasShop === null;
+  const isCheckingShop =
+    authReady && isAuthenticated && isSeller && hasShop === null;
   const showBoutiqueButton =
     authReady &&
     !isCheckingShop &&
@@ -229,32 +230,34 @@ export default function HomePage() {
               {/* Copy */}
               <div className="text-center lg:text-left">
                 {/* Badge */}
-                <div
+                {/* <div
                   className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-8 agora-pulse-glow"
                 >
                   <span className="w-2 h-2 rounded-full bg-[var(--agora-gold)]" />
                   <span className="text-xs uppercase tracking-widest text-white/80">
                     Marketplace française · Édition 2026
                   </span>
-                </div>
+                </div> */}
 
                 {/* Title */}
                 <h1 className="font-display text-4xl sm:text-5xl lg:text-[64px] font-bold mb-6 leading-[1.05] text-white">
-                  L'art de vendre,
+                  Vendez partout.
                   <br />
                   <span className="relative inline-block">
-                    <span className="agora-gradient-text">à la française.</span>
-                    <span
+                    <span className="agora-gradient-text">
+                      Grandissez sans limites.
+                    </span>
+                    {/* <span
                       className="absolute left-0 -bottom-1 h-1 w-full rounded-full agora-underline-draw"
                       style={{ background: "var(--agora-gold)" }}
-                    />
+                    /> */}
                   </span>
                 </h1>
 
                 <p className="text-lg sm:text-xl text-white/75 max-w-xl lg:max-w-2xl mx-auto lg:mx-0 mb-10 leading-relaxed">
-                  Agora rassemble les artisans, créateurs et boutiques
-                  indépendantes de France. Découvrez des produits uniques —
-                  faits avec passion, livrés avec soin.
+                  Agora connecte les vendeurs de toutes tailles avec des
+                  millions d'acheteurs. Lancez votre boutique en ligne en
+                  quelques minutes, gerez vos ventes simplement.
                 </p>
 
                 {/* CTAs */}
@@ -283,10 +286,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-3 gap-6 max-w-md mx-auto lg:mx-0 pt-8 border-t border-white/10">
                   <div>
                     <div className="font-display text-3xl font-bold text-white">
-                      <CountUp
-                        end={Math.max(uniqueShops, 250)}
-                        suffix="+"
-                      />
+                      <CountUp end={Math.max(uniqueShops, 250)} suffix="+" />
                     </div>
                     <div className="text-xs uppercase tracking-wider text-white/60 mt-1">
                       Boutiques
@@ -375,15 +375,16 @@ export default function HomePage() {
                 Explorez par univers
               </h2>
               <p className="text-[var(--agora-mid)] max-w-xl mx-auto">
-                Du fait-main au design contemporain — chaque catégorie cache
-                des trouvailles uniques.
+                Du fait-main au design contemporain — chaque catégorie cache des
+                trouvailles uniques.
               </p>
             </Reveal>
 
             {featuredCategories.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
                 {featuredCategories.map((cat, idx) => {
-                  const style = categoryStyles[cat.name] ?? fallbackCategoryStyle;
+                  const style =
+                    categoryStyles[cat.name] ?? fallbackCategoryStyle;
                   const Icon = style.icon;
                   return (
                     <Reveal key={cat.id} delay={idx * 70}>
@@ -609,7 +610,7 @@ export default function HomePage() {
         {/* ============================================ */}
         {/* TESTIMONIALS                                  */}
         {/* ============================================ */}
-        <section className="bg-[var(--agora-accent)] py-20 relative overflow-hidden">
+        {/* <section className="bg-[var(--agora-accent)] py-20 relative overflow-hidden">
           <div
             aria-hidden
             className="absolute -top-20 -right-20 w-80 h-80 rounded-full blur-3xl opacity-30"
@@ -672,7 +673,7 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* ============================================ */}
         {/* SELLER CTA                                    */}
