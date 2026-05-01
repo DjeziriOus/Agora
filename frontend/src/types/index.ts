@@ -5,9 +5,11 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: "buyer" | "seller" | "unassigned";
+  role: "buyer" | "seller" | "admin" | "unassigned";
   emailVerified: boolean;
   image?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Store {

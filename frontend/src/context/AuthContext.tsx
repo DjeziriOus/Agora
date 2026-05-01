@@ -57,7 +57,7 @@ function mapUser(sessionUser: Record<string, unknown>): User {
     firstName: (sessionUser.firstName as string) ?? "",
     lastName: (sessionUser.lastName as string) ?? "",
     role:
-      (sessionUser.role as "buyer" | "seller" | "unassigned") ?? "unassigned",
+      (sessionUser.role as "buyer" | "seller" | "admin" | "unassigned") ?? "unassigned",
     emailVerified: Boolean(sessionUser.emailVerified),
     image: (sessionUser.image as string | undefined) ?? undefined,
   };
