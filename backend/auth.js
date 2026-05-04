@@ -45,7 +45,7 @@ export const auth = betterAuth({
     ? {
         advanced: {
           defaultCookieAttributes: {
-            sameSite: "Secure",
+            sameSite: "none",
             secure: true,
           },
         },
@@ -82,6 +82,7 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      errorCallbackURL: `${process.env.FRONTEND_URL}/login?oauthError=1`,
       mapProfileToUser: async (profile) => {
         console.log(profile);
         return {

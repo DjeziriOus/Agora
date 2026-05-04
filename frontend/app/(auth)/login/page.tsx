@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, X, Diamond } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -9,6 +9,7 @@ import { authClient } from "@/lib/auth-client";
 import { shopsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { toast } from "sonner";
 
 function LoginContent() {
   const [email, setEmail] = useState("");
@@ -18,6 +19,16 @@ function LoginContent() {
   const { login, isLoading } = useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("oauthError")) {
+      toast.error(
+        "Connexion Google échouée. Si vous utilisez Brave, essayez de désactiver les Shields pour ce site ou utilisez Chrome.",
+        { duration: 8000 },
+      );
+    }
+  }, [searchParams]);
 
   const handleGoogleLogin = async () => {
     setError(null);
@@ -26,6 +37,7 @@ function LoginContent() {
       await authClient.signIn.social({
         provider: "google",
         callbackURL: `${window.location.origin}/oauth-callback`,
+        errorCallbackURL: `${window.location.origin}/login?oauthError=1`,
       });
     } catch (err) {
       setError(
