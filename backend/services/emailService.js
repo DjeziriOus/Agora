@@ -1,70 +1,126 @@
 import { google } from "googleapis";
+import {
+  verificationEmailTemplate,
+  passwordResetTemplate,
+  orderReceiptTemplate,
+  sellerNewOrderTemplate,
+  orderStatusUpdateTemplate,
+} from "./emailTemplates.js";
 
 /**
- * Gmail HTTP API transport for noreply.agora.marketplace@gmail.com
+ * Gmail REST API transport for the Agora marketplace mailbox.
  *
- * Uses the Gmail REST API (HTTPS, port 443) instead of SMTP (port 465/587),
- * so it works on hosting providers that block outbound SMTP traffic.
+ * We use the Gmail HTTP API (HTTPS, port 443) instead of SMTP so the app
+ * works on hosting providers that block outbound SMTP traffic. The mailbox
+ * is authorized once via the OAuth Playground; the refresh token is stored
+ * in the environment and the access token is regenerated automatically.
  *
- * Required .env vars:
- *   EMAIL_FROM            — noreply.agora.marketplace@gmail.com
- *   GOOGLE_CLIENT_ID      — from Google Cloud Console
- *   GOOGLE_CLIENT_SECRET  — from Google Cloud Console
- *   GOOGLE_REFRESH_TOKEN  — generated via OAuth Playground with https://mail.google.com/ scope
+ * Required env vars:
+ *   EMAIL_FROM            noreply.agora.marketplace@gmail.com
+ *   GOOGLE_CLIENT_ID
+ *   GOOGLE_CLIENT_SECRET
+ *   GOOGLE_REFRESH_TOKEN  (https://mail.google.com/ scope)
  */
-const createTransporter = () =>
-  nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      type: "OAuth2",
-      user: process.env.EMAIL_FROM,
-      // pass: process.env.EMAIL_APP_PASSWORD,
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
-    },
-  });
 
-export const sendVerificationEmail = async (email, url) => {
-  await sendMail({
-    to: email,
-    subject: "Vérifiez votre adresse e-mail — Agora",
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:auto">
-        <h2>Bienvenue sur Agora 🎉</h2>
-        <p>Cliquez sur le bouton ci-dessous pour vérifier votre adresse e-mail :</p>
-        <a href="${url}" style="
-          display:inline-block;padding:12px 24px;
-          background:#4f46e5;color:#fff;border-radius:6px;
-          text-decoration:none;font-weight:bold;">
-          Vérifier mon adresse e-mail
-        </a>
-        <p style="color:#666;margin-top:16px;font-size:13px">
-          Si vous n'avez pas créé de compte, ignorez cet e-mail.
-        </p>
-      </div>
-    `,
+let cachedGmail = null;
+function getGmailClient() {
+  if (cachedGmail) return cachedGmail;
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+  oAuth2Client.setCredentials({
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
   });
-};
+  cachedGmail = google.gmail({ version: "v1", auth: oAuth2Client });
+  return cachedGmail;
+}
 
-export const sendPasswordResetEmail = async (email, url) => {
-  await sendMail({
-    to: email,
-    subject: "Réinitialisation de votre mot de passe — Agora",
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:auto">
-        <h2>Réinitialisation du mot de passe</h2>
-        <p>Cliquez ci-dessous pour choisir un nouveau mot de passe :</p>
-        <a href="${url}" style="
-          display:inline-block;padding:12px 24px;
-          background:#4f46e5;color:#fff;border-radius:6px;
-          text-decoration:none;font-weight:bold;">
-          Réinitialiser mon mot de passe
-        </a>
-        <p style="color:#666;margin-top:16px;font-size:13px">
-          Ce lien expire dans 1 heure.
-        </p>
-      </div>
-    `,
+function encodeSubject(subject) {
+  // RFC 2047 encoded-word so accented characters render correctly in clients.
+  return `=?UTF-8?B?${Buffer.from(subject, "utf-8").toString("base64")}?=`;
+}
+
+function buildRawMessage({ to, subject, html, from }) {
+  const fromHeader = from || `"Agora" <${process.env.EMAIL_FROM}>`;
+  const message = [
+    `From: ${fromHeader}`,
+    `To: ${to}`,
+    `Subject: ${encodeSubject(subject)}`,
+    "MIME-Version: 1.0",
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    Buffer.from(html, "utf-8").toString("base64"),
+  ].join("\r\n");
+
+  return Buffer.from(message, "utf-8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+/**
+ * Low-level send helper. Throws on transport failure so callers can decide
+ * whether the failure is fatal or fire-and-forget.
+ */
+export async function sendMail({ to, subject, html, from }) {
+  if (!to) throw new Error("sendMail: recipient (to) is required");
+  if (!process.env.EMAIL_FROM) {
+    throw new Error("sendMail: EMAIL_FROM env var is not configured");
+  }
+
+  const gmail = getGmailClient();
+  const raw = buildRawMessage({ to, subject, html, from });
+
+  const res = await gmail.users.messages.send({
+    userId: "me",
+    requestBody: { raw },
   });
-};
+  return res.data;
+}
+
+/**
+ * Fire-and-forget wrapper used by background notifications. We never want
+ * a transient mail failure to break an order flow — log the error and move
+ * on instead of throwing.
+ */
+function sendMailQuiet(payload, label = "email") {
+  return sendMail(payload).catch((err) => {
+    console.error(
+      `[emailService] failed to send "${label}" to ${payload.to}:`,
+      err?.message || err
+    );
+  });
+}
+
+// ─── Public notification functions ────────────────────────────────────────
+
+export async function sendVerificationEmail(email, url) {
+  const { subject, html } = verificationEmailTemplate(url);
+  await sendMail({ to: email, subject, html });
+}
+
+export async function sendPasswordResetEmail(email, url) {
+  const { subject, html } = passwordResetTemplate(url);
+  await sendMail({ to: email, subject, html });
+}
+
+export function sendOrderReceiptEmail(buyerEmail, order) {
+  const { subject, html } = orderReceiptTemplate(order);
+  return sendMailQuiet({ to: buyerEmail, subject, html }, "order-receipt");
+}
+
+export function sendSellerNewOrderEmail(sellerEmail, payload) {
+  const { subject, html } = sellerNewOrderTemplate(payload);
+  return sendMailQuiet({ to: sellerEmail, subject, html }, "seller-new-order");
+}
+
+export function sendOrderStatusUpdateEmail(buyerEmail, payload) {
+  const { subject, html } = orderStatusUpdateTemplate(payload);
+  return sendMailQuiet(
+    { to: buyerEmail, subject, html },
+    "order-status-update"
+  );
+}
