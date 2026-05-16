@@ -7,7 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { shopsApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
-
+import Image from "next/image";
 export default function ChooseRolePage() {
   const router = useRouter();
   const { user, isLoading, refreshSession } = useAuth();
@@ -76,7 +76,7 @@ export default function ChooseRolePage() {
         <div className="bg-[var(--agora-surface)] border border-[var(--agora-line)] rounded-[var(--radius-xl)] p-8 shadow-[var(--shadow-md)]">
           <div className="text-center mb-6">
             <div className="inline-flex items-center gap-2 justify-center">
-              <Diamond className="w-6 h-6 text-[var(--agora-primary)]" />
+              <Image src="/logo.png" alt="Agora" width={45} height={45} />
               <span className="font-display text-2xl font-bold text-[var(--agora-primary)]">
                 Agora
               </span>
