@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Diamond } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-
+import Image from "next/image";
 const RESEND_COOLDOWN_SECONDS = 60;
 const RESEND_COOLDOWN_STORAGE_KEY_PREFIX =
   "agora_resend_verification_available_at";
@@ -146,7 +146,7 @@ function VerifyEmailContent() {
               href="/"
               className="inline-flex items-center gap-2 justify-center"
             >
-              <Diamond className="w-6 h-6 text-[var(--agora-primary)]" />
+              <Image src="/logo.png" alt="Agora" width={30} height={30} />
               <span className="font-display text-2xl font-bold text-[var(--agora-primary)]">
                 Agora
               </span>
