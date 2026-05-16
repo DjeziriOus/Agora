@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Diamond, CheckCircle } from "lucide-react";
-
+import Image from "next/image";
 export default function EmailVerifiedPage() {
   return (
     <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center p-4">
@@ -14,7 +14,7 @@ export default function EmailVerifiedPage() {
               href="/"
               className="inline-flex items-center gap-2 justify-center"
             >
-              <Diamond className="w-6 h-6 text-[var(--agora-primary)]" />
+              <Image src="/logo.png" alt="Agora" width={45} height={45} />
               <span className="font-display text-2xl font-bold text-[var(--agora-primary)]">
                 Agora
               </span>
