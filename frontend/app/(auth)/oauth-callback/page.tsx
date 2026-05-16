@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { shopsApi } from "@/lib/api";
 import { Diamond } from "lucide-react";
-
+import Image from "next/image";
 function OAuthCallbackContent() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
@@ -45,7 +45,7 @@ function OAuthCallbackContent() {
     <div className="min-h-screen bg-[var(--agora-bg)] flex items-center justify-center p-4">
       <div className="text-center">
         <div className="inline-flex items-center gap-2 mb-6">
-          <Diamond className="w-6 h-6 text-[var(--agora-primary)]" />
+          <Image src="/logo.png" alt="Agora" width={45} height={45} />
           <span className="font-display text-2xl font-bold text-[var(--agora-primary)]">
             Agora
           </span>
