@@ -2,6 +2,74 @@ import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import Variant from '../models/Variant.js';
 import User from '../models/User.js';
+import {
+  sendOrderReceiptEmail,
+  sendSellerNewOrderEmail,
+  sendOrderStatusUpdateEmail,
+} from './emailService.js';
+
+const shortOrderId = (id) => {
+  const s = String(id || '');
+  return s.length > 8 ? s.slice(-8).toUpperCase() : s.toUpperCase();
+};
+
+/**
+ * Notify the buyer (receipt) and each seller (new-order) after an order has
+ * been successfully created and paid. Fire-and-forget — failures are logged
+ * inside the email service and never propagate to the order flow.
+ */
+async function dispatchOrderCreationEmails(orderDoc) {
+  try {
+    const buyer = await User.findById(orderDoc.userId)
+      .select('firstName lastName email')
+      .lean();
+
+    const subs = (orderDoc.subOrders || []).map((sub) => ({
+      id: sub._id.toString(),
+      shopName: sub.shopName,
+      sellerId: sub.sellerId,
+      total: sub.total,
+      items: (sub.items || []).map((item) => ({
+        name: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
+    }));
+
+    if (buyer?.email) {
+      sendOrderReceiptEmail(buyer.email, {
+        id: orderDoc._id.toString(),
+        shortId: shortOrderId(orderDoc._id),
+        createdAt: orderDoc.createdAt,
+        buyer: { firstName: buyer.firstName, email: buyer.email },
+        shippingAddress: orderDoc.shippingAddress,
+        totalPrice: orderDoc.totalPrice,
+        subOrders: subs,
+      });
+    }
+
+    const sellerIds = [
+      ...new Set(subs.map((s) => s.sellerId?.toString()).filter(Boolean)),
+    ];
+    const sellers = await User.find({ _id: { $in: sellerIds } })
+      .select('firstName email')
+      .lean();
+    const sellerById = new Map(sellers.map((s) => [s._id.toString(), s]));
+
+    for (const sub of subs) {
+      const seller = sellerById.get(sub.sellerId?.toString());
+      if (!seller?.email) continue;
+      sendSellerNewOrderEmail(seller.email, {
+        sellerFirstName: seller.firstName,
+        shopName: sub.shopName,
+        subOrder: sub,
+        orderShortId: shortOrderId(orderDoc._id),
+      });
+    }
+  } catch (err) {
+    console.error('[orderService] dispatchOrderCreationEmails failed:', err?.message || err);
+  }
+}
 
 function serializeOrderForClient(order) {
   return {
@@ -246,6 +314,10 @@ export async function createOrder(userId, { items, deliveryAddress }) {
     );
     throw err;
   }
+
+  // Notify the buyer and each seller — fire and forget.
+  dispatchOrderCreationEmails(order);
+
   return serializeOrderForClient(order);
 }
 
@@ -296,7 +368,8 @@ export async function updateSubOrderStatus(sellerId, subOrderId, status) {
   if (!sub) return null;
   if (sub.sellerId?.toString() !== sellerId.toString()) return null;
 
-  const wasCancelled = sub.status === 'annulee';
+  const previousStatus = sub.status;
+  const wasCancelled = previousStatus === 'annulee';
   sub.status = status;
 
   // Idempotent restock: if the sub-order is being cancelled (and we have not
@@ -331,5 +404,29 @@ export async function updateSubOrderStatus(sellerId, subOrderId, status) {
   const updatedSub = updatedOrder.subOrders.find(
     (s) => s._id?.toString() === subOrderId.toString()
   );
+
+  // Notify the buyer only when the status actually changed.
+  if (previousStatus !== status) {
+    User.findById(updatedOrder.userId)
+      .select('firstName email')
+      .lean()
+      .then((buyer) => {
+        if (!buyer?.email) return;
+        sendOrderStatusUpdateEmail(buyer.email, {
+          buyerFirstName: buyer.firstName,
+          orderId: updatedOrder._id.toString(),
+          orderShortId: shortOrderId(updatedOrder._id),
+          shopName: updatedSub?.shopName || '',
+          status,
+        });
+      })
+      .catch((err) =>
+        console.error(
+          '[orderService] failed to resolve buyer for status email:',
+          err?.message || err
+        )
+      );
+  }
+
   return serializeSubOrderForList(updatedOrder, updatedSub);
 }
