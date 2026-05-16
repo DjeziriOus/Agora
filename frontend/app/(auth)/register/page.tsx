@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 type UserRole = "buyer" | "seller";
 
@@ -131,7 +132,7 @@ export default function RegisterPage() {
               href="/"
               className="inline-flex items-center gap-2 justify-center"
             >
-              <Diamond className="w-6 h-6 text-[var(--agora-primary)]" />
+              <Image src="/logo.png" alt="Agora" width={30} height={30} />
               <span className="font-display text-2xl font-bold text-[var(--agora-primary)]">
                 Agora
               </span>
