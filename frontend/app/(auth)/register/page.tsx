@@ -110,6 +110,7 @@ export default function RegisterPage() {
       await authClient.signIn.social({
         provider: "google",
         callbackURL: `${window.location.origin}/oauth-callback`,
+        errorCallbackURL: `${window.location.origin}/login?oauthError=1`,
       });
     } catch (err) {
       setError(
