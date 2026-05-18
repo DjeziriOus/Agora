@@ -82,6 +82,10 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // Send Google back to the FRONTEND domain so the callback hits our Next.js
+      // /api/auth/* rewrite. That keeps the state cookie first-party for the user's
+      // browser (Brave/Chrome 3PCD block it otherwise → state_mismatch).
+      redirectURI: `${process.env.FRONTEND_URL}/api/auth/callback/google`,
       errorCallbackURL: `${process.env.FRONTEND_URL}/login?oauthError=1`,
       mapProfileToUser: async (profile) => {
         console.log(profile);
