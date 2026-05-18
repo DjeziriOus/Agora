@@ -28,9 +28,45 @@ export const requireEmailVerification =
 const isProduction = process.env.NODE_ENV === "production";
 
 console.log("IS EMAIL VERIFICATION REQUIRED?", requireEmailVerification);
+console.log("[auth] NODE_ENV:", process.env.NODE_ENV);
+console.log("[auth] BETTER_AUTH_URL:", process.env.BETTER_AUTH_URL);
+console.log("[auth] FRONTEND_URL:", process.env.FRONTEND_URL);
+console.log(
+  "[auth] Google OAuth redirect_uri:",
+  `${process.env.FRONTEND_URL}/api/auth/callback/google`,
+);
+
+// Resolve a hostname from a URL env var without crashing if it's missing/invalid.
+function hostOf(url) {
+  try {
+    return url ? new URL(url).hostname : null;
+  } catch {
+    return null;
+  }
+}
+
+// Dynamic baseURL: when a request arrives via the Vercel /api/auth/* rewrite,
+// Vercel forwards `x-forwarded-host: <vercel-domain>`. Better Auth uses this to
+// build the OAuth redirect URI, error redirect URLs, and cookie attributes so
+// they all live on the frontend domain. That keeps the OAuth state cookie
+// first-party for the user's browser (no Brave/3PCD blocking → no state_mismatch).
+// `fallback` covers cases without proxy headers (direct backend access, scripts).
+const allowedHosts = [
+  hostOf(process.env.FRONTEND_URL),
+  hostOf(process.env.BETTER_AUTH_URL),
+  "localhost:3000",
+  "localhost:5000",
+  "localhost:5001",
+].filter(Boolean);
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: isProduction
+    ? {
+        allowedHosts,
+        fallback: process.env.BETTER_AUTH_URL,
+        protocol: "https",
+      }
+    : process.env.BETTER_AUTH_URL,
   database: mongodbAdapter(db, {
     // Collection names must match Mongoose schema collection options
     collectionNames: {
