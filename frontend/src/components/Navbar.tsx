@@ -1,3 +1,14 @@
+/**
+ * @file Barre de navigation principale (côté acheteur public).
+ *
+ * Affiche : logo, barre de recherche, badge panier (compteur live),
+ * menu utilisateur (profil, commandes, déconnexion). S'adapte aux rôles
+ * via `useAuth()` — un vendeur connecté voit un bouton "Espace vendeur"
+ * qui redirige vers /vendeur.
+ *
+ * Voir aussi : docs/modules/frontend/components-metier.md
+ */
+
 "use client";
 
 import Link from "next/link";

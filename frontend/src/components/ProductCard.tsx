@@ -1,3 +1,16 @@
+/**
+ * @file Carte produit (listings publics + résultats de recherche).
+ *
+ * Affiche image, nom, prix (ou "à partir de X" si plusieurs variantes),
+ * boutique, badge stock bas, et bouton "Ajouter au panier" qui ouvre un
+ * sélecteur de variante si nécessaire.
+ *
+ * Le stock réel n'est JAMAIS affiché — uniquement les flags `inStock` et
+ * `lowStock` calculés côté backend.
+ *
+ * Voir aussi : docs/modules/frontend/components-metier.md
+ */
+
 "use client";
 
 import Image from "next/image";

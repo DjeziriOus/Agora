@@ -1,3 +1,8 @@
+/**
+ * @file Pied de page global (liens, légal, copyright Agora).
+ * Voir aussi : docs/modules/frontend/components-metier.md
+ */
+
 "use client";
 
 import Link from "next/link";

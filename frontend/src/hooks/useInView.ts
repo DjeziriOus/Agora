@@ -1,3 +1,11 @@
+/**
+ * @file Hook `useInView` — détecte si un élément entre dans le viewport
+ * via IntersectionObserver. Utilisé pour les animations à l'apparition
+ * (cards qui se révèlent au scroll, lazy loading visuel).
+ *
+ * Voir aussi : docs/modules/frontend/hooks.md
+ */
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";

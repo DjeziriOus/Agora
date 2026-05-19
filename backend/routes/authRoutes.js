@@ -1,3 +1,64 @@
+/**
+ * @file Routes "compte" — profil, photo, vérification email, check pré-suppression.
+ *
+ * NOTE : l'authentification proprement dite (signup/signin/signout/session) est
+ * gérée par Better Auth sur `/api/auth/*`, exposé via `toNodeHandler` dans
+ * server.js. Ces routes-ci sont des extensions métier (montées sur /api/account).
+ *
+ * Voir aussi : docs/modules/backend/routes-authRoutes.md
+ *
+ * @swagger
+ * tags:
+ *   - name: Account
+ *     description: Profil utilisateur, photo, vérification email, suppression
+ *
+ * @swagger
+ * /api/account/me:
+ *   get:
+ *     tags: [Account]
+ *     summary: Profil de l'utilisateur connecté
+ *     responses: { 200: { description: Profil } }
+ *
+ * /api/account/profile-picture:
+ *   put:
+ *     tags: [Account]
+ *     summary: Met à jour la photo de profil
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar: { type: string, format: binary }
+ *     responses: { 200: { description: URL mise à jour } }
+ *   delete:
+ *     tags: [Account]
+ *     summary: Supprime la photo de profil
+ *     responses: { 200: { description: OK } }
+ *
+ * /api/account/resend-verification:
+ *   post:
+ *     tags: [Account]
+ *     summary: Renvoie l'email de vérification (rate-limited)
+ *     responses: { 200: { description: OK }, 429: { description: Trop de demandes } }
+ *
+ * /api/account/delete-check:
+ *   post:
+ *     tags: [Account]
+ *     summary: Vérifie qu'un compte peut être supprimé (mdp + pas de commandes vivantes)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               password: { type: string }
+ *     responses:
+ *       200: { description: Suppression autorisée }
+ *       400: { description: "INVALID_PASSWORD ou ORDERS_PENDING" }
+ */
+
 import express from "express";
 import { fromNodeHeaders } from "better-auth/node";
 import { auth } from "../auth.js";

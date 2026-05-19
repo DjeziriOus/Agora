@@ -1,3 +1,21 @@
+/**
+ * @file Configuration de Better Auth — point d'entrée d'authentification.
+ *
+ * Particularités :
+ *   - Connexion MongoDB NATIVE via `MongoClient` (Better Auth) en parallèle de
+ *     la connexion Mongoose utilisée par le reste de l'app. C'est voulu :
+ *     Better Auth gère ses propres collections (`user`, `session`, `account`,
+ *     `verification`) directement, sans passer par Mongoose.
+ *   - Charge `.env` AVANT tout — importé tôt par `server.js`, on ne peut pas
+ *     compter sur le chargement par défaut.
+ *   - Hooks `before` + `after` pour intercepter signup/signin/delete-user
+ *     (validation rôle, nettoyage cascade, refus si commandes en cours).
+ *   - Champs additionnels sur `user` : `role`, `phoneNumber`, `dateOfBirth`,
+ *     etc. — propagés automatiquement par Better Auth.
+ *
+ * Voir aussi : docs/modules/backend/auth.md
+ */
+
 // Load .env FIRST — this file is imported before connectDB() runs in server.js,
 // so we must load the env vars here to have MONGO_URI available.
 import "dotenv/config";

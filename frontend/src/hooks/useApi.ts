@@ -1,3 +1,17 @@
+/**
+ * @file Hooks React Query (TanStack v5) — wrappers typés autour des API.
+ *
+ * Centralise toutes les `useQuery` / `useMutation` du projet pour qu'on ait
+ * une seule définition de chaque `queryKey` (cache invalidation cohérente).
+ *
+ * Plusieurs mutations utilisent le pattern **optimistic update + rollback** :
+ *   - onMutate : on patche le cache local immédiatement
+ *   - onError  : on remet la valeur précédente
+ *   - onSettled : on relance la query pour synchroniser avec le serveur
+ *
+ * Voir aussi : docs/modules/frontend/hooks.md
+ */
+
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   productsApi,

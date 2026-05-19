@@ -1,3 +1,8 @@
+/**
+ * @file Helpers de navigation catalogue (filtres, tri, pagination côté client).
+ * Voir aussi : docs/modules/frontend/lib-other.md
+ */
+
 import type { Category, Product } from "@/types";
 
 export const PUBLIC_PRODUCTS_LIMIT = 100;

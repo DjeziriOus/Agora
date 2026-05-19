@@ -1,3 +1,19 @@
+/**
+ * @file Contexte d'authentification global (côté client React).
+ *
+ * Rôle :
+ *   - Source de vérité du `user` connecté (chargé via Better Auth React client).
+ *   - Expose des flags pratiques : `isAuthenticated`, `isSeller`, `isBuyer`.
+ *   - Stocke en sessionStorage l'email en attente de vérification (utilisé
+ *     par la page /verify-email pour pré-remplir le champ "renvoyer").
+ *   - Gère les redirections basées sur le rôle (acheteur → /, vendeur → /vendeur).
+ *
+ * NE PAS faire les appels d'auth directement depuis les composants — passer
+ * toujours par ce contexte (`useAuth()`).
+ *
+ * Voir aussi : docs/modules/frontend/context-AuthContext.md
+ */
+
 "use client";
 
 import {

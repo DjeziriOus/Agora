@@ -1,3 +1,17 @@
+/**
+ * @file Service de suppression de compte utilisateur (RGPD).
+ *
+ * Refuse la suppression tant qu'il existe des commandes "vivantes" (statuts
+ * `en_attente`, `en_preparation`, `en_livraison`) — l'utilisateur a des
+ * engagements en cours.
+ *
+ * Sinon, nettoie en cascade : panier, adresses, boutique (soft delete pour
+ * conserver l'historique commercial), produits/variantes du vendeur.
+ * L'enregistrement Better Auth est supprimé en dernier par l'appelant.
+ *
+ * Voir aussi : docs/modules/backend/services-accountDeletionService.md
+ */
+
 import Cart from "../models/Cart.js";
 import ClientAddress from "../models/ClientAddress.js";
 import Order from "../models/Order.js";

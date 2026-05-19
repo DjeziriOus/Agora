@@ -1,3 +1,19 @@
+/**
+ * @file Couche HTTP centralisée — un seul point d'appel `fetch` typé.
+ *
+ * Toutes les API REST consommées par le frontend passent par ce module
+ * (productsApi, shopsApi, cartApi, ordersApi, addressesApi, vendorApi,
+ * accountApi). Les requêtes incluent automatiquement `credentials: "include"`
+ * pour transmettre le cookie de session Better Auth.
+ *
+ * Les erreurs HTTP sont normalisées en `ApiError` avec :
+ *   - `status` : code HTTP
+ *   - `code`   : code métier (ex. `MAX_PER_ORDER`, `INSUFFICIENT_STOCK`)
+ *   - `data`   : payload brut renvoyé par l'API
+ *
+ * Voir aussi : docs/modules/frontend/lib-api.md
+ */
+
 import { toast } from "sonner";
 import { API_URL } from "../config";
 import type {

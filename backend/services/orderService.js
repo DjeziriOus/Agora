@@ -1,3 +1,21 @@
+/**
+ * @file Service métier des commandes — pierre angulaire de l'app.
+ *
+ * Responsabilités principales :
+ *   1. Création d'une `Order` à partir des items sélectionnés du panier.
+ *   2. Découpe en `SubOrder` (une par boutique).
+ *   3. Décrément ATOMIQUE du stock variant (filtre `stock >= qty`) + rollback
+ *      si une variante n'a plus assez de stock à mi-parcours.
+ *   4. Snapshots produit (nom, image, prix) pour ne PAS dépendre des données
+ *      vivantes du catalogue après commande.
+ *   5. Restauration de stock idempotente (flag `stockRestored`) en cas
+ *      d'annulation.
+ *   6. Recalcul du statut global Order à partir des statuts SubOrder.
+ *   7. Envoi d'emails fire-and-forget (acheteur + vendeurs concernés).
+ *
+ * Voir aussi : docs/modules/backend/services-orderService.md
+ */
+
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import Variant from '../models/Variant.js';

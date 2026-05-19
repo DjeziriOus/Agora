@@ -1,3 +1,69 @@
+/**
+ * @file Routes boutiques — création/édition (vendeur) + consultation publique.
+ * Voir aussi : docs/modules/backend/routes-shopRoutes.md
+ *
+ * @swagger
+ * tags:
+ *   - name: Shops
+ *     description: Boutiques vendeurs + statistiques dashboard
+ *
+ * @swagger
+ * /api/shops:
+ *   post:
+ *     tags: [Shops]
+ *     summary: (Vendeur) Crée sa boutique avec logo + bannière
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
+ *               description: { type: string }
+ *               logo: { type: string, format: binary }
+ *               banner: { type: string, format: binary }
+ *     responses: { 201: { description: Boutique créée } }
+ *
+ * /api/shops/{id}:
+ *   put:
+ *     tags: [Shops]
+ *     summary: (Vendeur) Met à jour sa boutique
+ *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+ *     responses: { 200: { description: Boutique mise à jour } }
+ *
+ * /api/shops/my:
+ *   get:
+ *     tags: [Shops]
+ *     summary: (Vendeur) Récupère sa boutique
+ *     responses: { 200: { description: Boutique } }
+ *
+ * /api/shops/my/stats:
+ *   get:
+ *     tags: [Shops]
+ *     summary: (Vendeur) Statistiques globales (CA, commandes, clients)
+ *     responses: { 200: { description: Stats } }
+ *
+ * /api/shops/my/stock-stats:
+ *   get:
+ *     tags: [Shops]
+ *     summary: (Vendeur) Statistiques d'inventaire (stock bas, ruptures)
+ *     responses: { 200: { description: Stats stock } }
+ *
+ * /api/shops/{slug}:
+ *   get:
+ *     tags: [Shops]
+ *     summary: Page publique d'une boutique par slug
+ *     parameters: [{ in: path, name: slug, required: true, schema: { type: string } }]
+ *     responses: { 200: { description: Boutique publique } }
+ *
+ * /api/shops/{slug}/products:
+ *   get:
+ *     tags: [Shops]
+ *     summary: Produits publics d'une boutique
+ *     parameters: [{ in: path, name: slug, required: true, schema: { type: string } }]
+ *     responses: { 200: { description: Liste produits } }
+ */
+
 import express from "express";
 import {
   createShop,
