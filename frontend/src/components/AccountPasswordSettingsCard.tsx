@@ -53,7 +53,8 @@ function mapChangePasswordError(error: {
 }
 
 export function AccountPasswordSettingsCard() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const hasPassword = user?.hasPassword;
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -62,6 +63,39 @@ export function AccountPasswordSettingsCard() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<PasswordErrors>({});
   const [isSaving, setIsSaving] = useState(false);
+
+  // Compte Google OAuth sans mot de passe : on cache le formulaire de
+  // changement de mdp et on n'affiche que la section déconnexion.
+  if (hasPassword === false) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Sécurité
+          </CardTitle>
+          <CardDescription>
+            Vous êtes connecté avec Google — aucun mot de passe n'est associé à
+            ce compte.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Déconnexion</p>
+              <p className="text-sm text-muted-foreground">
+                Se déconnecter de votre compte
+              </p>
+            </div>
+            <Button variant="outline" onClick={logout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Déconnexion
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleFieldChange =
     (field: PasswordField, setter: (value: string) => void) =>
