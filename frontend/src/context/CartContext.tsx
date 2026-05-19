@@ -1,3 +1,19 @@
+/**
+ * @file Contexte panier global (acheteur connecté).
+ *
+ * Rôle :
+ *   - Charge le panier au montage et le met en cache (state React).
+ *   - Expose les opérations `addItem`, `updateQuantity`, `removeItem`,
+ *     `toggleSelected`, `clearCart` qui appellent l'API puis re-synchronisent.
+ *   - Surface les erreurs structurées (`MAX_PER_ORDER`, `INSUFFICIENT_STOCK`)
+ *     pour que les composants affichent un toast contextuel.
+ *
+ * NOTE : le stock réel n'arrive JAMAIS jusqu'ici — uniquement les flags
+ * `inStock`, `lowStock`, et `maxPurchasable` (cf. cartService côté backend).
+ *
+ * Voir aussi : docs/modules/frontend/context-CartContext.md
+ */
+
 "use client";
 
 import {

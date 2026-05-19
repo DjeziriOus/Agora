@@ -1,3 +1,9 @@
+/**
+ * @file Sidebar de navigation de l'espace vendeur (dashboard, produits,
+ * commandes, boutique, stats). N'apparaît que sur les routes /vendeur/*.
+ * Voir aussi : docs/modules/frontend/components-metier.md
+ */
+
 "use client";
 
 import Link from "next/link";

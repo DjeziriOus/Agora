@@ -1,3 +1,14 @@
+/**
+ * @file Hooks panier — wrappers React Query autour de `cartApi`.
+ *
+ * Toutes les mutations panier appliquent un optimistic update (réactivité
+ * immédiate) puis se resync avec le serveur. Les erreurs structurées
+ * (`MAX_PER_ORDER`, `INSUFFICIENT_STOCK`) sont propagées telles quelles
+ * pour que le composant appelant affiche le toast adéquat.
+ *
+ * Voir aussi : docs/modules/frontend/hooks.md
+ */
+
 "use client";
 
 import {

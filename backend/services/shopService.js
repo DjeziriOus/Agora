@@ -1,3 +1,16 @@
+/**
+ * @file Service métier boutique vendeur.
+ *
+ * Une boutique appartient à un `User` (rôle vendeur). Les index uniques
+ * partiels (`name`, `slug`) ignorent les boutiques `isDeleted: true` pour
+ * autoriser la réutilisation du nom après suppression.
+ *
+ * Inclut aussi le calcul des statistiques vendeur (CA, nb commandes,
+ * produits actifs, etc.) utilisé sur le dashboard.
+ *
+ * Voir aussi : docs/modules/backend/services-shopService.md
+ */
+
 import mongoose from "mongoose";
 import Shop from "../models/Shop.js";
 import Product from "../models/Product.js";

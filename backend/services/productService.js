@@ -1,3 +1,16 @@
+/**
+ * @file Service métier produit — création, mise à jour, listings.
+ *
+ * Particularités :
+ *   - Un produit possède 1..N variantes (price/stock vivent sur la variante).
+ *   - Les agrégats publics (`displayPrice`, `totalStock`, `hasMultiplePrices`)
+ *     sont recalculés à chaque écriture via {@link computeAggregatesFromArray}.
+ *   - Soft delete via `isDeleted: true` (les listings publics filtrent).
+ *   - Images uploadées sur Cloudinary ; suppression en cascade au delete.
+ *
+ * Voir aussi : docs/modules/backend/services-productService.md
+ */
+
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Variant from "../models/Variant.js";

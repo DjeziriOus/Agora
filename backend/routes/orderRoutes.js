@@ -1,3 +1,13 @@
+/**
+ * @file Routes commandes — acheteur (création/lecture) + vendeur (lecture/statut).
+ * Voir aussi : docs/modules/backend/routes-orderRoutes.md
+ *
+ * @swagger
+ * tags:
+ *   - name: Orders
+ *     description: Commandes (POST création, GET listings acheteur/vendeur, PATCH statut)
+ */
+
 import express from 'express';
 import { verifyToken, isBuyer, isSeller } from '../middleware/auth.js';
 import {
@@ -10,6 +20,71 @@ import {
 } from '../services/orderService.js';
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * /api/orders:
+ *   post:
+ *     tags: [Orders]
+ *     summary: (Acheteur) Crée une commande à partir des items sélectionnés du panier
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [items, deliveryAddress]
+ *             properties:
+ *               items: { type: array, items: { type: object } }
+ *               deliveryAddress: { type: object }
+ *               paymentMethod: { type: string }
+ *     responses:
+ *       201: { description: Commande créée }
+ *       400: { description: "INSUFFICIENT_STOCK ou validation" }
+ *
+ * /api/orders/client:
+ *   get:
+ *     tags: [Orders]
+ *     summary: (Acheteur) Toutes ses commandes
+ *     responses: { 200: { description: Liste des commandes } }
+ *
+ * /api/orders/client/{id}:
+ *   get:
+ *     tags: [Orders]
+ *     summary: (Acheteur) Détail d'une commande
+ *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+ *     responses: { 200: { description: Commande }, 404: { description: Introuvable } }
+ *
+ * /api/orders/seller:
+ *   get:
+ *     tags: [Orders]
+ *     summary: (Vendeur) Toutes ses sous-commandes
+ *     responses: { 200: { description: Liste } }
+ *
+ * /api/orders/seller/{id}:
+ *   get:
+ *     tags: [Orders]
+ *     summary: (Vendeur) Détail d'une sous-commande
+ *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+ *     responses: { 200: { description: Sous-commande } }
+ *
+ * /api/orders/{id}/status:
+ *   patch:
+ *     tags: [Orders]
+ *     summary: (Vendeur) Met à jour le statut d'une sous-commande
+ *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [en_attente, en_preparation, en_livraison, livree, annulee]
+ *     responses: { 200: { description: Statut mis à jour } }
+ */
 
 // POST /api/orders - Create order (buyer)
 router.post('/', verifyToken, isBuyer, async (req, res) => {

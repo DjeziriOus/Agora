@@ -163,11 +163,22 @@ export function sendOrderReceiptEmail(buyerEmail, order) {
   return sendMailQuiet({ to: buyerEmail, subject, html }, "order-receipt");
 }
 
+/**
+ * Notifie un vendeur de l'arrivée d'une nouvelle sous-commande (fire-and-forget).
+ * @param {string} sellerEmail
+ * @param {Object} payload - données préparées pour `sellerNewOrderTemplate`
+ */
 export function sendSellerNewOrderEmail(sellerEmail, payload) {
   const { subject, html } = sellerNewOrderTemplate(payload);
   return sendMailQuiet({ to: sellerEmail, subject, html }, "seller-new-order");
 }
 
+/**
+ * Notifie l'acheteur d'un changement de statut d'une sous-commande
+ * (en préparation → expédiée → livrée, etc.). Fire-and-forget.
+ * @param {string} buyerEmail
+ * @param {Object} payload - données préparées pour `orderStatusUpdateTemplate`
+ */
 export function sendOrderStatusUpdateEmail(buyerEmail, payload) {
   const { subject, html } = orderStatusUpdateTemplate(payload);
   return sendMailQuiet(
