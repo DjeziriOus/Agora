@@ -198,6 +198,8 @@ function AddressesContent() {
                 <Input
                   id="recipientName"
                   name="recipientName"
+                  type="text"
+                  autoComplete="name"
                   placeholder="Nom du destinataire"
                   defaultValue={editingAddress?.recipientName}
                   required
@@ -208,8 +210,27 @@ function AddressesContent() {
                 <Input
                   id="phone"
                   name="phone"
-                  placeholder="Téléphone"
+                  type="tel"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  pattern="^\+?[0-9\s\-]{6,20}$"
+                  title="Numéro de téléphone valide (chiffres uniquement, + autorisé)"
+                  placeholder="+33 6 12 34 56 78"
                   defaultValue={editingAddress?.phone}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key.length === 1 &&
+                      !/[0-9+\-\s]/.test(e.key) &&
+                      !e.ctrlKey &&
+                      !e.metaKey
+                    ) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onInput={(e) => {
+                    const t = e.currentTarget;
+                    t.value = t.value.replace(/[^0-9+\-\s]/g, "");
+                  }}
                   required
                 />
               </div>
@@ -232,6 +253,8 @@ function AddressesContent() {
                 <Input
                   id="addressLine"
                   name="addressLine"
+                  type="text"
+                  autoComplete="street-address"
                   placeholder="Numéro et nom de rue"
                   defaultValue={editingAddress?.addressLine}
                   required
@@ -243,8 +266,29 @@ function AddressesContent() {
                   <Input
                     id="postalCode"
                     name="postalCode"
+                    type="text"
+                    autoComplete="postal-code"
+                    inputMode="numeric"
+                    pattern="\d{5}"
+                    maxLength={5}
+                    minLength={5}
+                    title="Le code postal doit contenir exactement 5 chiffres"
                     placeholder="75001"
                     defaultValue={editingAddress?.postalCode}
+                    onKeyDown={(e) => {
+                      if (
+                        e.key.length === 1 &&
+                        !/[0-9]/.test(e.key) &&
+                        !e.ctrlKey &&
+                        !e.metaKey
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onInput={(e) => {
+                      const t = e.currentTarget;
+                      t.value = t.value.replace(/\D/g, "").slice(0, 5);
+                    }}
                     required
                   />
                 </div>
@@ -253,6 +297,8 @@ function AddressesContent() {
                   <Input
                     id="city"
                     name="city"
+                    type="text"
+                    autoComplete="address-level2"
                     placeholder="Paris"
                     defaultValue={editingAddress?.city}
                     required
@@ -264,6 +310,8 @@ function AddressesContent() {
                 <Input
                   id="province"
                   name="province"
+                  type="text"
+                  autoComplete="address-level1"
                   placeholder="Île-de-France"
                   defaultValue={editingAddress?.province}
                   required
@@ -274,6 +322,8 @@ function AddressesContent() {
                 <Input
                   id="country"
                   name="country"
+                  type="text"
+                  autoComplete="country-name"
                   placeholder="France"
                   defaultValue={editingAddress?.country || "France"}
                   required

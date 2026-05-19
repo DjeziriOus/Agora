@@ -73,7 +73,7 @@ export const getCart = async (userId) => {
     .populate({
       path: "items.productId",
       select: "name description category images isActive isDeleted shop stockThreshold",
-      populate: { path: "shop", select: "name" },
+      populate: { path: "shop", select: "name slug" },
     })
     .populate({
       path: "items.variantId",
