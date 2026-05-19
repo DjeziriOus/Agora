@@ -47,6 +47,7 @@ export const queryKeys = {
   },
   vendor: {
     stats: ["vendor", "stats"] as const,
+    stockStats: ["vendor", "stock-stats"] as const,
   },
   auth: {
     me: ["auth", "me"] as const,
@@ -113,6 +114,7 @@ export function useCreateProduct() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.stockStats });
     },
   });
 }
@@ -135,6 +137,8 @@ export function useUpdateProduct() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.products.sellerDetail(id),
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.stockStats });
     },
   });
 }
@@ -153,6 +157,7 @@ export function useToggleProductActive() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.products.sellerDetail(id),
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.stockStats });
     },
   });
 }
@@ -163,6 +168,8 @@ export function useDeleteProduct() {
     mutationFn: (id: string) => productsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.seller });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.lowStock });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.stockStats });
     },
   });
 }
@@ -355,7 +362,7 @@ export function useVendorStats() {
 
 export function useStockStats(options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: ["vendor", "stock-stats"],
+    queryKey: queryKeys.vendor.stockStats,
     queryFn: () => vendorApi.getStockStats(),
     enabled: options?.enabled ?? true,
   });

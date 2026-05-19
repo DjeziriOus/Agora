@@ -1,7 +1,15 @@
+/**
+ * @file Service utilitaire pour la collection `variants`.
+ *
+ * Voir aussi : docs/modules/backend/services-variantService.md
+ */
+
 import Variant from "../models/Variant.js";
 
 /**
- * Create multiple variants for a product in bulk.
+ * Normalise `maxPerOrder` à un entier ≥ 1. Sinon défaut 10.
+ * @param {*} value
+ * @returns {number}
  */
 const sanitizeMaxPerOrder = (value) => {
 	const parsed = Number(value);
@@ -11,6 +19,13 @@ const sanitizeMaxPerOrder = (value) => {
 	return parsed;
 };
 
+/**
+ * Crée plusieurs variantes pour un produit en une seule opération `insertMany`.
+ *
+ * @param {import('mongoose').Types.ObjectId|string} productId
+ * @param {Array<Object>} variantsArray - Tableau de variantes à créer.
+ * @returns {Promise<import('mongoose').Document[]>}
+ */
 export const createVariantsForProduct = async (productId, variantsArray) => {
 	const docs = variantsArray.map((v) => ({
 		product: productId,
@@ -28,10 +43,16 @@ export const createVariantsForProduct = async (productId, variantsArray) => {
 };
 
 /**
- * Upsert variants for a product.
- * - Variants with an existing `id` are updated.
- * - Variants without an `id` are created.
- * - Any existing variants NOT in the input array are deleted.
+ * Synchronise les variantes d'un produit avec le tableau fourni
+ * (pattern « upsert + delete-by-diff »).
+ *
+ * Les variantes ayant un `id` existant sont mises à jour, les nouvelles
+ * créées, et toute variante existante absente du tableau est SUPPRIMÉE.
+ *
+ * @param {import('mongoose').Types.ObjectId|string} productId
+ * @param {Array<Object>} variantsArray - État souhaité après l'opération.
+ * @returns {Promise<Array>}
+ * @throws {Error} 400 si le tableau est vide.
  */
 export const updateVariantsForProduct = async (productId, variantsArray) => {
 	if (!variantsArray || variantsArray.length === 0) {
@@ -100,22 +121,28 @@ export const updateVariantsForProduct = async (productId, variantsArray) => {
 };
 
 /**
- * Get all variants for a product.
+ * Liste toutes les variantes d'un produit, triées par date de création.
+ * @param {import('mongoose').Types.ObjectId|string} productId
+ * @returns {Promise<import('mongoose').Document[]>}
  */
 export const getVariantsByProduct = async (productId) => {
 	return Variant.find({ product: productId }).sort({ createdAt: 1 });
 };
 
 /**
- * Get a single variant by its code within a product.
+ * Trouve une variante par son code (unique au sein d'un produit).
+ * @param {import('mongoose').Types.ObjectId|string} productId
+ * @param {string} code
+ * @returns {Promise<import('mongoose').Document|null>}
  */
 export const getVariantByCode = async (productId, code) => {
 	return Variant.findOne({ product: productId, code });
 };
 
 /**
- * Compute aggregate values for a product from its variants.
- * Returns { totalStock, displayPrice, hasMultiplePrices }.
+ * Charge les variantes d'un produit et calcule les agrégats.
+ * @param {import('mongoose').Types.ObjectId|string} productId
+ * @returns {Promise<{ totalStock: number, displayPrice: number, hasMultiplePrices: boolean }>}
  */
 export const computeProductAggregates = async (productId) => {
 	const variants = await Variant.find({ product: productId, isActive: true });
@@ -133,7 +160,14 @@ export const computeProductAggregates = async (productId) => {
 };
 
 /**
- * Compute aggregates from an already-loaded variants array (no DB query).
+ * Calcule les agrégats à partir d'un tableau de variantes déjà chargé (synchrone, pas de DB).
+ *
+ * - `totalStock` : somme des stocks des variantes actives.
+ * - `displayPrice` : prix le plus bas (0 si aucune variante active).
+ * - `hasMultiplePrices` : true s'il existe ≥ 2 prix distincts.
+ *
+ * @param {Array<{stock: number, price: number, isActive?: boolean}>} variants
+ * @returns {{ totalStock: number, displayPrice: number, hasMultiplePrices: boolean }}
  */
 export const computeAggregatesFromArray = (variants) => {
 	const active = variants.filter((v) => v.isActive !== false);

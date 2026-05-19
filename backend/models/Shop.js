@@ -1,3 +1,39 @@
+/**
+ * @file Modèle Mongoose des boutiques.
+ *
+ * Un vendeur peut avoir une seule boutique active à la fois — l'unicité est
+ * garantie par un index PARTIEL (uniquement sur les boutiques avec
+ * `isDeleted: false`) ce qui permet de re-créer une boutique après suppression.
+ *
+ * Voir aussi : docs/modules/backend/models-Shop.md
+ *
+ * @swagger
+ * components:
+ *   schemas:
+ *     Shop:
+ *       type: object
+ *       properties:
+ *         _id: { type: string }
+ *         name: { type: string, minLength: 2, maxLength: 50 }
+ *         slug: { type: string, description: "Généré automatiquement depuis name" }
+ *         description: { type: string, maxLength: 1000 }
+ *         contactEmail: { type: string, format: email }
+ *         contactPhone: { type: string }
+ *         contactAddress: { type: string, maxLength: 200 }
+ *         status: { type: string, enum: [active, inactive, pending] }
+ *         owner: { type: string, description: "ObjectId User" }
+ *         logo: { $ref: '#/components/schemas/CloudinaryImage' }
+ *         banner: { $ref: '#/components/schemas/CloudinaryImage' }
+ *         isDeleted: { type: boolean }
+ *         createdAt: { type: string, format: date-time }
+ *         updatedAt: { type: string, format: date-time }
+ *     CloudinaryImage:
+ *       type: object
+ *       properties:
+ *         url: { type: string }
+ *         publicId: { type: string }
+ */
+
 import mongoose from "mongoose";
 import "../models/User.js";
 
@@ -15,7 +51,7 @@ const shopSchema = new mongoose.Schema(
       required: [true, "Shop slug is required"],
       lowercase: true,
       trim: true,
-      // Removed unique: true here; handled by partial index below
+      // L'unicité du slug est gérée par un index partiel plus bas — voir l'index.
     },
     description: {
       type: String,
@@ -57,7 +93,7 @@ const shopSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      // Removed unique: true here; handled by partial index below
+      // Unicité gérée par index partiel plus bas — voir l'index.
     },
     logo: {
       url: { type: String, default: "" },
@@ -81,7 +117,9 @@ const shopSchema = new mongoose.Schema(
 // Indexes
 shopSchema.index({ status: 1 });
 
-// Partial Unique Indexes (Enforce uniqueness ONLY for active, non-deleted shops)
+// Indexes uniques PARTIELS : appliquent l'unicité UNIQUEMENT aux boutiques
+// non-supprimées. Permet à un vendeur de soft-deleter sa boutique puis d'en
+// recréer une nouvelle, sans collision avec l'ancien document.
 shopSchema.index(
   { owner: 1 },
   { unique: true, partialFilterExpression: { isDeleted: false } },
@@ -92,6 +130,7 @@ shopSchema.index(
   { unique: true, partialFilterExpression: { isDeleted: false } },
 );
 
+// Comparaison de noms case-insensitive grâce à la collation strength=2.
 shopSchema.index(
   { name: 1 },
   {
@@ -101,7 +140,15 @@ shopSchema.index(
   },
 );
 
-// Auto-generate and verify unique slug from name before validation
+/**
+ * Hook pré-validation : (re)génère un slug unique à partir du `name`
+ * chaque fois que le nom change.
+ *
+ * Algorithme :
+ *   1. Slugifie le nom (minuscules, espaces → tirets, retire les caractères spéciaux).
+ *   2. Cherche s'il existe déjà un autre shop actif avec ce slug.
+ *   3. Si oui, ajoute un suffixe `-1`, `-2`, ... jusqu'à trouver un slug libre.
+ */
 shopSchema.pre("validate", async function () {
   if (this.isModified("name")) {
     const baseSlug = this.name

@@ -466,7 +466,17 @@ function FilterPanel({
               <input
                 type="number"
                 value={localMin}
-                onChange={(e) => setLocalMin(e.target.value)}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const sanitized = raw === "" ? "" : String(Math.max(0, Number(raw)));
+                  setLocalMin(sanitized);
+                  if (localMax !== "" && sanitized !== "" && Number(sanitized) > Number(localMax)) {
+                    setLocalMax(sanitized);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault();
+                }}
                 className="w-full px-3 py-2 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-sm"
                 min={0}
                 placeholder="0"
@@ -480,7 +490,18 @@ function FilterPanel({
               <input
                 type="number"
                 value={localMax}
-                onChange={(e) => setLocalMax(e.target.value)}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const sanitized = raw === "" ? "" : String(Math.max(0, Number(raw)));
+                  if (sanitized !== "" && localMin !== "" && Number(sanitized) < Number(localMin)) {
+                    setLocalMax(localMin);
+                  } else {
+                    setLocalMax(sanitized);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault();
+                }}
                 className="w-full px-3 py-2 border border-[var(--agora-line)] rounded-[var(--radius-md)] text-sm"
                 min={0}
                 placeholder="10000"

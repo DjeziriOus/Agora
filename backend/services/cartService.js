@@ -1,11 +1,27 @@
+/**
+ * @file Service métier du panier acheteur.
+ *
+ * Toutes les méthodes exposées garantissent que le STOCK RÉEL n'est jamais
+ * renvoyé au client (acheteur) — il est remplacé par les flags `inStock`,
+ * `lowStock`, et la valeur `maxPurchasable = min(stock, maxPerOrder)`.
+ *
+ * Erreurs structurées émises :
+ *   - `MAX_PER_ORDER` (400) + `maxAllowed`
+ *   - `INSUFFICIENT_STOCK` (400) + `maxAllowed`
+ *
+ * Voir aussi : docs/modules/backend/services-cartService.md
+ */
+
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
 import Variant from "../models/Variant.js";
 
 /**
- * Strip raw variant stock from a populated cart item so the client never
- * sees the exact inventory count. Returns a plain object exposing only
- * inStock / lowStock / maxPurchasable.
+ * Sanitize une variante peuplée d'un item panier pour masquer le stock réel.
+ *
+ * @param {import('mongoose').Document|null} variantDoc - Document Variant peuplé.
+ * @param {number} [productThreshold=5] - Seuil de stock bas du produit parent.
+ * @returns {Object|null} Variant sanitizé (sans `stock` brut) ou null.
  */
 const sanitizeCartVariant = (variantDoc, productThreshold) => {
   if (!variantDoc) return null;
@@ -46,16 +62,18 @@ const sanitizeCart = (cart) => {
 };
 
 /**
- * Fetches a user's cart, or creates an empty one if it does not exist.
- * Populates product, variant, and shop data so the frontend receives full item details.
- * Raw stock is stripped before returning to the client.
+ * Récupère le panier d'un utilisateur (le crée vide s'il n'existe pas).
+ * Peuple les produits, variantes, et boutiques. Le stock réel est masqué.
+ *
+ * @param {string} userId - ID Better Auth de l'acheteur.
+ * @returns {Promise<Object>} Panier sanitizé prêt pour le frontend.
  */
 export const getCart = async (userId) => {
   let cart = await Cart.findOne({ userId })
     .populate({
       path: "items.productId",
       select: "name description category images isActive isDeleted shop stockThreshold",
-      populate: { path: "shop", select: "name" },
+      populate: { path: "shop", select: "name slug" },
     })
     .populate({
       path: "items.variantId",
@@ -70,9 +88,13 @@ export const getCart = async (userId) => {
 };
 
 /**
- * Resolve a variant for a product.
- * If variantId is given (as ObjectId string), validate it.
- * Otherwise, auto-resolve to the first active variant.
+ * Résout la variante à ajouter au panier.
+ * Si un `variantId` est fourni : vérifie qu'il existe et appartient au produit.
+ * Sinon : retourne la première variante active du produit (fallback).
+ *
+ * @param {import('mongoose').Document} product
+ * @param {string|null} variantId
+ * @returns {Promise<import('mongoose').Document>}
  */
 const resolveVariant = async (product, variantId) => {
   if (variantId) {
@@ -107,8 +129,15 @@ const resolveVariant = async (product, variantId) => {
 };
 
 /**
- * Adds a product to the cart, or increases its quantity if it already exists.
- * Uses the Variant collection for stock checks and price resolution.
+ * Ajoute un produit au panier — ou incrémente sa quantité s'il y est déjà.
+ * Effectue les vérifications de stock et de `maxPerOrder` avant écriture.
+ *
+ * @param {string} userId
+ * @param {string} productId
+ * @param {number} [quantity=1]
+ * @param {string|null} [variantId=null]
+ * @returns {Promise<Object>} Panier complet sanitizé.
+ * @throws {Error} avec `code: "MAX_PER_ORDER"` ou `"INSUFFICIENT_STOCK"`.
  */
 export const addItem = async (
   userId,
@@ -192,8 +221,12 @@ export const addItem = async (
 };
 
 /**
- * Updates the quantity of an existing cart item.
- * Must match both productId and variantId.
+ * Modifie la quantité d'un item du panier.
+ * @param {string} userId
+ * @param {string} productId
+ * @param {number} quantity
+ * @param {string} variantId
+ * @returns {Promise<Object>}
  */
 export const updateQuantity = async (
   userId,
@@ -258,7 +291,11 @@ export const updateQuantity = async (
 };
 
 /**
- * Removes one item from the cart by productId and variantId.
+ * Retire un item du panier (matche sur productId + variantId).
+ * @param {string} userId
+ * @param {string} productId
+ * @param {string} variantId
+ * @returns {Promise<Object>}
  */
 export const removeItem = async (userId, productId, variantId) => {
   const cart = await Cart.findOne({ userId });
@@ -288,7 +325,11 @@ export const removeItem = async (userId, productId, variantId) => {
 };
 
 /**
- * Toggles the selected status of a cart item.
+ * Bascule le flag `selected` d'un item (coché = sera commandé au checkout).
+ * @param {string} userId
+ * @param {string} productId
+ * @param {string} variantId
+ * @returns {Promise<Object>}
  */
 export const toggleSelected = async (userId, productId, variantId) => {
   const cart = await Cart.findOne({ userId });
@@ -315,7 +356,10 @@ export const toggleSelected = async (userId, productId, variantId) => {
 };
 
 /**
- * Returns a checkout summary computed from selected cart items only.
+ * Calcule un résumé checkout à partir des items SÉLECTIONNÉS uniquement.
+ *
+ * @param {string} userId
+ * @returns {Promise<{selectedItems: Array, subtotal: number, itemCount: number}>}
  */
 export const getCheckoutSummary = async (userId) => {
   const cart = await getCart(userId);
@@ -337,7 +381,11 @@ export const getCheckoutSummary = async (userId) => {
 };
 
 /**
- * Clears the entire cart, typically after order creation.
+ * Vide tous les items du panier. Appelé typiquement après une commande réussie.
+ * Silencieux si le panier n'existe pas (ne lance pas d'erreur).
+ *
+ * @param {string} userId
+ * @returns {Promise<void>}
  */
 export const clearCart = async (userId) => {
   await Cart.findOneAndUpdate({ userId }, { items: [] });

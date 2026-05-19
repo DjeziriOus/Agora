@@ -1,10 +1,26 @@
+/**
+ * @file Handlers HTTP des routes `/api/addresses/*` (adresses de livraison).
+ *
+ * Voir aussi : docs/modules/backend/controllers-clientAddressController.md
+ *
+ * NOTE : ce fichier utilise une convention différente du reste du projet —
+ * export default d'un objet avec toutes les méthodes, plutôt que des exports
+ * nommés. Idem pour `clientAddressService`.
+ */
+
 import clientAddressService from '../services/clientAddressService.js';
 
 /**
- * Controller for client address endpoints
+ * Objet regroupant tous les handlers HTTP pour les adresses client.
+ *
+ * @type {Record<string, (req: import('express').Request, res: import('express').Response) => Promise<void>>}
  */
 const clientAddressController = {
-  // Create a new address
+  /**
+   * Crée une nouvelle adresse pour l'utilisateur connecté.
+   * Route : `POST /api/addresses`
+   * 409 si une adresse identique (champs normalisés) existe déjà.
+   */
   async createAddress(req, res) {
     try {
       console.log('req.user:', req.user);
@@ -20,7 +36,10 @@ const clientAddressController = {
     }
   },
 
-  // Get all addresses for the current user
+  /**
+   * Liste toutes les adresses de l'utilisateur connecté.
+   * Route : `GET /api/addresses`
+   */
   async getAddresses(req, res) {
     try {
       console.log('req.user.id:', req.user.id);
@@ -31,7 +50,10 @@ const clientAddressController = {
     }
   },
 
-  // Get a single address by id
+  /**
+   * Détail d'une adresse (scopée à l'utilisateur connecté).
+   * Route : `GET /api/addresses/:id`
+   */
   async getAddressById(req, res) {
     try {
       const address = await clientAddressService.getAddressById(req.params.id, req.user.id);
@@ -42,7 +64,10 @@ const clientAddressController = {
     }
   },
 
-  // Update an address
+  /**
+   * Met à jour une adresse. 409 si l'update créerait un doublon avec une autre adresse.
+   * Route : `PUT /api/addresses/:id`
+   */
   async updateAddress(req, res) {
     try {
       const address = await clientAddressService.updateAddress(req.params.id, req.user.id, req.body);
@@ -53,7 +78,10 @@ const clientAddressController = {
     }
   },
 
-  // Delete an address
+  /**
+   * Supprime une adresse.
+   * Route : `DELETE /api/addresses/:id`
+   */
   async deleteAddress(req, res) {
     try {
       const result = await clientAddressService.deleteAddress(req.params.id, req.user.id);
@@ -64,7 +92,10 @@ const clientAddressController = {
     }
   },
 
-  // Set default address
+  /**
+   * Marque une adresse comme défaut (et désactive le défaut des autres).
+   * Route : `POST /api/addresses/:id/default`
+   */
   async setDefaultAddress(req, res) {
     try {
       const address = await clientAddressService.setDefaultAddress(req.user.id, req.params.id);
@@ -75,7 +106,10 @@ const clientAddressController = {
     }
   },
 
-  // Search addresses by city and/or label
+  /**
+   * Recherche d'adresses par ville et/ou label.
+   * Route : `GET /api/addresses/search/advanced?city=&addressLabel=`
+   */
   async searchAddresses(req, res) {
     try {
       const { city, addressLabel } = req.query;
@@ -86,10 +120,14 @@ const clientAddressController = {
     }
   },
 
-  // Batch delete addresses
+  /**
+   * Supprime plusieurs adresses en une seule requête.
+   * Route : `POST /api/addresses/batch/delete`
+   * Body : `{ addressIds: string[] }`
+   */
   async batchDeleteAddresses(req, res) {
     try {
-      const { addressIds } = req.body; // expects array of ids
+      const { addressIds } = req.body; // tableau d'IDs
       await clientAddressService.batchDeleteAddresses(req.user.id, addressIds);
       res.status(200).json({ success: true });
     } catch (err) {
@@ -97,7 +135,11 @@ const clientAddressController = {
     }
   },
 
-  // Batch update address label
+  /**
+   * Met à jour le label de plusieurs adresses en une seule requête.
+   * Route : `POST /api/addresses/batch/update-label`
+   * Body : `{ addressIds: string[], newLabel: string }`
+   */
   async batchUpdateAddressLabel(req, res) {
     try {
       const { addressIds, newLabel } = req.body;

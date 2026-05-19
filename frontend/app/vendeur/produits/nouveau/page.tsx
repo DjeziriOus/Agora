@@ -53,6 +53,14 @@ type VariantForm = {
   isActive: boolean;
 };
 
+const blockNonInteger = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if ([".", ",", "e", "E", "+", "-"].includes(e.key)) {
+    e.preventDefault();
+  }
+};
+
+const sanitizeInteger = (value: string) => value.replace(/[^0-9]/g, "");
+
 const createEmptyVariant = (index: number): VariantForm => ({
   code: `variant-${index + 1}`,
   name: "",
@@ -471,9 +479,12 @@ export default function NewProductPage() {
                                 type="number"
                                 min="0"
                                 step="1"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                onKeyDown={blockNonInteger}
                                 value={variant.stock}
                                 onChange={(e) =>
-                                  updateVariant(index, "stock", parseInt(e.target.value) || 0)
+                                  updateVariant(index, "stock", parseInt(sanitizeInteger(e.target.value)) || 0)
                                 }
                               />
                             </div>
@@ -485,12 +496,15 @@ export default function NewProductPage() {
                                 type="number"
                                 min="1"
                                 step="1"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                onKeyDown={blockNonInteger}
                                 value={variant.maxPerOrder}
                                 onChange={(e) =>
                                   updateVariant(
                                     index,
                                     "maxPerOrder",
-                                    parseInt(e.target.value) || 1,
+                                    parseInt(sanitizeInteger(e.target.value)) || 1,
                                   )
                                 }
                               />
@@ -612,8 +626,11 @@ export default function NewProductPage() {
                         type="number"
                         min="0"
                         step="1"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        onKeyDown={blockNonInteger}
                         value={globalStock}
-                        onChange={(e) => setGlobalStock(e.target.value)}
+                        onChange={(e) => setGlobalStock(sanitizeInteger(e.target.value))}
                       />
                     </div>
                     <div>
@@ -624,8 +641,11 @@ export default function NewProductPage() {
                         type="number"
                         min="1"
                         step="1"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        onKeyDown={blockNonInteger}
                         value={globalMaxPerOrder}
-                        onChange={(e) => setGlobalMaxPerOrder(e.target.value)}
+                        onChange={(e) => setGlobalMaxPerOrder(sanitizeInteger(e.target.value))}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Limite combien d&apos;unités un client peut commander en une fois.

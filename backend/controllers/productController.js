@@ -1,7 +1,20 @@
+/**
+ * @file Handlers HTTP des routes `/api/products/*`.
+ *
+ * Voir aussi : docs/modules/backend/controllers-productController.md
+ */
+
 import productService from "../services/productService.js";
 
-// POST /api/products
-// Create a new product (seller only, at least 1 image required).
+/**
+ * Crée un nouveau produit avec ses variantes et au moins 1 image.
+ *
+ * Route : `POST /api/products`
+ * Body (multipart) : `name, description, category, stockThreshold?, variants (JSON string), images (fichiers)`
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 export const createProduct = async (req, res) => {
   try {
     const product = await productService.createProduct({
@@ -22,8 +35,15 @@ export const createProduct = async (req, res) => {
   }
 };
 
-// PUT /api/products/:id
-// Update product text fields and manage images (keep/add/remove).
+/**
+ * Met à jour un produit existant : champs texte, variantes (upsert + delete-by-diff),
+ * gestion des images (`keepImages` + nouveaux fichiers).
+ *
+ * Route : `PUT /api/products/:id`
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 export const updateProduct = async (req, res) => {
   try {
     const product = await productService.updateProduct({
@@ -44,8 +64,15 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// DELETE /api/products/:id
-// Soft-delete a product and clean up its images from Cloudinary.
+/**
+ * Soft-delete un produit (`isDeleted: true`) + désactive ses variantes
+ * + supprime ses images Cloudinary.
+ *
+ * Route : `DELETE /api/products/:id`
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 export const deleteProduct = async (req, res) => {
   try {
     await productService.deleteProduct({
@@ -63,8 +90,15 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-// GET /api/products
-// Public catalogue search/listing.
+/**
+ * Listing public du catalogue, paginé et filtré.
+ *
+ * Route : `GET /api/products`
+ * Query : `q?, search?, category?, minPrice?, maxPrice?, sort?, page?, limit?`
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 export const getProducts = async (req, res) => {
   try {
     const result = await productService.getProducts(req.query);
@@ -76,8 +110,14 @@ export const getProducts = async (req, res) => {
   }
 };
 
-// GET /api/products/:id
-// Return one active, non-deleted product for the public product page.
+/**
+ * Détail public d'un produit (404 s'il est inactif ou supprimé).
+ *
+ * Route : `GET /api/products/:id`
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 export const getProductById = async (req, res) => {
   try {
     const product = await productService.getProductById(req.params.id);
@@ -89,8 +129,14 @@ export const getProductById = async (req, res) => {
   }
 };
 
-// GET /api/products/mine/:id
-// Return one seller-owned product for the edit page, even if it is inactive.
+/**
+ * Détail produit côté vendeur — inclut les produits inactifs (mais pas supprimés).
+ *
+ * Route : `GET /api/products/mine/:id`
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 export const getMyProductById = async (req, res) => {
   try {
     const product = await productService.getMyProductById({
@@ -105,8 +151,14 @@ export const getMyProductById = async (req, res) => {
   }
 };
 
-// GET /api/products/mine
-// Return seller-owned products with optional search/filter/pagination query params.
+/**
+ * Inventaire vendeur paginé avec filtres (recherche, isActive, lowStock).
+ *
+ * Route : `GET /api/products/mine`
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 export const getMyProducts = async (req, res) => {
   try {
     const result = await productService.getMyProducts({

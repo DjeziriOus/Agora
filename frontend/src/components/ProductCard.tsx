@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, Check, ShoppingCart } from "lucide-react";
+import { Check, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,6 @@ export function ProductCard({
   viewMode = "grid",
   className,
 }: ProductCardProps) {
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const router = useRouter();
   const { isSeller } = useAuth();
@@ -51,12 +50,6 @@ export function ProductCard({
     addToCart(product, 1, firstVariant.id);
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 2000);
-  };
-
-  const handleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsWishlisted(!isWishlisted);
   };
 
   const handleNavigate = () => {
@@ -93,22 +86,6 @@ export function ProductCard({
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             sizes="(max-width: 640px) 100vw, 240px"
           />
-
-          {/* Wishlist Button */}
-          <button
-            onClick={handleWishlist}
-            className={cn(
-              "absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-              isWishlisted
-                ? "bg-[var(--agora-danger)] text-white"
-                : "bg-white/90 text-[var(--agora-mid)] hover:text-[var(--agora-danger)]",
-            )}
-            aria-label={
-              isWishlisted ? "Retirer des favoris" : "Ajouter aux favoris"
-            }
-          >
-            <Heart className={cn("w-4 h-4", isWishlisted && "fill-current")} />
-          </button>
 
           {/* Out of Stock Overlay */}
           {isOutOfStock && (
@@ -228,22 +205,6 @@ export function ProductCard({
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
-
-          {/* Wishlist Button */}
-          <button
-            onClick={handleWishlist}
-            className={cn(
-              "absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-              isWishlisted
-                ? "bg-[var(--agora-danger)] text-white"
-                : "bg-white/90 text-[var(--agora-mid)] hover:text-[var(--agora-danger)]",
-            )}
-            aria-label={
-              isWishlisted ? "Retirer des favoris" : "Ajouter aux favoris"
-            }
-          >
-            <Heart className={cn("w-4 h-4", isWishlisted && "fill-current")} />
-          </button>
 
           {/* Out of Stock Overlay */}
           {isOutOfStock && (

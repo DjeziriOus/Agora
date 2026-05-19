@@ -1,3 +1,13 @@
+/**
+ * @file Handlers HTTP des routes `/api/account/*` (profil utilisateur).
+ *
+ * Délègue toute la logique métier à {@link module:services/authService} et
+ * passe par Better Auth pour les mises à jour de profil (afin que la session
+ * reste synchronisée).
+ *
+ * Voir aussi : docs/modules/backend/controllers-authController.md
+ */
+
 import * as authService from '../services/authService.js';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
 import User from '../models/User.js';
@@ -5,7 +15,12 @@ import { fromNodeHeaders } from 'better-auth/node';
 import { auth } from '../auth.js';
 
 /**
- * GET /api/auth/me
+ * Renvoie le profil de l'utilisateur connecté.
+ *
+ * Route : `GET /api/account/me`
+ *
+ * @param {import('express').Request} req - `req.user` est posé par {@link verifyToken}.
+ * @param {import('express').Response} res
  */
 const getProfile = async (req, res) => {
   try {
@@ -17,7 +32,14 @@ const getProfile = async (req, res) => {
 };
 
 /**
- * POST /api/auth/resend-verification
+ * Renvoie un nouvel email de vérification à l'utilisateur connecté.
+ *
+ * Route : `POST /api/account/resend-verification`
+ *
+ * Protégée par le rate limiter {@link module:middleware/rateLimiter.resendLimiter}.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
  */
 const resendVerificationEmail = async (req, res) => {
   try {
@@ -29,8 +51,19 @@ const resendVerificationEmail = async (req, res) => {
 };
 
 /**
- * PUT /api/account/profile-picture
- * Upload or replace the user's profile picture via Cloudinary.
+ * Upload ou remplace la photo de profil de l'utilisateur.
+ *
+ * Séquence :
+ *   1. Vérifie qu'un fichier est présent (sinon 400).
+ *   2. Upload du nouveau fichier sur Cloudinary (preset "avatar").
+ *   3. Lit l'ancien `imagePublicId` pour le nettoyer après.
+ *   4. Met à jour le user via Better Auth (synchronise la session).
+ *   5. Supprime l'ancienne image de Cloudinary (fire-and-forget).
+ *
+ * Route : `PUT /api/account/profile-picture`
+ *
+ * @param {import('express').Request} req - `req.file` posé par le middleware multer.
+ * @param {import('express').Response} res
  */
 const updateProfilePicture = async (req, res) => {
   try {
@@ -50,13 +83,13 @@ const updateProfilePicture = async (req, res) => {
     );
     const oldPublicId = existingUser?.imagePublicId || "";
 
-    // Update the user document through BetterAuth so the session stays in sync
+    // Mise à jour via Better Auth pour que la session reflète la nouvelle image.
     await auth.api.updateUser({
       body: { image: url, imagePublicId: publicId },
       headers: fromNodeHeaders(req.headers),
     });
 
-    // Delete old avatar from Cloudinary (fire-and-forget, best effort)
+    // Suppression best-effort de l'ancien avatar Cloudinary (n'attend pas le retour).
     if (oldPublicId) {
       deleteFromCloudinary(oldPublicId).catch(() => {});
     }
@@ -71,8 +104,12 @@ const updateProfilePicture = async (req, res) => {
 };
 
 /**
- * DELETE /api/account/profile-picture
- * Remove the user's profile picture from Cloudinary and clear the image field.
+ * Supprime la photo de profil de l'utilisateur (Cloudinary + base).
+ *
+ * Route : `DELETE /api/account/profile-picture`
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
  */
 const deleteProfilePicture = async (req, res) => {
   try {
@@ -86,13 +123,13 @@ const deleteProfilePicture = async (req, res) => {
 
     const oldPublicId = existingUser.imagePublicId || "";
 
-    // Clear the image fields through BetterAuth
+    // Reset des champs image via Better Auth.
     await auth.api.updateUser({
       body: { image: "", imagePublicId: "" },
       headers: fromNodeHeaders(req.headers),
     });
 
-    // Delete from Cloudinary (fire-and-forget)
+    // Suppression best-effort de l'image Cloudinary.
     if (oldPublicId) {
       deleteFromCloudinary(oldPublicId).catch(() => {});
     }
