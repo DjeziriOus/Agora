@@ -39,6 +39,10 @@ function mapDeleteAccountError(error: DeleteAccountError) {
       return "Le mot de passe actuel est incorrect.";
     case "CREDENTIAL_ACCOUNT_NOT_FOUND":
       return "Ce compte n'utilise pas encore de mot de passe. Définissez-en un avant de pouvoir supprimer le compte.";
+    case "EMAIL_REQUIRED":
+      return "Veuillez confirmer votre adresse e-mail pour continuer.";
+    case "EMAIL_MISMATCH":
+      return "L'adresse e-mail saisie ne correspond pas à celle du compte.";
     case "PENDING_CLIENT_ORDERS":
     case "PENDING_SELLER_ORDERS":
       return (
@@ -53,9 +57,17 @@ function mapDeleteAccountError(error: DeleteAccountError) {
 }
 
 export function AccountDangerZoneCard() {
-  const { logout, refreshSession, isSeller } = useAuth();
+  const { user, logout, refreshSession, isSeller } = useAuth();
   const router = useRouter();
+  // hasPassword === false → flow OAuth (validation par email).
+  // hasPassword === true → flow standard (validation par mot de passe).
+  // hasPassword === undefined → encore en chargement, on désactive le bouton.
+  const hasPassword = user?.hasPassword;
+  const isOAuthOnly = hasPassword === false;
+  const userEmail = user?.email ?? "";
+
   const [password, setPassword] = useState("");
+  const [emailConfirm, setEmailConfirm] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -64,6 +76,7 @@ export function AccountDangerZoneCard() {
 
   const resetDeleteFlow = () => {
     setPassword("");
+    setEmailConfirm("");
     setDeleteError(null);
     setIsCredentialsDialogOpen(false);
     setIsConfirmDialogOpen(false);
@@ -80,6 +93,7 @@ export function AccountDangerZoneCard() {
 
     if (!open) {
       setPassword("");
+      setEmailConfirm("");
       setDeleteError(null);
     }
   };
@@ -93,6 +107,7 @@ export function AccountDangerZoneCard() {
 
     if (!open) {
       setPassword("");
+      setEmailConfirm("");
       setDeleteError(null);
     }
   };
@@ -102,7 +117,12 @@ export function AccountDangerZoneCard() {
   ) => {
     event.preventDefault();
 
-    if (!password) {
+    if (isOAuthOnly) {
+      if (!emailConfirm) {
+        setDeleteError("Veuillez saisir votre adresse e-mail pour continuer.");
+        return;
+      }
+    } else if (!password) {
       setDeleteError("Le mot de passe actuel est obligatoire pour continuer.");
       return;
     }
@@ -118,7 +138,9 @@ export function AccountDangerZoneCard() {
           "Content-Type": "application/json",
           "ngrok-skip-browser-warning": "true",
         },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify(
+          isOAuthOnly ? { email: emailConfirm } : { password },
+        ),
       });
 
       if (!response.ok) {
@@ -141,7 +163,13 @@ export function AccountDangerZoneCard() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!password) {
+    if (isOAuthOnly && !emailConfirm) {
+      setDeleteError("Veuillez saisir votre adresse e-mail pour continuer.");
+      setIsConfirmDialogOpen(false);
+      setIsCredentialsDialogOpen(true);
+      return;
+    }
+    if (!isOAuthOnly && !password) {
       setDeleteError("Le mot de passe actuel est obligatoire pour continuer.");
       setIsConfirmDialogOpen(false);
       setIsCredentialsDialogOpen(true);
@@ -152,6 +180,35 @@ export function AccountDangerZoneCard() {
     setIsDeleting(true);
 
     try {
+      // Pour les comptes OAuth sans mot de passe : appelle notre endpoint
+      // backend dédié (authClient.deleteUser exige un mdp côté Better Auth).
+      if (isOAuthOnly) {
+        const response = await fetch(`${API_URL}/api/account/delete-oauth`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "ngrok-skip-browser-warning": "true",
+          },
+          body: JSON.stringify({ email: emailConfirm }),
+        });
+
+        if (!response.ok) {
+          const error = (await response.json()) as DeleteAccountError;
+          setDeleteError(mapDeleteAccountError(error));
+          setIsConfirmDialogOpen(false);
+          setIsCredentialsDialogOpen(true);
+          return;
+        }
+
+        // Côté backend on a supprimé toutes les sessions — on enchaîne sur
+        // logout() local pour nettoyer l'état React + redirect.
+        toast.success("Compte supprimé.");
+        resetDeleteFlow();
+        await logout();
+        return;
+      }
+
       const { error } = await authClient.deleteUser({
         password,
         callbackURL: "/login",
@@ -242,21 +299,44 @@ export function AccountDangerZoneCard() {
               </p>
             ) : null}
 
-            <div className="space-y-2">
-              <Label htmlFor="delete-account-password">
-                Mot de passe actuel
-              </Label>
-              <Input
-                id="delete-account-password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => {
-                  setPassword(event.target.value);
-                  setDeleteError(null);
-                }}
-              />
-            </div>
+            {isOAuthOnly ? (
+              <div className="space-y-2">
+                <Label htmlFor="delete-account-email">
+                  Confirmez votre adresse e-mail
+                </Label>
+                <Input
+                  id="delete-account-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder={userEmail}
+                  value={emailConfirm}
+                  onChange={(event) => {
+                    setEmailConfirm(event.target.value);
+                    setDeleteError(null);
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Votre compte est lié à Google. Saisissez l'adresse e-mail
+                  associée pour confirmer la suppression.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="delete-account-password">
+                  Mot de passe actuel
+                </Label>
+                <Input
+                  id="delete-account-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    setDeleteError(null);
+                  }}
+                />
+              </div>
+            )}
 
             <DialogFooter>
               <Button

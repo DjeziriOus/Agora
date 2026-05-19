@@ -60,6 +60,7 @@
  */
 
 import express from "express";
+import mongoose from "mongoose";
 import { fromNodeHeaders } from "better-auth/node";
 import { auth } from "../auth.js";
 import {
@@ -71,7 +72,10 @@ import {
 import { verifyToken } from "../middleware/auth.js";
 import { uploadAvatar } from "../middleware/upload.js";
 import { resendLimiter } from "../middleware/rateLimiter.js";
-import { getAccountDeletionBlockReason } from "../services/accountDeletionService.js";
+import {
+  cleanupDeletedUserData,
+  getAccountDeletionBlockReason,
+} from "../services/accountDeletionService.js";
 const router = express.Router();
 router.get("/me", verifyToken, getProfile);
 
@@ -86,16 +90,14 @@ router.post(
   resendVerificationEmail,
 );
 
+// Normalise un email pour comparaison (trim + lowercase).
+const normalizeEmail = (value) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
 router.post("/delete-check", verifyToken, async (req, res) => {
   const password =
     typeof req.body?.password === "string" ? req.body.password : "";
-
-  if (!password) {
-    return res.status(400).json({
-      code: "PASSWORD_REQUIRED",
-      message: "Le mot de passe actuel est obligatoire pour continuer.",
-    });
-  }
+  const emailConfirm = normalizeEmail(req.body?.email);
 
   try {
     const accounts = await auth.api.listUserAccounts({
@@ -105,18 +107,36 @@ router.post("/delete-check", verifyToken, async (req, res) => {
       (account) => account.providerId === "credential",
     );
 
+    // ── Cas 1 : pas de mot de passe (compte Google OAuth uniquement) ──────────
+    // On valide la suppression en demandant à l'utilisateur de retaper son
+    // propre email (pas de mdp à vérifier).
     if (!credentialAccount) {
-      return res.status(400).json({
-        code: "CREDENTIAL_ACCOUNT_NOT_FOUND",
-        message:
-          "Ce compte n'utilise pas encore de mot de passe. Définissez-en un avant de pouvoir supprimer le compte.",
+      if (!emailConfirm) {
+        return res.status(400).json({
+          code: "EMAIL_REQUIRED",
+          message:
+            "Veuillez confirmer votre adresse e-mail pour continuer la suppression.",
+        });
+      }
+      if (normalizeEmail(req.user.email) !== emailConfirm) {
+        return res.status(400).json({
+          code: "EMAIL_MISMATCH",
+          message: "L'adresse e-mail saisie ne correspond pas à celle du compte.",
+        });
+      }
+    } else {
+      // ── Cas 2 : compte avec mot de passe ────────────────────────────────────
+      if (!password) {
+        return res.status(400).json({
+          code: "PASSWORD_REQUIRED",
+          message: "Le mot de passe actuel est obligatoire pour continuer.",
+        });
+      }
+      await auth.api.verifyPassword({
+        body: { password },
+        headers: fromNodeHeaders(req.headers),
       });
     }
-
-    await auth.api.verifyPassword({
-      body: { password },
-      headers: fromNodeHeaders(req.headers),
-    });
 
     const blockReason = await getAccountDeletionBlockReason({
       userId: req.user.id,
@@ -163,6 +183,98 @@ router.post("/delete-check", verifyToken, async (req, res) => {
         code === "INVALID_PASSWORD"
           ? "Le mot de passe actuel est incorrect."
           : message,
+    });
+  }
+});
+
+/**
+ * Supprime un compte n'ayant PAS de mot de passe (Google OAuth uniquement).
+ *
+ * `authClient.deleteUser()` côté frontend exige un mot de passe pour les
+ * comptes credential — il n'a pas de chemin natif pour les comptes OAuth
+ * sans password. On gère donc la suppression côté backend après avoir
+ * revalidé l'email + l'absence de commandes vivantes, puis on nettoie les
+ * collections Better Auth (user / accounts / sessions) directement.
+ *
+ * Route : `POST /api/account/delete-oauth`
+ *
+ * @swagger
+ * /api/account/delete-oauth:
+ *   post:
+ *     tags: [Account]
+ *     summary: (OAuth-only) Supprime le compte après confirmation par email
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string }
+ *     responses:
+ *       200: { description: Compte supprimé }
+ *       400: { description: "EMAIL_MISMATCH ou compte avec mot de passe" }
+ */
+router.post("/delete-oauth", verifyToken, async (req, res) => {
+  const emailConfirm = normalizeEmail(req.body?.email);
+
+  if (!emailConfirm) {
+    return res.status(400).json({
+      code: "EMAIL_REQUIRED",
+      message: "Veuillez confirmer votre adresse e-mail pour supprimer le compte.",
+    });
+  }
+
+  if (normalizeEmail(req.user.email) !== emailConfirm) {
+    return res.status(400).json({
+      code: "EMAIL_MISMATCH",
+      message: "L'adresse e-mail saisie ne correspond pas à celle du compte.",
+    });
+  }
+
+  try {
+    // Defense-in-depth : refuse si l'utilisateur a un mot de passe (il doit
+    // passer par le flow `authClient.deleteUser` standard).
+    const accounts = await auth.api.listUserAccounts({
+      headers: fromNodeHeaders(req.headers),
+    });
+    const hasCredential = accounts.some((a) => a.providerId === "credential");
+    if (hasCredential) {
+      return res.status(400).json({
+        code: "PASSWORD_REQUIRED",
+        message:
+          "Ce compte a un mot de passe — utilisez le flow standard de suppression.",
+      });
+    }
+
+    const userId = req.user.id;
+    const role = typeof req.user.role === "string" ? req.user.role : "buyer";
+
+    // Refus si commandes en cours.
+    const blockReason = await getAccountDeletionBlockReason({ userId, role });
+    if (blockReason) {
+      return res.status(400).json(blockReason);
+    }
+
+    // 1) Cleanup applicatif (cart, addresses, shop+products si vendeur).
+    await cleanupDeletedUserData({ userId, role });
+
+    // 2) Suppression des enregistrements Better Auth.
+    const db = mongoose.connection.db;
+    await db.collection("sessions").deleteMany({ userId });
+    await db.collection("accounts").deleteMany({ userId });
+    await db.collection("user").deleteOne({ _id: userId });
+
+    return res.status(200).json({ status: true });
+  } catch (error) {
+    console.error("[delete-oauth] failed:", error);
+    return res.status(500).json({
+      code: "DELETE_OAUTH_FAILED",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Impossible de supprimer le compte.",
     });
   }
 });

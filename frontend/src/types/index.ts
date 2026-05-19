@@ -8,6 +8,14 @@ export interface User {
   role: "buyer" | "seller" | "unassigned";
   emailVerified: boolean;
   image?: string;
+  /**
+   * true si l'utilisateur a un mot de passe défini (compte credential).
+   * false pour les comptes créés uniquement via Google OAuth — le frontend
+   * masque alors la carte "changer mot de passe" et bascule la suppression
+   * de compte vers la validation par email.
+   * undefined tant que /api/account/me n'a pas répondu.
+   */
+  hasPassword?: boolean;
 }
 
 export interface Store {

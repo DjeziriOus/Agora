@@ -91,18 +91,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Charge `hasPassword` depuis /api/account/me — non disponible dans la session
+  // Better Auth (qui ne sait pas si un account credential existe).
+  const fetchHasPassword = useCallback(async (): Promise<boolean | undefined> => {
+    try {
+      const response = await fetch(`${API_URL}/api/account/me`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+        headers: { "ngrok-skip-browser-warning": "true" },
+      });
+      if (!response.ok) return undefined;
+      const data = (await response.json()) as { hasPassword?: boolean };
+      return data.hasPassword;
+    } catch {
+      return undefined;
+    }
+  }, []);
+
   const refreshSession = useCallback(async () => {
     try {
       const { data } = await authClient.getSession();
       if (data?.user) {
-        setUser(mapUser(data.user as Record<string, unknown>));
+        const mapped = mapUser(data.user as Record<string, unknown>);
+        const hasPassword = await fetchHasPassword();
+        setUser({ ...mapped, hasPassword });
       } else {
         setUser(null);
       }
     } catch {
       setUser(null);
     }
-  }, []);
+  }, [fetchHasPassword]);
 
   // Fetch the backend auth flags so register, verify-email, and settings flows stay in sync.
   const ensureAuthConfig = useCallback(async () => {
@@ -166,7 +186,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data } = await authClient.getSession();
         console.log(data);
         if (data?.user) {
-          setUser(mapUser(data.user as Record<string, unknown>));
+          const mapped = mapUser(data.user as Record<string, unknown>);
+          const hasPassword = await fetchHasPassword();
+          setUser({ ...mapped, hasPassword });
         } else {
           setUser(null);
         }
@@ -236,8 +258,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // then redirect to the appropriate page based on the user's role.
     if (data?.user) {
       const mapped = mapUser(data.user as Record<string, unknown>);
-      setUser(mapped);
-      return mapped;
+      // login via email/password ⇒ hasPassword garanti à true (le user vient
+      // de prouver qu'il a un mot de passe). Évite un fetch superflu.
+      const withPwd = { ...mapped, hasPassword: true };
+      setUser(withPwd);
+      return withPwd;
     }
     return null;
   }, []);

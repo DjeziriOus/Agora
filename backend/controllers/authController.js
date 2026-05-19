@@ -11,11 +11,14 @@
 import * as authService from '../services/authService.js';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
 import User from '../models/User.js';
+import mongoose from 'mongoose';
 import { fromNodeHeaders } from 'better-auth/node';
 import { auth } from '../auth.js';
 
 /**
- * Renvoie le profil de l'utilisateur connecté.
+ * Renvoie le profil de l'utilisateur connecté, augmenté de `hasPassword`
+ * (true si l'utilisateur a un compte credential Better Auth — false pour
+ * les comptes créés uniquement via Google OAuth).
  *
  * Route : `GET /api/account/me`
  *
@@ -24,8 +27,20 @@ import { auth } from '../auth.js';
  */
 const getProfile = async (req, res) => {
   try {
-    const user = await authService.getProfile(req.user._id);
-    res.status(200).json(user);
+    const user = await authService.getProfile(req.user.id);
+
+    // Détecte si l'utilisateur a défini un mot de passe (credential account).
+    // Les comptes Google-only n'ont qu'un account `providerId: "google"` →
+    // hasPassword = false → le frontend cache "changer le mdp" et bascule la
+    // suppression de compte vers la validation par email.
+    const credentialAccount = await mongoose.connection.db
+      .collection("accounts")
+      .findOne({ userId: req.user.id, providerId: "credential" });
+
+    const userObj = user.toObject ? user.toObject() : user;
+    userObj.hasPassword = !!credentialAccount;
+
+    res.status(200).json(userObj);
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message });
   }
