@@ -1,5 +1,17 @@
+/**
+ * @file Configuration Cloudinary + helpers d'upload/suppression d'images.
+ *
+ * Voir aussi : docs/modules/backend/config-cloudinary.md
+ */
+
 import { v2 as cloudinary } from "cloudinary";
 
+/**
+ * Vrai si les trois variables d'environnement Cloudinary sont définies.
+ * Les services consomment ce booléen pour basculer sur des URLs placeholder en dev.
+ *
+ * @type {boolean}
+ */
 export const hasCloudinaryConfig = Boolean(
 	process.env.CLOUDINARY_CLOUD_NAME &&
 		process.env.CLOUDINARY_API_KEY &&
@@ -13,10 +25,11 @@ cloudinary.config({
 	api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ── Credit-Saving Defaults ───────────────────────────────────────────────────
-// Incoming transformation: downscale oversized uploads BEFORE they are stored,
-// so the "original" asset is already reasonable. This saves storage and avoids
-// paying for on-the-fly transforms later.
+/**
+ * Presets de transformation appliqués À L'UPLOAD (économise stockage + bande passante).
+ *
+ * @type {Record<"product"|"shopLogo"|"shopBanner"|"avatar", { folder: string, transformation: object[] }>}
+ */
 const UPLOAD_PRESETS = {
 	product: {
 		folder: "agora/products",
@@ -45,11 +58,11 @@ const UPLOAD_PRESETS = {
 };
 
 /**
- * Upload a file buffer to Cloudinary with a preset (product | shopLogo | shopBanner).
- * Incoming transformation limits dimensions and converts to webp before storage.
- * @param {Buffer} fileBuffer — raw file bytes (from multer memoryStorage)
- * @param {"product"|"shopLogo"|"shopBanner"} preset — which upload preset to use
- * @returns {Promise<{ url: string, publicId: string }>}
+ * Envoie un buffer de fichier vers Cloudinary avec un preset de transformation.
+ *
+ * @param {Buffer} fileBuffer Données binaires du fichier (depuis `multer.memoryStorage`).
+ * @param {"product"|"shopLogo"|"shopBanner"|"avatar"} [preset="product"] Preset à utiliser.
+ * @returns {Promise<{ url: string, publicId: string }>} URL HTTPS publique + identifiant Cloudinary.
  */
 export const uploadToCloudinary = (fileBuffer, preset = "product") => {
 	const config = UPLOAD_PRESETS[preset] || UPLOAD_PRESETS.product;
@@ -75,17 +88,22 @@ export const uploadToCloudinary = (fileBuffer, preset = "product") => {
 };
 
 /**
- * Delete a single image from Cloudinary by its public ID.
- * @param {string} publicId
+ * Supprime UNE image Cloudinary par son `publicId`.
+ *
+ * @param {string} publicId Identifiant Cloudinary de l'image (stocké en base à l'upload).
+ * @returns {Promise<{ result: string }>} Résultat Cloudinary (`{ result: "ok" }` ou `{ result: "not found" }`).
  */
 export const deleteFromCloudinary = (publicId) => {
 	return cloudinary.uploader.destroy(publicId);
 };
 
 /**
- * Delete multiple images from Cloudinary in parallel.
- * Silently ignores individual failures (asset may already be gone).
- * @param {{ publicId: string }[]} images — array of image objects with publicId
+ * Supprime plusieurs images Cloudinary en parallèle (best-effort).
+ *
+ * Utilise `Promise.allSettled` : une erreur sur une image n'interrompt pas les autres.
+ *
+ * @param {{ publicId: string }[]} [images=[]] Tableau d'objets contenant un `publicId`.
+ * @returns {Promise<void>} Se résout quand toutes les suppressions ont été tentées.
  */
 export const deleteMultipleFromCloudinary = async (images = []) => {
 	await Promise.allSettled(

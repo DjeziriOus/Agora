@@ -1,3 +1,35 @@
+/**
+ * @file Modèle Mongoose des variantes de produit.
+ *
+ * Une variante représente une déclinaison (taille, couleur, etc.) d'un produit.
+ * C'est ici que sont stockés le PRIX et le STOCK — pas sur le produit parent.
+ *
+ * Voir aussi : docs/modules/backend/models-Variant.md
+ *
+ * @swagger
+ * components:
+ *   schemas:
+ *     Variant:
+ *       type: object
+ *       properties:
+ *         id: { type: string }
+ *         product: { type: string, description: "ObjectId du produit parent" }
+ *         code: { type: string, description: "Identifiant interne unique par produit" }
+ *         name: { type: string, description: "Affiché à l'acheteur (ex: 'Taille M')" }
+ *         sku: { type: string }
+ *         price: { type: number, minimum: 0 }
+ *         stock: { type: number, minimum: 0, description: "Masqué dans les réponses publiques" }
+ *         maxPerOrder: { type: number, minimum: 1, default: 10 }
+ *         attributes:
+ *           type: object
+ *           additionalProperties: { type: string }
+ *           example: { taille: "M", couleur: "rouge" }
+ *         isActive: { type: boolean }
+ *         maxPurchasable: { type: number, description: "min(stock, maxPerOrder) — exposé en public" }
+ *         inStock: { type: boolean, description: "Calculé pour public" }
+ *         lowStock: { type: boolean, description: "Calculé pour public" }
+ */
+
 import mongoose from "mongoose";
 
 const variantSchema = new mongoose.Schema(
@@ -63,10 +95,12 @@ const variantSchema = new mongoose.Schema(
 	},
 );
 
-// Ensure unique code per product
+// Index composite unique : deux variantes du même produit ne peuvent pas
+// avoir le même code (mais deux produits différents peuvent avoir des
+// variantes avec le même code, ex. "default").
 variantSchema.index({ product: 1, code: 1 }, { unique: true });
 
-// Map the MongoDB _id to id for frontend access
+// Sérialisation JSON : ajoute `id` (string) en plus de `_id`.
 variantSchema.set("toJSON", {
 	virtuals: true,
 	transform: (_, ret) => {

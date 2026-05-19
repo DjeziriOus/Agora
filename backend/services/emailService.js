@@ -1,3 +1,13 @@
+/**
+ * @file Envoi d'e-mails via l'API HTTP Gmail (pas SMTP).
+ *
+ * Pourquoi HTTP plutôt que SMTP : beaucoup d'hébergeurs (Railway, Vercel)
+ * bloquent le port 25 sortant. L'API Gmail passe par HTTPS et fonctionne
+ * partout.
+ *
+ * Voir aussi : docs/modules/backend/services-emailService.md
+ */
+
 import { google } from "googleapis";
 import {
   verificationEmailTemplate,
@@ -23,6 +33,11 @@ import {
  */
 
 let cachedGmail = null;
+/**
+ * Crée (ou réutilise) un client Gmail authentifié via OAuth 2 + refresh token.
+ * Le SDK gère l'access_token automatiquement à partir du refresh_token.
+ * @returns {import('googleapis').gmail_v1.Gmail}
+ */
 function getGmailClient() {
   if (cachedGmail) return cachedGmail;
   const oAuth2Client = new google.auth.OAuth2(
@@ -36,11 +51,23 @@ function getGmailClient() {
   return cachedGmail;
 }
 
+/**
+ * Encode un sujet en RFC 2047 (`=?UTF-8?B?...?=`) pour que les accents
+ * s'affichent correctement dans les clients mail.
+ * @param {string} subject
+ * @returns {string}
+ */
 function encodeSubject(subject) {
   // RFC 2047 encoded-word so accented characters render correctly in clients.
   return `=?UTF-8?B?${Buffer.from(subject, "utf-8").toString("base64")}?=`;
 }
 
+/**
+ * Construit un message MIME complet encodé en base64url, prêt pour
+ * `gmail.users.messages.send`.
+ * @param {{to: string, subject: string, html: string, from?: string}} params
+ * @returns {string} message MIME encodé
+ */
 function buildRawMessage({ to, subject, html, from }) {
   const fromHeader = from || `"Agora" <${process.env.EMAIL_FROM}>`;
   const message = [
@@ -62,8 +89,12 @@ function buildRawMessage({ to, subject, html, from }) {
 }
 
 /**
- * Low-level send helper. Throws on transport failure so callers can decide
- * whether the failure is fatal or fire-and-forget.
+ * Helper bas niveau d'envoi. Lance une exception en cas d'échec — l'appelant
+ * choisit de la propager (email critique) ou de la silencer (notification).
+ *
+ * @param {{to: string, subject: string, html: string, from?: string}} params
+ * @returns {Promise<Object>} Réponse de l'API Gmail
+ * @throws {Error}
  */
 export async function sendMail({ to, subject, html, from }) {
   if (!to) throw new Error("sendMail: recipient (to) is required");
@@ -82,9 +113,12 @@ export async function sendMail({ to, subject, html, from }) {
 }
 
 /**
- * Fire-and-forget wrapper used by background notifications. We never want
- * a transient mail failure to break an order flow — log the error and move
- * on instead of throwing.
+ * Wrapper fire-and-forget. Une erreur d'envoi est loggée mais jamais propagée.
+ * À utiliser pour toutes les notifications non-critiques (commandes, statuts).
+ *
+ * @param {Object} payload - identique à `sendMail`
+ * @param {string} [label="email"] - label pour les logs
+ * @returns {Promise<void>}
  */
 function sendMailQuiet(payload, label = "email") {
   return sendMail(payload).catch((err) => {
@@ -97,16 +131,33 @@ function sendMailQuiet(payload, label = "email") {
 
 // ─── Public notification functions ────────────────────────────────────────
 
+/**
+ * Envoie l'email de vérification d'adresse au moment de l'inscription.
+ * CRITIQUE — lance une erreur si l'envoi échoue (l'utilisateur ne peut pas
+ * activer son compte sans cet email).
+ * @param {string} email
+ * @param {string} url - lien de vérification généré par Better Auth
+ */
 export async function sendVerificationEmail(email, url) {
   const { subject, html } = verificationEmailTemplate(url);
   await sendMail({ to: email, subject, html });
 }
 
+/**
+ * Envoie l'email de réinitialisation de mot de passe.
+ * @param {string} email
+ * @param {string} url - lien généré par Better Auth
+ */
 export async function sendPasswordResetEmail(email, url) {
   const { subject, html } = passwordResetTemplate(url);
   await sendMail({ to: email, subject, html });
 }
 
+/**
+ * Envoie l'email récap de commande à l'acheteur (fire-and-forget).
+ * @param {string} buyerEmail
+ * @param {Object} order - objet commande sérialisé pour le template
+ */
 export function sendOrderReceiptEmail(buyerEmail, order) {
   const { subject, html } = orderReceiptTemplate(order);
   return sendMailQuiet({ to: buyerEmail, subject, html }, "order-receipt");
