@@ -142,7 +142,14 @@ export const auth = betterAuth({
       redirectURI: `${process.env.FRONTEND_URL}/api/auth/callback/google`,
       errorCallbackURL: `${process.env.FRONTEND_URL}/login?oauthError=1`,
       mapProfileToUser: async (profile) => {
-        console.log(profile);
+        // Reject Google accounts whose email is not verified — prevents
+        // account takeover via unverified third-party emails.
+        if (!profile.email_verified) {
+          throw new APIError("FORBIDDEN", {
+            message:
+              "Votre adresse e-mail Google n'est pas vérifiée. Veuillez la vérifier dans votre compte Google avant de continuer.",
+          });
+        }
         return {
           // Map Google's response to your custom fields
           // Note: Better Auth's built-in 'image' field is automatically
