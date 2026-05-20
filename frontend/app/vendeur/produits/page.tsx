@@ -82,10 +82,11 @@ function VendorProductsContent() {
   }, [search]);
 
   const { data, isLoading, error } = useSellerProducts(
-    { 
-      page: String(page), 
+    {
+      page: String(page),
       limit: String(PRODUCTS_PER_PAGE),
-      ...(debouncedSearch ? { q: debouncedSearch } : {}) 
+      ...(debouncedSearch ? { q: debouncedSearch } : {}),
+      ...(filterLowStock ? { lowStock: "true" } : {}),
     },
     { enabled: hasStore },
   );
@@ -104,11 +105,7 @@ function VendorProductsContent() {
 
   let filteredProducts = products;
 
-  if (filterLowStock) {
-    filteredProducts = filteredProducts.filter(
-      (p) => (p.totalStock ?? 0) <= (p.stockThreshold ?? 5),
-    );
-  }
+  // lowStock filtering is now handled server-side via the API query param.
 
   const handleToggleActive = async (
     productId: string,
