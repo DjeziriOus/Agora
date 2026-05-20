@@ -99,6 +99,7 @@ export default function EditProductPage() {
   const [globalPrice, setGlobalPrice] = useState("");
   const [globalStock, setGlobalStock] = useState("0");
   const [globalMaxPerOrder, setGlobalMaxPerOrder] = useState("10");
+  const [stockThreshold, setStockThreshold] = useState(5);
   // Ghost Memory: variant data persists when toggling
   const [variants, setVariants] = useState<VariantForm[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -137,6 +138,7 @@ export default function EditProductPage() {
   useEffect(() => {
     if (!product) return;
 
+    setStockThreshold(product.stockThreshold ?? 5);
     setExistingImages(product.images || []);
     setNewImages([]);
     newImagePreviewsRef.current.forEach((p) => URL.revokeObjectURL(p));
@@ -196,6 +198,7 @@ export default function EditProductPage() {
       formData.append("description", data.description);
       formData.append("category", data.category);
       formData.append("isActive", String(data.isActive));
+      formData.append("stockThreshold", String(stockThreshold));
 
       if (hasMultipleOptions) {
         // Multi-variant mode
@@ -781,6 +784,24 @@ export default function EditProductPage() {
                       </FormItem>
                     )}
                   />
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">
+                      Seuil de stock bas
+                    </label>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={stockThreshold}
+                      onChange={(e) => setStockThreshold(parseInt(e.target.value) || 1)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Vous serez alerté quand le stock total atteint ce seuil.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 

@@ -84,6 +84,7 @@ export default function NewProductPage() {
   const [globalPrice, setGlobalPrice] = useState("");
   const [globalStock, setGlobalStock] = useState("0");
   const [globalMaxPerOrder, setGlobalMaxPerOrder] = useState("10");
+  const [stockThreshold, setStockThreshold] = useState(5);
 
   // Ghost Memory: variant data persists when toggling
   const [variants, setVariants] = useState<VariantForm[]>([createEmptyVariant(0)]);
@@ -109,6 +110,7 @@ export default function NewProductPage() {
     formData.append("description", data.description);
     formData.append("category", data.category);
     formData.append("isActive", String(data.isActive));
+    formData.append("stockThreshold", String(stockThreshold));
 
     if (hasMultipleOptions) {
       // Multi-variant mode: validate and send variants array
@@ -595,6 +597,25 @@ export default function NewProductPage() {
                       </FormItem>
                     )}
                   />
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">
+                      Seuil de stock bas
+                    </label>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      onKeyDown={blockNonInteger}
+                      value={stockThreshold}
+                      onChange={(e) => setStockThreshold(parseInt(sanitizeInteger(e.target.value)) || 1)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Vous serez alerté quand le stock total atteint ce seuil.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 
