@@ -157,7 +157,11 @@ async function serializeSubOrderForDetail(order, sub) {
             lastName: user.lastName,
             email: user.email,
           }
-        : null,
+        : {
+            firstName: "Compte",
+            lastName: "supprimé",
+            email: null,
+          },
       shippingAddress: order.shippingAddress,
     },
   };
