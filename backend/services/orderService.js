@@ -410,6 +410,9 @@ export async function updateSubOrderStatus(sellerId, subOrderId, status) {
     order.status = 'livree';
   } else if (allStatuses.every((s) => s === 'annulee')) {
     order.status = 'annulee';
+  } else if (allStatuses.every((s) => s === 'livree' || s === 'annulee')) {
+    // Mix of delivered and cancelled — non-cancelled parts are done.
+    order.status = 'livree';
   } else if (allStatuses.some((s) => s === 'en_livraison')) {
     order.status = 'en_livraison';
   } else if (allStatuses.some((s) => s === 'en_preparation')) {
