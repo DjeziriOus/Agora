@@ -170,6 +170,16 @@ function LoginContent() {
               </div>
             </div>
 
+            {/* Forgot Password Link */}
+            <div className="flex justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-[var(--agora-primary)] hover:underline"
+              >
+                Mot de passe oublié ?
+              </Link>
+            </div>
+
             {/* Submit Button */}
             <button
               type="submit"
