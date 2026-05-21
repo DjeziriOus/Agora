@@ -261,10 +261,22 @@ router.post("/delete-oauth", verifyToken, async (req, res) => {
     await cleanupDeletedUserData({ userId, role });
 
     // 2) Suppression des enregistrements Better Auth.
+    //    Better Auth peut stocker _id comme string ou ObjectId selon la version
+    //    et l'adaptateur. On tente les deux formats pour la collection `user`.
     const db = mongoose.connection.db;
     await db.collection("sessions").deleteMany({ userId });
     await db.collection("accounts").deleteMany({ userId });
-    await db.collection("user").deleteOne({ _id: userId });
+
+    let deleted = await db.collection("user").deleteOne({ _id: userId });
+    if (deleted.deletedCount === 0) {
+      try {
+        deleted = await db
+          .collection("user")
+          .deleteOne({ _id: new mongoose.Types.ObjectId(userId) });
+      } catch {
+        // userId n'est pas un ObjectId valide — on ignore.
+      }
+    }
 
     return res.status(200).json({ status: true });
   } catch (error) {
